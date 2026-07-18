@@ -200,6 +200,48 @@
     #settings h2{margin-top:2px}
   }
 
+  /* Friends panel */
+  #friends{position:fixed;top:60px;right:16px;width:300px;padding:16px;z-index:80;display:none;
+    max-height:calc(100vh - 90px);overflow-y:auto}
+  #friends.open{display:block}
+  #friends h2{margin:2px 0 10px;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+  .fr-note{font-size:12px;color:var(--muted);line-height:1.45;padding:6px 0}
+  .fr-me{font-size:13px;margin-bottom:10px} .fr-me b{color:var(--accent)}
+  .fr-search{display:flex;gap:6px;margin-bottom:8px}
+  .fr-search input{flex:1;min-width:0;padding:9px 11px;border-radius:10px;border:1px solid var(--border);
+    background:rgba(0,0,0,.35);color:var(--text);font-size:14px;outline:none}
+  .fr-search input:focus{border-color:var(--accent)}
+  .fr-search button{padding:0 14px;border-radius:10px;border:1px solid var(--border);
+    background:rgba(90,209,255,.14);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;flex:0 0 auto}
+  #fr-result{margin-bottom:4px}
+  .fr-item{display:flex;align-items:center;gap:9px;padding:9px 2px;border-bottom:1px solid rgba(120,160,255,.08)}
+  .fr-item:last-child{border-bottom:none}
+  .fr-av{width:26px;height:26px;border-radius:50%;background:rgba(120,160,255,.15);display:flex;align-items:center;
+    justify-content:center;font-size:13px;overflow:hidden;flex:0 0 auto}
+  .fr-av img{width:100%;height:100%;object-fit:cover}
+  .fr-nm{flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fr-nm small{color:var(--muted)}
+  .fr-status{width:9px;height:9px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 6px currentColor}
+  .fr-status.on{background:#2ecc71;color:#2ecc71}
+  .fr-status.off{background:#ff5a4d;color:#ff5a4d}
+  .fr-add{padding:6px 13px;border-radius:9px;border:none;background:var(--accent);color:#04121f;font-size:12px;font-weight:700;cursor:pointer}
+  .fr-tag{font-size:11px;color:var(--muted)}
+  .fr-locate,.fr-del{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 5px}
+  .fr-locate:hover{color:var(--accent)} .fr-del:hover{color:var(--iss)}
+  .acct-uname{font-size:12.5px;color:var(--muted);margin:2px 0 12px}
+  .acct-uname b{color:var(--accent)} .acct-uname .lnk{color:var(--accent);cursor:pointer}
+
+  @media (max-width:820px){
+    #friends{left:0;right:0;bottom:0;top:auto;width:auto;display:block;
+      border-radius:22px 22px 0 0;transform:translateY(115%);
+      transition:transform .34s cubic-bezier(.32,.72,0,1);max-height:min(74vh,620px);z-index:60;
+      padding:0 16px calc(env(safe-area-inset-bottom) + 18px);overflow-y:auto}
+    #friends.open{transform:translateY(0)}
+    #friends h2{margin-top:2px}
+    #mbar button{font-size:10px;gap:2px} #mbar button .ic{font-size:16px}
+    .fr-nm{font-size:15px}
+  }
+
   #err{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:70;
     background:rgba(120,30,30,.9);border:1px solid #ff6b6b;color:#ffdede;padding:9px 16px;
     border-radius:10px;font-size:13px;display:none;max-width:90vw}
@@ -400,8 +442,21 @@
 <nav id="mbar">
   <button id="mb-layers"><span class="ic">🛰️</span>Layers</button>
   <button id="mb-over"><span class="ic">📡</span>Overhead</button>
+  <button id="mb-friends"><span class="ic">👥</span>Friends</button>
   <button id="mb-settings"><span class="ic">⚙️</span>Settings</button>
 </nav>
+
+<div id="friends" class="panel">
+  <div class="sheet-handle"></div>
+  <h2>Friends</h2>
+  <div id="fr-me"></div>
+  <div class="fr-search">
+    <input id="fr-q" placeholder="Search by username…" autocomplete="off" />
+    <button id="fr-go">Search</button>
+  </div>
+  <div id="fr-result"></div>
+  <div id="fr-list"></div>
+</div>
 
 <div id="backdrop"></div>
 
@@ -545,7 +600,10 @@ function initGlobe(){
     .ringColor(()=> t=>`rgba(90,209,255,${1-t})`)
     .ringMaxRadius(4).ringPropagationSpeed(2).ringRepeatPeriod(900)
     .pathColor(()=> ['rgba(255,90,77,.85)','rgba(255,90,77,0)'])
-    .pathStroke(2).pathPointAlt('alt').pathTransitionDuration(0);
+    .pathStroke(2).pathPointAlt('alt').pathTransitionDuration(0)
+    .labelLat('lat').labelLng('lng').labelText(d=>'@'+d.username)
+    .labelColor(d=>d.online?'#2ecc71':'#ff5a4d').labelDotRadius(0.5).labelSize(1.0)
+    .labelAltitude(0.013).labelResolution(2);
 
   const controls = world.controls();
   controls.autoRotate = true; controls.autoRotateSpeed = 0.28;
@@ -787,6 +845,7 @@ function setObserver(lat,lng,recenter){
   saveSettings();
   if(selected && selected.id==='25544') renderPasses();
   scanAlerts();
+  shareLocation();
 }
 // Bottom-right location button: get your location if needed, then centre on it.
 function flyToMe(){
@@ -911,7 +970,7 @@ async function boot(){
 /* ---------- Mobile sheets + bottom toolbar ---------- */
 const mq = window.matchMedia('(max-width:820px)');
 function isMobile(){ return mq.matches; }
-const SHEETS = ['controls','overhead','detail','settings'];
+const SHEETS = ['controls','overhead','detail','settings','friends'];
 function syncBar(){
   const c=$('controls').classList.contains('open'), o=$('overhead').classList.contains('open');
   if($('mb-layers')) $('mb-layers').classList.toggle('active',c);
@@ -954,6 +1013,7 @@ function initMobileUI(){
   $('backdrop').addEventListener('click', closeSheets);
   $('mb-layers').addEventListener('click', ()=>toggleSheet('controls'));
   $('mb-over').addEventListener('click', ()=>toggleSheet('overhead'));
+  $('mb-friends').addEventListener('click', ()=>toggleSheet('friends'));
   $('mb-settings').addEventListener('click', ()=>toggleSheet('settings'));
   SHEETS.forEach(id=>enableSwipeClose($(id)));   // swipe-down to close
 }
@@ -1044,6 +1104,8 @@ function registerSW(){
 
 /* ---------- Account (Google sign-in) + settings sync (Firebase) ---------- */
 let currentUser=null, unsubSettings=null, applyingRemote=false, saveTimer=null, firstSyncPending=false, wasSignedIn=false;
+// Friends / presence
+let myProfile=null, friends=[], unsubFriends=null, unsubMyProfile=null, friendProfileUnsubs={}, presenceTimer=null, friendsTick=null;
 const GOOGLE_G = '<svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.1 0 24 0 14.6 0 6.4 5.4 2.5 13.3l7.8 6.1C12.2 13.3 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5c4.2-3.9 6.6-9.6 6.6-16.9z"/><path fill="#FBBC05" d="M10.3 19.4l-7.8-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.5 10.7l7.8-6.1c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6z"/><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.1-5.5c-2 1.3-4.6 2.1-7.9 2.1-6.4 0-11.8-3.8-13.7-9.4l-7.8 6.1C6.4 42.6 14.6 48 24 48z"/></svg>';
 const USER_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
 
@@ -1104,9 +1166,13 @@ function updateAccountUI(user){
         ${photo?`<img src="${photo}" referrerpolicy="no-referrer" alt="">`:''}
         <div><div class="nm">${user.displayName||'Signed in'}</div><div class="em">${user.email||''}</div></div>
       </div>
+      <div class="acct-uname">${(myProfile&&myProfile.username)?('@'+myProfile.username):'<span class="lnk" id="acct-setuname">+ choose a username</span>'}</div>
+      <button class="act" id="acct-friends">👥 Friends</button>
       <button class="act" id="signout">Sign out</button>
-      <div class="note bot">✓ Your location & filters are saved to your account and sync across devices.</div>`;
+      <div class="note bot">✓ Your location & settings sync to your account across devices.</div>`;
     const so=$('signout'); if(so) so.onclick=()=>{ signOutUser(); menu.classList.remove('open'); };
+    const af=$('acct-friends'); if(af) af.onclick=()=>{ menu.classList.remove('open'); openSheet('friends'); };
+    const su=$('acct-setuname'); if(su) su.onclick=()=>{ menu.classList.remove('open'); openSheet('friends'); };
   } else {
     btn.innerHTML = USER_ICON;
     menu.innerHTML = `
@@ -1160,14 +1226,163 @@ function initAuth(){
       unsubSettings = onSnapshot(doc(db,'users',user.uid),
         snap=>{ if(snap.exists()) applySettings(snap.data()); },
         err=>console.warn('settings snapshot error',err));
+      startSocial(user);
     } else {
       if(wasSignedIn) showToast('Signed out');
       wasSignedIn=false;
+      stopSocial();
     }
   });
 }
 
-initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI();
+/* ---------- Friends / presence / location sharing ---------- */
+function startSocial(user){
+  const {db, doc, collection, onSnapshot}=window.fb;
+  if(unsubMyProfile) unsubMyProfile();
+  unsubMyProfile = onSnapshot(doc(db,'profiles',user.uid), s=>{
+    myProfile = s.exists()? s.data() : null; renderMe(); updateAccountUI(currentUser);
+  }, err=>console.warn('profile sub',err));
+  if(unsubFriends) unsubFriends();
+  unsubFriends = onSnapshot(collection(db,'profiles',user.uid,'friends'), snap=>{
+    const ids=new Set();
+    snap.forEach(ds=>{
+      const fid=ds.id; ids.add(fid); const base=ds.data()||{};
+      let f=friends.find(x=>x.uid===fid);
+      if(!f){
+        f={uid:fid, username:base.username||fid, displayName:base.displayName||'', photoURL:base.photoURL||'', lat:null, lng:null, lastSeen:0};
+        friends.push(f);
+        friendProfileUnsubs[fid]=onSnapshot(doc(db,'profiles',fid), ps=>{
+          if(ps.exists()){ const p=ps.data();
+            f.username=p.username||f.username; f.displayName=p.displayName||f.displayName; f.photoURL=p.photoURL||f.photoURL;
+            f.lat=(typeof p.lat==='number')?p.lat:null; f.lng=(typeof p.lng==='number')?p.lng:null; f.lastSeen=p.lastSeen||0; }
+          renderFriends(); updateFriendPins();
+        }, err=>{});
+      } else { f.username=base.username||f.username; }
+    });
+    for(let i=friends.length-1;i>=0;i--){ if(!ids.has(friends[i].uid)){ const fid=friends[i].uid;
+      if(friendProfileUnsubs[fid]){ friendProfileUnsubs[fid](); delete friendProfileUnsubs[fid]; } friends.splice(i,1); } }
+    renderFriends(); updateFriendPins();
+  }, err=>console.warn('friends sub',err));
+  startPresence(); shareLocation();
+  if(friendsTick) clearInterval(friendsTick);
+  friendsTick=setInterval(()=>{ renderFriends(); updateFriendPins(); }, 60000);
+  renderMe();
+}
+function stopSocial(){
+  if(unsubMyProfile){ unsubMyProfile(); unsubMyProfile=null; }
+  if(unsubFriends){ unsubFriends(); unsubFriends=null; }
+  Object.values(friendProfileUnsubs).forEach(u=>{ try{u();}catch(e){} }); friendProfileUnsubs={};
+  friends=[]; myProfile=null;
+  if(friendsTick){ clearInterval(friendsTick); friendsTick=null; }
+  stopPresence(); updateFriendPins(); renderFriends(); renderMe();
+}
+function startPresence(){
+  stopPresence();
+  const beat=()=>{ if(!currentUser||!window.fb) return;
+    window.fb.setDoc(window.fb.doc(window.fb.db,'profiles',currentUser.uid),
+      {lastSeen:Date.now(), online:true, displayName:currentUser.displayName||'', photoURL:currentUser.photoURL||''}, {merge:true}).catch(()=>{}); };
+  beat(); presenceTimer=setInterval(beat, 60000);
+}
+function stopPresence(){ if(presenceTimer){ clearInterval(presenceTimer); presenceTimer=null; } }
+window.addEventListener('beforeunload', ()=>{ try{ if(currentUser&&window.fb)
+  window.fb.setDoc(window.fb.doc(window.fb.db,'profiles',currentUser.uid), {online:false}, {merge:true}); }catch(e){} });
+function shareLocation(){
+  if(!currentUser||!window.fb||!observer) return;
+  window.fb.setDoc(window.fb.doc(window.fb.db,'profiles',currentUser.uid),
+    {lat:observer.lat, lng:observer.lng, updatedAt:Date.now()}, {merge:true}).catch(()=>{});
+}
+async function saveUsername(raw){
+  raw=(raw||'').trim().replace(/^@/,'');
+  if(!/^[a-zA-Z0-9_]{3,20}$/.test(raw)){ showErr('Username must be 3–20 letters, numbers or underscores.'); return; }
+  if(!currentUser||!window.fb){ showErr('Sign in first.'); return; }
+  const {db, doc, getDoc, setDoc, deleteDoc}=window.fb; const lower=raw.toLowerCase();
+  try{
+    const snap=await getDoc(doc(db,'usernames',lower));
+    if(snap.exists() && snap.data().uid!==currentUser.uid){ showErr('“@'+raw+'” is already taken.'); return; }
+    const displayName=currentUser.displayName||'', photoURL=currentUser.photoURL||'';
+    await setDoc(doc(db,'usernames',lower), {uid:currentUser.uid, username:raw, displayName, photoURL});
+    await setDoc(doc(db,'profiles',currentUser.uid), {username:raw, unameLower:lower, displayName, photoURL, updatedAt:Date.now()}, {merge:true});
+    if(myProfile && myProfile.unameLower && myProfile.unameLower!==lower){ try{ await deleteDoc(doc(db,'usernames',myProfile.unameLower)); }catch(e){} }
+    showToast('✓ Username set: @'+raw, true);
+  }catch(e){ console.error(e); showErr('Could not save username: '+(e.code||e.message||e)); }
+}
+async function searchUser(raw){
+  const el=$('fr-result'); if(!el) return; raw=(raw||'').trim().replace(/^@/,'');
+  if(!raw){ el.innerHTML=''; return; }
+  if(!/^[a-zA-Z0-9_]{3,20}$/.test(raw)){ el.innerHTML='<div class="fr-note">Enter a valid username.</div>'; return; }
+  if(!window.fb||!currentUser){ el.innerHTML='<div class="fr-note">Sign in to search.</div>'; return; }
+  const {db, doc, getDoc}=window.fb;
+  el.innerHTML='<div class="fr-note">Searching…</div>';
+  try{
+    const snap=await getDoc(doc(db,'usernames',raw.toLowerCase()));
+    if(!snap.exists()){ el.innerHTML='<div class="fr-note">No user “@'+raw+'”.</div>'; return; }
+    const u=snap.data();
+    if(u.uid===currentUser.uid){ el.innerHTML='<div class="fr-note">That’s you!</div>'; return; }
+    const already=friends.some(f=>f.uid===u.uid);
+    el.innerHTML='<div class="fr-item"><div class="fr-av">'+(u.photoURL?('<img src="'+u.photoURL+'" referrerpolicy="no-referrer">'):'👤')+'</div>'+
+      '<div class="fr-nm">@'+u.username+'</div>'+(already?'<span class="fr-tag">Added ✓</span>':'<button class="fr-add">Add</button>')+'</div>';
+    const add=el.querySelector('.fr-add'); if(add) add.onclick=()=>addFriend(u);
+  }catch(e){ console.error(e); el.innerHTML='<div class="fr-note">Search failed. Check your connection.</div>'; }
+}
+async function addFriend(u){
+  if(!myProfile||!myProfile.username){ showErr('Choose your own username first.'); return; }
+  const {db, doc, setDoc}=window.fb; const me=currentUser.uid;
+  try{
+    await setDoc(doc(db,'profiles',me,'friends',u.uid), {username:u.username, displayName:u.displayName||'', photoURL:u.photoURL||'', since:Date.now()});
+    await setDoc(doc(db,'profiles',u.uid,'friends',me), {username:myProfile.username, displayName:currentUser.displayName||'', photoURL:currentUser.photoURL||'', since:Date.now()});
+    showToast('✓ Added @'+u.username, true);
+    const q=$('fr-q'); if(q) q.value=''; const r=$('fr-result'); if(r) r.innerHTML='';
+  }catch(e){ console.error(e); showErr('Could not add friend: '+(e.code||e.message||e)); }
+}
+async function removeFriend(uid, uname){
+  const {db, doc, deleteDoc}=window.fb;
+  try{ await deleteDoc(doc(db,'profiles',currentUser.uid,'friends',uid));
+    await deleteDoc(doc(db,'profiles',uid,'friends',currentUser.uid)); showToast('Removed @'+uname);
+  }catch(e){ console.error(e); showErr('Could not remove: '+(e.code||e.message||e)); }
+}
+function renderMe(){
+  const el=$('fr-me'); if(!el) return;
+  if(!currentUser){ el.innerHTML='<div class="fr-note">Sign in (account icon, top-right) to use friends.</div>'; return; }
+  if(myProfile && myProfile.username){
+    el.innerHTML='<div class="fr-me">You are <b>@'+myProfile.username+'</b></div>';
+  } else {
+    el.innerHTML='<div class="fr-note">Pick a username so friends can find you:</div>'+
+      '<div class="fr-search"><input id="uname-in" placeholder="username" maxlength="20" autocomplete="off"/><button id="uname-save">Save</button></div>';
+    const s=$('uname-save'); if(s) s.onclick=()=>saveUsername($('uname-in').value);
+    const inp=$('uname-in'); if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter') saveUsername(inp.value); });
+  }
+}
+function renderFriends(){
+  const el=$('fr-list'); if(!el) return;
+  if(!currentUser){ el.innerHTML=''; return; }
+  if(!friends.length){ el.innerHTML='<div class="fr-note">No friends yet — search a username above to add someone.</div>'; return; }
+  const now=Date.now();
+  el.innerHTML=friends.slice().sort((a,b)=>(b.lastSeen||0)-(a.lastSeen||0)).map(f=>{
+    const on=(now-(f.lastSeen||0)<150000);
+    const has=(typeof f.lat==='number'&&typeof f.lng==='number');
+    return '<div class="fr-item"><span class="fr-status '+(on?'on':'off')+'"></span>'+
+      '<div class="fr-nm">@'+f.username+(has?'':' <small>· no location</small>')+'</div>'+
+      (has?'<button class="fr-locate" data-uid="'+f.uid+'" title="Show on map">📍</button>':'')+
+      '<button class="fr-del" data-uid="'+f.uid+'" data-un="'+f.username+'" title="Remove">✕</button></div>';
+  }).join('');
+  el.querySelectorAll('.fr-locate').forEach(b=>b.onclick=()=>{ const f=friends.find(x=>x.uid===b.dataset.uid);
+    if(f&&f.lat!=null){ if(isMobile()) closeSheets(); flyTo(f.lat,f.lng,1.5,900); } });
+  el.querySelectorAll('.fr-del').forEach(b=>b.onclick=()=>removeFriend(b.dataset.uid,b.dataset.un));
+}
+function updateFriendPins(){
+  if(typeof world==='undefined'||!world) return;
+  const now=Date.now();
+  world.labelsData(friends.filter(f=>typeof f.lat==='number'&&typeof f.lng==='number').map(f=>({
+    lat:f.lat, lng:f.lng, username:f.username, online:(now-(f.lastSeen||0)<150000) })));
+}
+function initFriendsUI(){
+  const go=$('fr-go'), q=$('fr-q');
+  if(go) go.onclick=()=>searchUser(q?q.value:'');
+  if(q) q.addEventListener('keydown',e=>{ if(e.key==='Enter') searchUser(q.value); });
+  renderMe(); renderFriends();
+}
+
+initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); initFriendsUI();
 </script>
 
 <!-- Module loader: import the 3D libs, expose them as globals, then boot -->
@@ -1210,7 +1425,8 @@ initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI();
         getRedirectResult: authMod.getRedirectResult,
         signOut: authMod.signOut,
         onAuthStateChanged: authMod.onAuthStateChanged,
-        doc: fsMod.doc, setDoc: fsMod.setDoc, onSnapshot: fsMod.onSnapshot
+        doc: fsMod.doc, setDoc: fsMod.setDoc, onSnapshot: fsMod.onSnapshot,
+        getDoc: fsMod.getDoc, collection: fsMod.collection, deleteDoc: fsMod.deleteDoc
       };
       initAuth();
     } catch (fe) {
