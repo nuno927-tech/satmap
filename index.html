@@ -86,8 +86,17 @@
   #locbtn:hover{background:rgba(90,209,255,.22)}
 
   /* Selection detail */
-  #detail{left:16px;top:74px;width:260px;padding:14px 16px;display:none}
+  #detail{left:16px;top:74px;width:270px;padding:14px 16px;display:none;
+    max-height:calc(100vh - 100px);overflow-y:auto}
   #detail .x{position:absolute;top:10px;right:12px;color:var(--muted);cursor:pointer;font-size:16px}
+  #d-passes:empty{display:none}
+  .pass-h{font-size:12px;font-weight:700;color:var(--accent);margin:12px 0 6px;letter-spacing:.3px}
+  .pass-sub{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:9px 0 3px}
+  .pass{padding:6px 0;border-bottom:1px solid rgba(120,160,255,.08)}
+  .pass:last-child{border-bottom:none}
+  .pass .pt{font-size:13px;color:var(--text)}
+  .pass .pd{font-size:11px;color:var(--muted);margin-top:1px}
+  .pass-note{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:8px}
   #detail h3{margin:0 6px 10px 0;font-size:15px;padding-right:16px}
   #detail .row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(120,160,255,.08)}
   #detail .row b{color:var(--muted);font-weight:500}
@@ -339,6 +348,7 @@
   <div class="row"><b>Elevation</b><span id="d-el">—</span></div>
   <div class="row"><b>Range</b><span id="d-rng">—</span></div>
   <div class="row"><b>NORAD ID</b><span id="d-id">—</span></div>
+  <div id="d-passes"></div>
 </div>
 
 <div id="controls" class="panel">
@@ -383,19 +393,20 @@ const IMG = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/';
 // Satellite groups: Celestrak group id, label, color, optional cap.
 // On mobile we track fewer objects (lighter on DOM/battery).
 const GROUPS = [
-  { id:'stations', label:'Stations (ISS)', color:'#ff5a4d', cap:40 },
-  { id:'visual',   label:'Brightest',      color:'#b9c7e6', cap:170 },
-  { id:'starlink', label:'Starlink',       color:'#5ad1ff', cap:150 },
-  { id:'gps-ops',  label:'GPS',            color:'#ffd34d', cap:40 },
-  { id:'galileo',  label:'Galileo',        color:'#c58cff', cap:40 },
-  { id:'weather',  label:'Weather',        color:'#57e08a', cap:60 },
+  { id:'iss',      label:'ISS',       color:'#ff3b30', catnr:'25544' },  // just the International Space Station
+  { id:'stations', label:'Stations',  color:'#ff8c42', cap:40 },          // other crewed stations & modules
+  { id:'visual',   label:'Brightest', color:'#b9c7e6', cap:170 },
+  { id:'starlink', label:'Starlink',  color:'#5ad1ff', cap:150 },
+  { id:'gps-ops',  label:'GPS',       color:'#ffd34d', cap:40 },
+  { id:'galileo',  label:'Galileo',   color:'#c58cff', cap:40 },
+  { id:'weather',  label:'Weather',   color:'#57e08a', cap:60 },
 ];
-if(IS_MOBILE) GROUPS.forEach(g=>{ g.cap = Math.max(12, Math.round(g.cap*0.45)); });
+if(IS_MOBILE) GROUPS.forEach(g=>{ if(g.cap) g.cap = Math.max(12, Math.round(g.cap*0.45)); });
 const enabled = {}; GROUPS.forEach(g=>enabled[g.id]=true);
 
 // Fallback ISS TLE so the app always shows *something* if the network fails.
 const FALLBACK = [{
-  name:'ISS (ZARYA)', group:'stations', id:'25544',
+  name:'ISS (ZARYA)', group:'iss', id:'25544',
   l1:'1 25544U 98067A   26199.50000000  .00016717  00000-0  30777-3 0  9991',
   l2:'2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.49309239 20000'
 }];
@@ -419,7 +430,8 @@ function showToast(msg, ok){
 
 /* ---------- TLE fetching ---------- */
 async function fetchGroup(g){
-  const url = `https://celestrak.org/NORAD/elements/gp.php?GROUP=${g.id}&FORMAT=tle`;
+  const url = 'https://celestrak.org/NORAD/elements/gp.php?' +
+    (g.catnr ? 'CATNR='+g.catnr : 'GROUP='+g.id) + '&FORMAT=tle';
   const ctrl = new AbortController();
   const timer = setTimeout(()=>ctrl.abort(), 12000);   // don't hang forever on a slow feed
   try{
@@ -540,9 +552,9 @@ function propagate(){
 /* ---------- ISS orbit path ---------- */
 function updateIssOrbit(){
   const iss = SATS.find(s=>s.id==='25544');
-  if(!iss || !enabled['stations'] || !prefs.issPath){ world.pathsData([]); return; }
+  if(!iss || !enabled['iss'] || !prefs.issPath){ world.pathsData([]); return; }
   const pts=[]; const t0=Date.now();
-  for(let m=0;m<=95;m+=1){                 // ~one orbit, 1-min steps
+  for(let m=0;m<=100;m+=1){                 // projected trajectory ~ next orbit, 1-min steps
     const t=new Date(t0+m*60000);
     let pv; try{ pv=satellite.propagate(iss.satrec,t);}catch(e){continue;}
     if(!pv||!pv.position) continue;
@@ -550,6 +562,93 @@ function updateIssOrbit(){
     pts.push({lat:satellite.degreesLat(gd.latitude),lng:satellite.degreesLong(gd.longitude),alt:gd.height/EARTH_R});
   }
   world.pathsData([pts]);
+}
+
+/* ---------- ISS visible-pass predictions ---------- */
+const D2R=Math.PI/180, R2D=180/Math.PI;
+let issPassCache=null, issPassKey='';
+// Low-precision solar position in ECI (km) — good enough for shadow/illumination tests.
+function sunEci(t){
+  const JD=t/86400000+2440587.5, n=JD-2451545.0;
+  const L=(280.460+0.9856474*n)*D2R;
+  const g=(357.528+0.9856003*n)*D2R;
+  const lam=L+(1.915*Math.sin(g)+0.020*Math.sin(2*g))*D2R;
+  const eps=(23.439-0.0000004*n)*D2R;
+  const R=(1.00014-0.01671*Math.cos(g)-0.00014*Math.cos(2*g))*149597870.7;
+  return { x:R*Math.cos(lam), y:R*Math.cos(eps)*Math.sin(lam), z:R*Math.sin(eps)*Math.sin(lam) };
+}
+// Is the satellite sunlit (outside Earth's cylindrical shadow)?
+function satLit(sat, sun){
+  const sm=Math.sqrt(sat.x*sat.x+sat.y*sat.y+sat.z*sat.z);
+  const su=Math.sqrt(sun.x*sun.x+sun.y*sun.y+sun.z*sun.z);
+  const dot=(sat.x*sun.x+sat.y*sun.y+sat.z*sun.z)/su;
+  if(dot>=0) return true;                       // sun-facing side
+  return Math.sqrt(Math.max(sm*sm-dot*dot,0)) > EARTH_R;   // else clear of the shadow cylinder
+}
+const azCompass=a=>['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round((((a%360)+360)%360)/22.5)%16];
+function computeIssPasses(){
+  const iss=SATS.find(s=>s.id==='25544');
+  if(!iss||!observer) return [];
+  const passes=[]; const now=Date.now();
+  const start=now-2*86400000, end=now+6*86400000, step=30000;   // 2 days back → 6 days ahead
+  let cur=null;
+  for(let t=start;t<=end;t+=step){
+    const d=new Date(t); let pv;
+    try{ pv=satellite.propagate(iss.satrec,d); }catch(e){ if(cur){passes.push(cur);cur=null;} continue; }
+    if(!pv||!pv.position){ if(cur){passes.push(cur);cur=null;} continue; }
+    const gmst=satellite.gstime(d);
+    const la=satellite.ecfToLookAngles(observer.gd, satellite.eciToEcf(pv.position,gmst));
+    const el=la.elevation*R2D, az=la.azimuth*R2D;
+    if(el>10){                                    // above 10° = a pass
+      if(!cur) cur={start:t,end:t,peakEl:el,peakT:t,startAz:az,endAz:az,visible:false};
+      cur.end=t; cur.endAz=az;
+      if(el>cur.peakEl){ cur.peakEl=el; cur.peakT=t; }
+      if(!cur.visible){                           // visible = observer in darkness AND ISS sunlit
+        const sun=sunEci(t);
+        const sEl=satellite.ecfToLookAngles(observer.gd, satellite.eciToEcf(sun,gmst)).elevation*R2D;
+        if(sEl<-6 && satLit(pv.position,sun)) cur.visible=true;
+      }
+    } else if(cur){ passes.push(cur); cur=null; }
+  }
+  if(cur) passes.push(cur);
+  return passes;
+}
+function getIssPasses(){
+  if(!observer) return [];
+  const key=observer.lat.toFixed(2)+','+observer.lng.toFixed(2);
+  if(!(issPassCache && issPassKey===key && (Date.now()-issPassCache.at < 600000))){
+    issPassCache={ at:Date.now(), list:computeIssPasses() }; issPassKey=key;
+  }
+  return issPassCache.list;
+}
+function fmtPassTime(t){
+  const d=new Date(t), now=new Date();
+  const same=(a,b)=>a.toDateString()===b.toDateString();
+  const day = same(d,now)?'Today' : same(d,new Date(now.getTime()+864e5))?'Tomorrow'
+    : same(d,new Date(now.getTime()-864e5))?'Yesterday'
+    : d.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'});
+  return day+' '+d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+}
+function renderPasses(){
+  const el=$('d-passes'); if(!el) return;
+  if(!observer){ el.innerHTML='<div class="pass-note">📍 Enable your location to see when the ISS is visible overhead.</div>'; return; }
+  const now=Date.now();
+  const vis=getIssPasses().filter(p=>p.visible);
+  const upcoming=vis.filter(p=>p.end>=now).slice(0,6);
+  const recent=vis.filter(p=>p.end<now).slice(-3).reverse();
+  const row=p=>{
+    const mins=Math.max(1,Math.round((p.end-p.start)/60000));
+    return `<div class="pass"><div class="pt">${fmtPassTime(p.start)}</div>
+      <div class="pd">max ${Math.round(p.peakEl)}° · ${azCompass(p.startAz)}→${azCompass(p.endAz)} · ${mins} min</div></div>`;
+  };
+  let html='<div class="pass-h">👁 Visible passes over you</div>';
+  if(!upcoming.length && !recent.length){
+    html+='<div class="pass-note">No naked-eye passes in the next 6 days — the ISS flies over, but only in daylight or Earth’s shadow right now. Check back in about a week.</div>';
+  } else {
+    if(upcoming.length){ html+='<div class="pass-sub">Upcoming</div>'+upcoming.map(row).join(''); }
+    if(recent.length){ html+='<div class="pass-sub">Recent</div>'+recent.map(row).join(''); }
+  }
+  el.innerHTML=html;
 }
 
 /* ---------- Location ---------- */
@@ -587,6 +686,7 @@ function setObserver(lat,lng,recenter){
   world.controls().autoRotate=false;
   if(recenter!==false){ flyTo(lat, lng, ME_ZOOM, 900); if(isMobile()) openSheet('overhead'); }
   saveSettings();
+  if(selected && selected.id==='25544') renderPasses();
 }
 // Bottom-right location button: get your location if needed, then centre on it.
 function flyToMe(){
@@ -635,7 +735,7 @@ function renderLegend(){
   el.querySelectorAll('.lg').forEach(n=>n.onclick=()=>{
     const id=n.dataset.id; enabled[id]=!enabled[id];
     n.classList.toggle('off',!enabled[id]);
-    if(id==='stations') updateIssOrbit();
+    if(id==='iss') updateIssOrbit();
     saveSettings();
   });
 }
@@ -647,6 +747,7 @@ function selectSat(s){
   selected=s;
   flyTo(s.lat, s.lng, 1.8, 900);
   renderDetail(s);
+  if(s.id==='25544') renderPasses(); else { const p=$('d-passes'); if(p) p.innerHTML=''; }
   if(isMobile()) openSheet('detail');
   else $('detail').style.display='block';
 }
