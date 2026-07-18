@@ -27,9 +27,8 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // Live satellite data (primary + backup feeds): always go to the network
-  // (never serve stale orbits — the app has its own localStorage fallback).
-  if (url.hostname.includes('celestrak') || url.hostname.includes('ivanstanojevic')) return;
+  // Live satellite data: always go to the network (never serve stale orbits).
+  if (url.hostname.includes('celestrak')) return;
 
   // 3D engine from CDNs: stale-while-revalidate so the shell works offline.
   if (url.hostname.includes('esm.sh') || url.hostname.includes('jsdelivr')) {

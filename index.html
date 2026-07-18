@@ -147,6 +147,43 @@
     #account{width:34px;height:34px}
   }
 
+  /* Settings gear + panel */
+  #settingsbtn{pointer-events:auto;flex:0 0 auto;width:38px;height:38px;border-radius:50%;
+    border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;padding:0}
+  #settingsbtn:hover{border-color:var(--accent);color:var(--accent)}
+  #settings{position:fixed;top:60px;right:16px;width:300px;padding:16px;z-index:80;display:none;
+    max-height:calc(100vh - 90px);overflow-y:auto}
+  #settings.open{display:block}
+  #settings h2{margin:2px 0 8px;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+  #settings .note{font-size:11.5px;color:var(--muted);margin-top:12px;line-height:1.45}
+  .stg{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:12px 0;border-bottom:1px solid rgba(120,160,255,.08)}
+  .stg:last-of-type{border-bottom:none}
+  .stg .lbl{font-size:14px;line-height:1.25}
+  .stg .lbl small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+  .switch{width:46px;height:27px;border-radius:14px;background:rgba(120,160,255,.25);position:relative;
+    cursor:pointer;flex:0 0 auto;transition:background .2s}
+  .switch.on{background:var(--accent)}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;
+    background:#fff;transition:transform .2s}
+  .switch.on::after{transform:translateX(19px)}
+  .seg{display:flex;gap:3px;background:rgba(0,0,0,.35);border-radius:10px;padding:3px;flex:0 0 auto}
+  .seg button{border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:600;
+    padding:6px 11px;border-radius:8px;cursor:pointer;transition:.15s}
+  .seg button.sel{background:var(--accent);color:#04121f}
+
+  @media (max-width:820px){
+    #settingsbtn{display:none}
+    .stg .lbl{font-size:15px}
+    #settings{left:0;right:0;bottom:0;top:auto;width:auto;max-width:none;display:block;
+      border-radius:22px 22px 0 0;transform:translateY(115%);
+      transition:transform .34s cubic-bezier(.32,.72,0,1);max-height:min(74vh,620px);z-index:60;
+      padding:0 16px calc(env(safe-area-inset-bottom) + 18px);overflow-y:auto}
+    #settings.open{transform:translateY(0)}
+    #settings h2{margin-top:2px}
+  }
+
   #err{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:70;
     background:rgba(120,30,30,.9);border:1px solid #ff6b6b;color:#ffdede;padding:9px 16px;
     border-radius:10px;font-size:13px;display:none;max-width:90vw}
@@ -243,11 +280,43 @@
     <div class="clock"><b>UTC</b><span id="c-utc">—</span></div>
     <div class="clock"><b>Local</b><span id="c-loc">—</span></div>
   </div>
+  <button id="settingsbtn" title="Settings" aria-label="Settings">
+    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
   <button id="account" title="Account" aria-label="Account">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
   </button>
 </div>
 <div id="accountmenu" class="panel"></div>
+
+<div id="settings" class="panel">
+  <div class="sheet-handle"></div>
+  <h2>Settings</h2>
+  <div class="stg">
+    <div class="lbl">Units<small>Altitude, speed &amp; range</small></div>
+    <div class="seg" id="seg-units">
+      <button data-v="metric">Metric</button>
+      <button data-v="imperial">Imperial</button>
+    </div>
+  </div>
+  <div class="stg">
+    <div class="lbl">Auto-rotate globe<small>Spin gently when idle</small></div>
+    <div class="switch" id="sw-rotate" role="switch"></div>
+  </div>
+  <div class="stg">
+    <div class="lbl">Show ISS orbit path<small>Red trajectory arc</small></div>
+    <div class="switch" id="sw-isspath" role="switch"></div>
+  </div>
+  <div class="stg">
+    <div class="lbl">Overhead cutoff<small>Min. elevation to list a pass</small></div>
+    <div class="seg" id="seg-cutoff">
+      <button data-v="0">0°</button>
+      <button data-v="10">10°</button>
+      <button data-v="25">25°</button>
+    </div>
+  </div>
+  <div class="note" id="stg-note"></div>
+</div>
 
 <div id="overhead" class="panel">
   <div class="sheet-handle"></div>
@@ -287,7 +356,7 @@
 <nav id="mbar">
   <button id="mb-layers"><span class="ic">🛰️</span>Layers</button>
   <button id="mb-over"><span class="ic">📡</span>Overhead</button>
-  <button id="mb-loc"><span class="ic">📍</span>Locate</button>
+  <button id="mb-settings"><span class="ic">⚙️</span>Settings</button>
 </nav>
 
 <div id="backdrop"></div>
@@ -324,7 +393,7 @@ const GROUPS = [
 if(IS_MOBILE) GROUPS.forEach(g=>{ g.cap = Math.max(12, Math.round(g.cap*0.45)); });
 const enabled = {}; GROUPS.forEach(g=>enabled[g.id]=true);
 
-// Fallback ISS TLE so the app always shows *something* if everything else fails.
+// Fallback ISS TLE so the app always shows *something* if the network fails.
 const FALLBACK = [{
   name:'ISS (ZARYA)', group:'stations', id:'25544',
   l1:'1 25544U 98067A   26199.50000000  .00016717  00000-0  30777-3 0  9991',
@@ -334,6 +403,12 @@ const FALLBACK = [{
 let SATS = [];            // {name,id,group,color,satrec, lat,lng,alt,altKm,speed,elevation,azimuth,rangeKm, el}
 let observer = null;      // {lat,lng, gd:{longitude,latitude,height}}
 let selected = null;
+// User preferences (synced to the signed-in account)
+const prefs = { units:'metric', autorotate:true, issPath:true, cutoff:0 };
+const fmtDist = km => km==null ? '—' : (prefs.units==='imperial'
+  ? Math.round(km*0.621371).toLocaleString()+' mi' : Math.round(km).toLocaleString()+' km');
+const fmtSpeed = kms => !kms ? '—' : (prefs.units==='imperial'
+  ? Math.round(kms*2236.936).toLocaleString()+' mph' : kms.toFixed(2)+' km/s');
 const $ = id => document.getElementById(id);
 const showErr = m => { const e=$('err'); e.textContent=m; e.style.display='block'; setTimeout(()=>e.style.display='none',7000); };
 function showToast(msg, ok){
@@ -342,20 +417,7 @@ function showToast(msg, ok){
   clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'), 3600);
 }
 
-/* ---------- TLE fetching ----------
-   Primary: CelesTrak. Backup: tle.ivanstanojevic.me (community TLE API).
-   Every successful CelesTrak fetch is cached in localStorage, so a feed
-   outage falls back to the backup API, then to your last good elements,
-   and only then to the hardcoded ISS. */
-const TLE_CACHE_KEY = 'satmap-tle-cache-v1';
-const BACKUP_MAX_AGE_DAYS = 14;   // skip backup elements older than this (likely decayed/stale)
-// Map our CelesTrak groups to name searches on the backup API.
-// 'visual' has no equivalent there — it relies on the localStorage cache.
-const BACKUP_SEARCH = { starlink:'starlink', 'gps-ops':'navstar', galileo:'galileo', weather:'noaa' };
-
-function readTleCache(){ try{ return JSON.parse(localStorage.getItem(TLE_CACHE_KEY)) || {}; }catch(e){ return {}; } }
-function writeTleCache(c){ try{ localStorage.setItem(TLE_CACHE_KEY, JSON.stringify(c)); }catch(e){} }
-
+/* ---------- TLE fetching ---------- */
 async function fetchGroup(g){
   const url = `https://celestrak.org/NORAD/elements/gp.php?GROUP=${g.id}&FORMAT=tle`;
   const ctrl = new AbortController();
@@ -373,78 +435,8 @@ async function fetchGroup(g){
       out.push({ name, l1, l2, id:l1.slice(2,7).trim(), group:g.id });
       if(g.cap && out.length>=g.cap) break;
     }
-    if(!out.length) throw new Error('no elements in payload');
     return out;
   } finally { clearTimeout(timer); }
-}
-
-async function fetchGroupBackup(g){
-  const base = 'https://tle.ivanstanojevic.me/api/tle';
-  let url;
-  if(g.id==='stations') url = base + '/25544';                       // ISS by NORAD id
-  else if(BACKUP_SEARCH[g.id]) url = base + '?search=' + BACKUP_SEARCH[g.id] +
-    '&page-size=' + Math.min(g.cap||100, 100);
-  else return [];                                                    // no mapping (e.g. 'visual')
-  const ctrl = new AbortController();
-  const timer = setTimeout(()=>ctrl.abort(), 12000);
-  try{
-    const res = await fetch(url, { cache:'no-store', signal:ctrl.signal });
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const j = await res.json();
-    const members = j.member ? j.member : [j];
-    const cutoff = Date.now() - BACKUP_MAX_AGE_DAYS*86400000;
-    const out = [];
-    for(const m of members){
-      if(!m || !m.line1 || !m.line2) continue;
-      if(m.date && Date.parse(m.date) < cutoff) continue;            // stale — probably decayed
-      out.push({ name:m.name, l1:m.line1, l2:m.line2, id:String(m.satelliteId), group:g.id });
-      if(g.cap && out.length>=g.cap) break;
-    }
-    return out;
-  } finally { clearTimeout(timer); }
-}
-
-async function loadData(){
-  const cache = readTleCache();
-  const live = await Promise.allSettled(GROUPS.map(fetchGroup));
-  let raw = [];
-  const failed = [];
-  GROUPS.forEach((g,i)=>{
-    const r = live[i];
-    if(r.status==='fulfilled' && r.value.length){
-      raw = raw.concat(r.value);
-      cache[g.id] = { ts: Date.now(), sats: r.value };
-    } else {
-      console.warn('live TLE fetch failed for', g.id, r.status==='rejected'?r.reason:'(empty)');
-      failed.push(g);
-    }
-  });
-  let backupN = 0, cachedN = 0, oldestTs = null;
-  if(failed.length){
-    const backups = await Promise.allSettled(failed.map(fetchGroupBackup));
-    failed.forEach((g,i)=>{
-      const b = backups[i];
-      if(b.status==='fulfilled' && b.value.length){
-        raw = raw.concat(b.value); backupN++;
-      } else if(cache[g.id] && cache[g.id].sats && cache[g.id].sats.length){
-        raw = raw.concat(cache[g.id].sats); cachedN++;
-        if(oldestTs===null || cache[g.id].ts<oldestTs) oldestTs = cache[g.id].ts;
-      }
-    });
-  }
-  writeTleCache(cache);
-  if(failed.length && raw.length){
-    const age = oldestTs ? Math.max(1, Math.round((Date.now()-oldestTs)/3600000)) : null;
-    const src = [];
-    if(backupN) src.push('a backup feed');
-    if(cachedN) src.push('saved elements' + (age ? ' (~'+age+'h old)' : ''));
-    showToast('Live TLE feed is down — using ' + (src.join(' and ') || 'partial data') + '.');
-  }
-  if(!raw.length){
-    showErr('Could not reach any TLE source — showing the ISS from built-in elements.');
-    raw = FALLBACK.map(f=>({name:f.name,l1:f.l1,l2:f.l2,id:f.id,group:f.group}));
-  }
-  SATS = buildSatrecs(raw);
 }
 
 function buildSatrecs(raw){
@@ -459,6 +451,18 @@ function buildSatrecs(raw){
       lat:0,lng:0,alt:0,altKm:0,speed:0,elevation:null,azimuth:null,rangeKm:null,el:null });
   }
   return list;
+}
+
+async function loadData(){
+  const results = await Promise.allSettled(GROUPS.map(fetchGroup));
+  let raw = [];
+  results.forEach((r,i)=>{ if(r.status==='fulfilled') raw = raw.concat(r.value);
+    else console.warn('group failed', GROUPS[i].id, r.reason); });
+  if(!raw.length){
+    showErr('Could not reach the live TLE feed — showing the ISS from cached elements.');
+    raw = FALLBACK.map(f=>({name:f.name,l1:f.l1,l2:f.l2,id:f.id,group:f.group}));
+  }
+  SATS = buildSatrecs(raw);
 }
 
 /* ---------- Globe ---------- */
@@ -521,7 +525,7 @@ function propagate(){
       s.elevation = la.elevation*180/Math.PI;
       s.azimuth = la.azimuth*180/Math.PI;
       s.rangeKm = la.rangeSat;
-      const up = s.elevation > 0;
+      const up = s.elevation > prefs.cutoff;
       if(up) overhead++;
       if(s.el) s.el.classList.toggle('up', up);
     } else if(s.el){ s.el.classList.remove('up'); }
@@ -536,7 +540,7 @@ function propagate(){
 /* ---------- ISS orbit path ---------- */
 function updateIssOrbit(){
   const iss = SATS.find(s=>s.id==='25544');
-  if(!iss || !enabled['stations']){ world.pathsData([]); return; }
+  if(!iss || !enabled['stations'] || !prefs.issPath){ world.pathsData([]); return; }
   const pts=[]; const t0=Date.now();
   for(let m=0;m<=95;m+=1){                 // ~one orbit, 1-min steps
     const t=new Date(t0+m*60000);
@@ -608,7 +612,7 @@ function requestLocation(){
 function renderOverhead(active, count){
   const el=$('ohlist');
   if(!observer){ el.innerHTML='<div class="empty">Tap “Use my location” to list every satellite currently above your horizon.</div>'; return; }
-  const up = active.filter(s=>s.elevation>0).sort((a,b)=>b.elevation-a.elevation);
+  const up = active.filter(s=>s.elevation>prefs.cutoff).sort((a,b)=>b.elevation-a.elevation);
   if(!up.length){ el.innerHTML='<div class="empty">No tracked satellites above your horizon right now. They move fast — check back in a minute.</div>'; return; }
   el.innerHTML = up.slice(0,40).map(s=>`
     <div class="oh" data-id="${s.id}">
@@ -657,10 +661,10 @@ function renderDetail(s){
   $('d-group').textContent=g?g.label:s.group;
   $('d-lat').textContent=s.lat!=null?s.lat.toFixed(3)+'°':'—';
   $('d-lng').textContent=s.lng!=null?s.lng.toFixed(3)+'°':'—';
-  $('d-alt').textContent=s.altKm?Math.round(s.altKm)+' km':'—';
-  $('d-spd').textContent=s.speed?s.speed.toFixed(2)+' km/s':'—';
+  $('d-alt').textContent=fmtDist(s.altKm);
+  $('d-spd').textContent=fmtSpeed(s.speed);
   $('d-el').textContent=s.elevation!=null?s.elevation.toFixed(1)+'°':'—';
-  $('d-rng').textContent=s.rangeKm!=null?Math.round(s.rangeKm)+' km':'—';
+  $('d-rng').textContent=fmtDist(s.rangeKm);
   $('d-id').textContent=s.id;
 }
 
@@ -687,6 +691,7 @@ async function boot(){
   $('loadmsg').textContent='Fetching live orbital elements…';
   await loadData();
   updateLegendCounts();
+  applyPrefs();
   updateIssOrbit();
   propagate();
   $('loader').classList.add('fade');
@@ -704,7 +709,7 @@ async function boot(){
 /* ---------- Mobile sheets + bottom toolbar ---------- */
 const mq = window.matchMedia('(max-width:820px)');
 function isMobile(){ return mq.matches; }
-const SHEETS = ['controls','overhead','detail'];
+const SHEETS = ['controls','overhead','detail','settings'];
 function syncBar(){
   const c=$('controls').classList.contains('open'), o=$('overhead').classList.contains('open');
   if($('mb-layers')) $('mb-layers').classList.toggle('active',c);
@@ -747,8 +752,29 @@ function initMobileUI(){
   $('backdrop').addEventListener('click', closeSheets);
   $('mb-layers').addEventListener('click', ()=>toggleSheet('controls'));
   $('mb-over').addEventListener('click', ()=>toggleSheet('overhead'));
-  $('mb-loc').addEventListener('click', requestLocation);
+  $('mb-settings').addEventListener('click', ()=>toggleSheet('settings'));
   SHEETS.forEach(id=>enableSwipeClose($(id)));   // swipe-down to close
+}
+
+/* ---------- Settings ---------- */
+function applyPrefs(){
+  document.querySelectorAll('#seg-units button').forEach(b=>b.classList.toggle('sel', b.dataset.v===prefs.units));
+  document.querySelectorAll('#seg-cutoff button').forEach(b=>b.classList.toggle('sel', +b.dataset.v===prefs.cutoff));
+  $('sw-rotate').classList.toggle('on', prefs.autorotate);
+  $('sw-isspath').classList.toggle('on', prefs.issPath);
+  if(typeof world!=='undefined' && world){
+    world.controls().autoRotate = prefs.autorotate;
+    updateIssOrbit();
+    if(selected) renderDetail(selected);
+  }
+}
+function initSettingsUI(){
+  document.querySelectorAll('#seg-units button').forEach(b=>b.onclick=()=>{ prefs.units=b.dataset.v; applyPrefs(); saveSettings(); });
+  document.querySelectorAll('#seg-cutoff button').forEach(b=>b.onclick=()=>{ prefs.cutoff=+b.dataset.v; applyPrefs(); saveSettings(); });
+  $('sw-rotate').onclick=()=>{ prefs.autorotate=!prefs.autorotate; applyPrefs(); saveSettings(); };
+  $('sw-isspath').onclick=()=>{ prefs.issPath=!prefs.issPath; applyPrefs(); saveSettings(); };
+  $('settingsbtn').onclick=(e)=>{ e.stopPropagation(); $('accountmenu').classList.remove('open'); toggleSheet('settings'); };
+  applyPrefs();
 }
 
 /* ---------- PWA: install prompt ---------- */
@@ -785,7 +811,9 @@ const USER_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" s
 function collectSettings(){
   const groups={}; GROUPS.forEach(g=>groups[g.id]=!!enabled[g.id]);
   let zoom=null; try{ zoom=world.pointOfView().altitude; }catch(e){}
-  return { groups, lat: observer?observer.lat:null, lng: observer?observer.lng:null, zoom, updatedAt: Date.now() };
+  return { groups, lat: observer?observer.lat:null, lng: observer?observer.lng:null, zoom,
+    units: prefs.units, autorotate: prefs.autorotate, issPath: prefs.issPath, cutoff: prefs.cutoff,
+    updatedAt: Date.now() };
 }
 function saveSettings(){
   if(!currentUser || applyingRemote || !window.fb) return;
@@ -799,6 +827,11 @@ function applySettings(s){
   if(!s) return;
   applyingRemote=true;
   try{
+    if(typeof s.units==='string') prefs.units=s.units;
+    if(typeof s.autorotate==='boolean') prefs.autorotate=s.autorotate;
+    if(typeof s.issPath==='boolean') prefs.issPath=s.issPath;
+    if(typeof s.cutoff==='number') prefs.cutoff=s.cutoff;
+    applyPrefs();
     if(s.groups){
       GROUPS.forEach(g=>{ if(g.id in s.groups){ enabled[g.id]=!!s.groups[g.id];
         const n=document.querySelector('.lg[data-id="'+g.id+'"]'); if(n) n.classList.toggle('off',!enabled[g.id]); } });
@@ -817,6 +850,9 @@ function applySettings(s){
 
 function updateAccountUI(user){
   const btn=$('account'), menu=$('accountmenu');
+  const note=$('stg-note'); if(note) note.textContent = user
+    ? '✓ These settings are saved to your account and sync across devices.'
+    : 'Sign in (account icon, top-right) to save these settings and sync them across your devices.';
   if(user){
     const photo=user.photoURL;
     btn.innerHTML = photo ? `<img src="${photo}" referrerpolicy="no-referrer" alt="">` : USER_ICON;
@@ -851,9 +887,16 @@ function signOutUser(){ if(window.fb) window.fb.signOut(window.fb.auth).catch(e=
 
 function initAccountUI(){
   updateAccountUI(null);
-  $('account').onclick=(e)=>{ e.stopPropagation(); $('accountmenu').classList.toggle('open'); };
-  document.addEventListener('click', e=>{ const m=$('accountmenu');
-    if(m.classList.contains('open') && !m.contains(e.target) && !$('account').contains(e.target)) m.classList.remove('open'); });
+  $('account').onclick=(e)=>{ e.stopPropagation();
+    if(!isMobile()) $('settings').classList.remove('open');   // close settings dropdown on desktop
+    $('accountmenu').classList.toggle('open'); };
+  document.addEventListener('click', e=>{
+    const m=$('accountmenu');
+    if(m.classList.contains('open') && !m.contains(e.target) && !$('account').contains(e.target)) m.classList.remove('open');
+    const st=$('settings');   // desktop settings dropdown closes on outside click (mobile uses the backdrop)
+    if(!isMobile() && st.classList.contains('open') && !st.contains(e.target) && !$('settingsbtn').contains(e.target))
+      st.classList.remove('open');
+  });
 }
 // Called by the module once the Firebase SDK is initialised (window.fb is ready).
 function initAuth(){
@@ -878,7 +921,7 @@ function initAuth(){
   });
 }
 
-initMobileUI(); initInstall(); registerSW(); initAccountUI();
+initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI();
 </script>
 
 <!-- Module loader: import the 3D libs, expose them as globals, then boot -->
