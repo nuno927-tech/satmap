@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>SatMap — Live Satellite &amp; ISS Tracker</title>
+<style>
+  :root{
+    --bg:#05070f; --panel:rgba(12,18,34,.72); --panel-solid:#0b1122;
+    --border:rgba(120,160,255,.18); --text:#e8eefc; --muted:#8aa0c8;
+    --accent:#5ad1ff; --iss:#ff5a4d; --star:#7fe7ff; --gps:#ffd34d;
+    --wx:#57e08a; --other:#b9c7e6; --overhead:#ffffff;
+    --glow:0 0 24px rgba(90,209,255,.35);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);overflow:hidden}
+  #globe{position:fixed;inset:0}
+  .mono{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+
+  /* Top bar */
+  #topbar{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:18px;
+    padding:12px 18px;z-index:20;pointer-events:none;
+    background:linear-gradient(180deg,rgba(3,6,15,.85),rgba(3,6,15,0));}
+  #brand{display:flex;align-items:baseline;gap:10px;pointer-events:auto}
+  #brand h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.5px}
+  #brand h1 span{color:var(--accent);text-shadow:var(--glow)}
+  #brand .tag{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+  #clocks{margin-left:auto;display:flex;gap:22px;pointer-events:auto}
+  .clock b{display:block;font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+  .clock span{font-size:16px}
+  #stat{display:flex;gap:18px;pointer-events:auto}
+  .stat b{display:block;font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+  .stat span{font-size:16px;color:var(--accent)}
+
+  /* Panels */
+  .panel{position:fixed;z-index:20;background:var(--panel);backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:16px;
+    box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  #overhead{top:74px;right:16px;width:300px;max-height:calc(100vh - 200px);
+    display:flex;flex-direction:column;overflow:hidden}
+  #overhead .head{padding:13px 16px 10px;border-bottom:1px solid var(--border)}
+  #overhead .head h2{margin:0;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+  #overhead .head .sub{font-size:12px;color:var(--muted);margin-top:3px}
+  #overhead .head .sub b{color:var(--accent)}
+  #ohlist{overflow-y:auto;padding:6px}
+  .oh{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer}
+  .oh:hover{background:rgba(120,160,255,.09)}
+  .oh .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 8px currentColor}
+  .oh .nm{flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .oh .el{font-size:12px;color:var(--muted)}
+  .oh .el b{color:var(--text)}
+  .empty{padding:22px 16px;color:var(--muted);font-size:13px;text-align:center;line-height:1.5}
+
+  /* Controls bottom-left */
+  #controls{left:16px;bottom:16px;width:260px;padding:14px 16px}
+  #controls h2{margin:0 0 10px;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+  #search{width:100%;padding:9px 12px;margin-bottom:12px;border-radius:10px;border:1px solid var(--border);
+    background:rgba(0,0,0,.35);color:var(--text);font-size:13px;outline:none}
+  #search:focus{border-color:var(--accent);box-shadow:var(--glow)}
+  .legend{display:flex;flex-direction:column;gap:2px}
+  .lg{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:9px;cursor:pointer;user-select:none}
+  .lg:hover{background:rgba(120,160,255,.08)}
+  .lg.off{opacity:.4}
+  .lg .dot{width:11px;height:11px;border-radius:50%;box-shadow:0 0 8px currentColor}
+  .lg .nm{flex:1;font-size:13px}
+  .lg .ct{font-size:12px;color:var(--muted)}
+  #locbtn{margin-top:12px;width:100%;padding:9px;border-radius:10px;border:1px solid var(--border);
+    background:rgba(90,209,255,.12);color:var(--accent);font-size:12px;font-weight:600;letter-spacing:.5px;
+    cursor:pointer;transition:.15s}
+  #locbtn:hover{background:rgba(90,209,255,.22)}
+
+  /* Selection detail */
+  #detail{left:16px;top:74px;width:260px;padding:14px 16px;display:none}
+  #detail .x{position:absolute;top:10px;right:12px;color:var(--muted);cursor:pointer;font-size:16px}
+  #detail h3{margin:0 6px 10px 0;font-size:15px;padding-right:16px}
+  #detail .row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(120,160,255,.08)}
+  #detail .row b{color:var(--muted);font-weight:500}
+  #detail .row span{color:var(--text)}
+
+  /* Loader */
+  #loader{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:18px;background:radial-gradient(circle at 50% 40%,#0a1226,#05070f)}
+  #loader .ring{width:54px;height:54px;border-radius:50%;border:3px solid rgba(90,209,255,.2);
+    border-top-color:var(--accent);animation:spin 1s linear infinite}
+  #loader p{color:var(--muted);font-size:14px;letter-spacing:.5px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .fade{opacity:0;pointer-events:none;transition:opacity .6s}
+
+  /* Satellite markers (globe.gl html layer) */
+  .sat{width:7px;height:7px;border-radius:50%;background:currentColor;cursor:pointer;
+    pointer-events:auto;box-shadow:0 0 5px currentColor;transition:width .15s,height .15s}
+  .sat:hover{width:12px;height:12px}
+  .sat.iss{width:14px;height:14px;box-shadow:0 0 9px currentColor,0 0 16px currentColor}
+  .sat.up{background:#fff!important;color:#fff!important;
+    box-shadow:0 0 9px #fff,0 0 20px var(--star);width:11px;height:11px}
+  .sat.iss.up{width:16px;height:16px}
+
+  /* Floating "center on me" button */
+  #gotome{position:fixed;right:16px;bottom:16px;z-index:25;width:52px;height:52px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;
+    background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border:1px solid var(--border);color:var(--accent);box-shadow:0 8px 24px rgba(0,0,0,.5);transition:.15s}
+  #gotome:hover{background:rgba(90,209,255,.18);box-shadow:var(--glow)}
+  #gotome:active{transform:scale(.92)}
+
+  #err{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:40;
+    background:rgba(120,30,30,.9);border:1px solid #ff6b6b;color:#ffdede;padding:9px 16px;
+    border-radius:10px;font-size:13px;display:none;max-width:90vw}
+  @media (max-width:720px){
+    #overhead{width:min(300px,46vw)} #controls{width:min(260px,46vw)}
+    #detail{display:none!important} #clocks{gap:12px} .clock span{font-size:14px}
+    #brand .tag{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="globe"></div>
+
+<div id="topbar">
+  <div id="brand">
+    <h1>Sat<span>Map</span></h1>
+    <div class="tag">live orbital tracker</div>
+  </div>
+  <div id="stat" class="mono">
+    <div class="stat"><b>Tracking</b><span id="s-total">—</span></div>
+    <div class="stat"><b>Overhead</b><span id="s-over">—</span></div>
+  </div>
+  <div id="clocks" class="mono">
+    <div class="clock"><b>UTC</b><span id="c-utc">—</span></div>
+    <div class="clock"><b>Local</b><span id="c-loc">—</span></div>
+  </div>
+</div>
+
+<div id="overhead" class="panel">
+  <div class="head">
+    <h2>Overhead Now</h2>
+    <div class="sub" id="oh-sub">Enable location to see passes above you</div>
+  </div>
+  <div id="ohlist"></div>
+</div>
+
+<div id="detail" class="panel mono">
+  <div class="x" onclick="clearSelection()">✕</div>
+  <h3 id="d-name">—</h3>
+  <div class="row"><b>Group</b><span id="d-group">—</span></div>
+  <div class="row"><b>Latitude</b><span id="d-lat">—</span></div>
+  <div class="row"><b>Longitude</b><span id="d-lng">—</span></div>
+  <div class="row"><b>Altitude</b><span id="d-alt">—</span></div>
+  <div class="row"><b>Speed</b><span id="d-spd">—</span></div>
+  <div class="row"><b>Elevation</b><span id="d-el">—</span></div>
+  <div class="row"><b>Range</b><span id="d-rng">—</span></div>
+  <div class="row"><b>NORAD ID</b><span id="d-id">—</span></div>
+</div>
+
+<div id="controls" class="panel">
+  <h2>Filter &amp; Search</h2>
+  <input id="search" placeholder="Search a satellite…" autocomplete="off" />
+  <div class="legend" id="legend"></div>
+  <button id="locbtn">📍 Use my location</button>
+</div>
+
+<button id="gotome" title="Center on my location">⌖</button>
+
+<div id="loader">
+  <div class="ring"></div>
+  <p id="loadmsg">Fetching live orbital elements…</p>
+</div>
+<div id="err"></div>
+
+<script type="importmap">
+{ "imports": {
+  "satellite.js": "https://esm.sh/satellite.js@5.0.0"
+}}
+</script>
+
+<script>
+const EARTH_R = 6371;          // km
+const UPDATE_MS = 200;         // propagation cadence
+const IMG = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/';
+
+// Satellite groups: Celestrak group id, label, color, optional cap
+const GROUPS = [
+  { id:'stations', label:'Stations (ISS)', color:'#ff5a4d', cap:40 },
+  { id:'visual',   label:'Brightest',      color:'#b9c7e6', cap:170 },
+  { id:'starlink', label:'Starlink',       color:'#5ad1ff', cap:150 },
+  { id:'gps-ops',  label:'GPS',            color:'#ffd34d', cap:40 },
+  { id:'galileo',  label:'Galileo',        color:'#c58cff', cap:40 },
+  { id:'weather',  label:'Weather',        color:'#57e08a', cap:60 },
+];
+const enabled = {}; GROUPS.forEach(g=>enabled[g.id]=true);
+
+// Fallback ISS TLE so the app always shows *something* if the network fails.
+const FALLBACK = [{
+  name:'ISS (ZARYA)', group:'stations', id:'25544',
+  l1:'1 25544U 98067A   26199.50000000  .00016717  00000-0  30777-3 0  9991',
+  l2:'2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.49309239 20000'
+}];
+
+let SATS = [];            // {name,id,group,color,satrec, lat,lng,alt,altKm,speed,elevation,azimuth,rangeKm, mesh}
+let observer = null;      // {lat,lng, gd:{longitude,latitude,height}}
+let selected = null;
+const $ = id => document.getElementById(id);
+const showErr = m => { const e=$('err'); e.textContent=m; e.style.display='block'; setTimeout(()=>e.style.display='none',7000); };
+
+/* ---------- TLE fetching ---------- */
+async function fetchGroup(g){
+  const url = `https://celestrak.org/NORAD/elements/gp.php?GROUP=${g.id}&FORMAT=tle`;
+  const res = await fetch(url, { cache:'no-store' });
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const text = await res.text();
+  if(text.includes('<') || text.trim().length < 20) throw new Error('bad payload');
+  const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
+  const out = [];
+  for(let i=0;i+2<lines.length;i+=3){
+    const name=lines[i].trim(), l1=lines[i+1], l2=lines[i+2];
+    if(!l1.startsWith('1 ')||!l2.startsWith('2 ')) continue;
+    out.push({ name, l1, l2, id:l1.slice(2,7).trim(), group:g.id });
+    if(g.cap && out.length>=g.cap) break;
+  }
+  return out;
+}
+
+function buildSatrecs(raw){
+  const seen = new Set(), list = [];
+  for(const r of raw){
+    if(seen.has(r.id)) continue;
+    let rec; try{ rec = satellite.twoline2satrec(r.l1, r.l2); }catch(e){ continue; }
+    if(!rec || rec.error) continue;
+    const g = GROUPS.find(x=>x.id===r.group);
+    seen.add(r.id);
+    list.push({ name:r.name, id:r.id, group:r.group, color:(g?g.color:'#b9c7e6'), satrec:rec,
+      lat:0,lng:0,alt:0,altKm:0,speed:0,elevation:null,azimuth:null,rangeKm:null,mesh:null });
+  }
+  return list;
+}
+
+async function loadData(){
+  const results = await Promise.allSettled(GROUPS.map(fetchGroup));
+  let raw = [];
+  results.forEach((r,i)=>{ if(r.status==='fulfilled') raw = raw.concat(r.value);
+    else console.warn('group failed', GROUPS[i].id, r.reason); });
+  if(!raw.length){
+    showErr('Could not reach the live TLE feed — showing the ISS from cached elements.');
+    raw = FALLBACK.map(f=>({name:f.name,l1:f.l1,l2:f.l2,id:f.id,group:f.group}));
+  }
+  SATS = buildSatrecs(raw);
+}
+
+/* ---------- Globe ---------- */
+let world;
+function initGlobe(){
+  world = Globe()(document.getElementById('globe'))
+    .globeImageUrl(IMG+'earth-blue-marble.jpg')
+    .bumpImageUrl(IMG+'earth-topology.png')
+    .backgroundImageUrl(IMG+'night-sky.png')
+    .showAtmosphere(true).atmosphereColor('#5ad1ff').atmosphereAltitude(0.16)
+    .htmlLat('lat').htmlLng('lng').htmlAltitude('alt')
+    .htmlElement(d=>{
+      const el = document.createElement('div');
+      el.className = 'sat' + (d.id==='25544' ? ' iss' : '');
+      el.style.color = d.color;
+      el.title = d.name;
+      el.onclick = (ev)=>{ ev.stopPropagation(); selectSat(d); };
+      d.el = el;
+      return el;
+    })
+    .ringColor(()=> t=>`rgba(90,209,255,${1-t})`)
+    .ringMaxRadius(4).ringPropagationSpeed(2).ringRepeatPeriod(900)
+    .pathColor(()=> ['rgba(255,90,77,.85)','rgba(255,90,77,0)'])
+    .pathStroke(2).pathPointAlt('alt').pathTransitionDuration(0);
+
+  const controls = world.controls();
+  controls.autoRotate = true; controls.autoRotateSpeed = 0.28;
+  controls.enableDamping = true; controls.dampingFactor = 0.1;
+  // stop auto-rotate once the user interacts
+  ['pointerdown','wheel','touchstart'].forEach(ev=>
+    world.renderer().domElement.addEventListener(ev,()=>{controls.autoRotate=false},{once:true}));
+
+  window.addEventListener('resize',()=>{ world.width(innerWidth).height(innerHeight); });
+  world.width(innerWidth).height(innerHeight);
+}
+
+/* ---------- Propagation loop ---------- */
+function propagate(){
+  const now = new Date();
+  const gmst = satellite.gstime(now);
+  let overhead = 0;
+  const active = SATS.filter(s=>enabled[s.group]);
+  for(const s of active){
+    let pv; try{ pv = satellite.propagate(s.satrec, now); }catch(e){ continue; }
+    if(!pv || !pv.position){ s.lat=s.lng=null; continue; }
+    const gd = satellite.eciToGeodetic(pv.position, gmst);
+    s.lat = satellite.degreesLat(gd.latitude);
+    s.lng = satellite.degreesLong(gd.longitude);
+    s.altKm = gd.height;
+    s.alt = gd.height / EARTH_R;
+    if(pv.velocity){ const v=pv.velocity; s.speed = Math.sqrt(v.x*v.x+v.y*v.y+v.z*v.z); }
+    if(observer){
+      const ecf = satellite.eciToEcf(pv.position, gmst);
+      const la = satellite.ecfToLookAngles(observer.gd, ecf);
+      s.elevation = la.elevation*180/Math.PI;
+      s.azimuth = la.azimuth*180/Math.PI;
+      s.rangeKm = la.rangeSat;
+      const up = s.elevation > 0;
+      if(up) overhead++;
+      if(s.el) s.el.classList.toggle('up', up);
+    } else if(s.el){ s.el.classList.remove('up'); }
+  }
+  world.htmlElementsData(active.filter(s=>s.lat!=null && s.lng!=null));
+  $('s-total').textContent = active.length;
+  $('s-over').textContent = observer ? overhead : '—';
+  if(selected) renderDetail(selected);
+  renderOverhead(active, overhead);
+}
+
+/* ---------- ISS orbit path ---------- */
+function updateIssOrbit(){
+  const iss = SATS.find(s=>s.id==='25544');
+  if(!iss || !enabled['stations']){ world.pathsData([]); return; }
+  const pts=[]; const t0=Date.now();
+  for(let m=0;m<=95;m+=1){                 // ~one orbit, 1-min steps
+    const t=new Date(t0+m*60000);
+    let pv; try{ pv=satellite.propagate(iss.satrec,t);}catch(e){continue;}
+    if(!pv||!pv.position) continue;
+    const gd=satellite.eciToGeodetic(pv.position,satellite.gstime(t));
+    pts.push({lat:satellite.degreesLat(gd.latitude),lng:satellite.degreesLong(gd.longitude),alt:gd.height/EARTH_R});
+  }
+  world.pathsData([pts]);
+}
+
+/* ---------- Location ---------- */
+function setObserver(lat,lng){
+  observer = { lat, lng, gd:{ longitude:satellite.degreesToRadians(lng),
+    latitude:satellite.degreesToRadians(lat), height:0.05 } };
+  world.ringsData([{lat,lng}]).ringAltitude(0.006);
+  $('oh-sub').innerHTML = `Your location · <b>${lat.toFixed(2)}°, ${lng.toFixed(2)}°</b>`;
+  world.pointOfView({lat,lng,altitude:2.2},1200);
+  world.controls().autoRotate=false;
+}
+function flyToMe(){
+  if(observer){ world.controls().autoRotate=false; world.pointOfView({lat:observer.lat,lng:observer.lng,altitude:2.2},1200); }
+  else requestLocation();   // not located yet — ask, then setObserver flies there
+}
+function requestLocation(){
+  if(!navigator.geolocation){ showErr('Geolocation is not available in this browser.'); return; }
+  $('locbtn').textContent='Locating…';
+  navigator.geolocation.getCurrentPosition(
+    p=>{ setObserver(p.coords.latitude,p.coords.longitude); $('locbtn').textContent='📍 Location set'; },
+    e=>{ showErr('Location permission denied — showing the global view.'); $('locbtn').textContent='📍 Use my location'; },
+    {enableHighAccuracy:false,timeout:10000,maximumAge:60000});
+}
+
+/* ---------- UI rendering ---------- */
+function renderOverhead(active, count){
+  const el=$('ohlist');
+  if(!observer){ el.innerHTML='<div class="empty">Tap “Use my location” to list every satellite currently above your horizon.</div>'; return; }
+  const up = active.filter(s=>s.elevation>0).sort((a,b)=>b.elevation-a.elevation);
+  if(!up.length){ el.innerHTML='<div class="empty">No tracked satellites above your horizon right now. They move fast — check back in a minute.</div>'; return; }
+  el.innerHTML = up.slice(0,40).map(s=>`
+    <div class="oh" data-id="${s.id}">
+      <div class="dot" style="color:${s.color}"></div>
+      <div class="nm">${s.name}</div>
+      <div class="el mono"><b>${s.elevation.toFixed(0)}°</b></div>
+    </div>`).join('');
+  el.querySelectorAll('.oh').forEach(n=>n.onclick=()=>{
+    const s=SATS.find(x=>x.id===n.dataset.id); if(s) selectSat(s); });
+}
+
+function renderLegend(){
+  const el=$('legend');
+  el.innerHTML = GROUPS.map(g=>`
+    <div class="lg" data-id="${g.id}">
+      <div class="dot" style="color:${g.color}"></div>
+      <div class="nm">${g.label}</div>
+      <div class="ct mono" id="ct-${g.id}">0</div>
+    </div>`).join('');
+  el.querySelectorAll('.lg').forEach(n=>n.onclick=()=>{
+    const id=n.dataset.id; enabled[id]=!enabled[id];
+    n.classList.toggle('off',!enabled[id]);
+    if(id==='stations') updateIssOrbit();
+  });
+}
+function updateLegendCounts(){
+  GROUPS.forEach(g=>{ const c=SATS.filter(s=>s.group===g.id).length; const el=$('ct-'+g.id); if(el) el.textContent=c; });
+}
+
+function selectSat(s){
+  selected=s;
+  world.pointOfView({lat:s.lat,lng:s.lng,altitude:1.8},1000);
+  $('detail').style.display='block';
+  renderDetail(s);
+}
+function clearSelection(){ selected=null; $('detail').style.display='none'; }
+function renderDetail(s){
+  const g=GROUPS.find(x=>x.id===s.group);
+  $('d-name').textContent=s.name;
+  $('d-group').textContent=g?g.label:s.group;
+  $('d-lat').textContent=s.lat!=null?s.lat.toFixed(3)+'°':'—';
+  $('d-lng').textContent=s.lng!=null?s.lng.toFixed(3)+'°':'—';
+  $('d-alt').textContent=s.altKm?Math.round(s.altKm)+' km':'—';
+  $('d-spd').textContent=s.speed?s.speed.toFixed(2)+' km/s':'—';
+  $('d-el').textContent=s.elevation!=null?s.elevation.toFixed(1)+'°':'—';
+  $('d-rng').textContent=s.rangeKm!=null?Math.round(s.rangeKm)+' km':'—';
+  $('d-id').textContent=s.id;
+}
+
+function doSearch(q){
+  q=q.trim().toLowerCase(); if(!q) return;
+  const s=SATS.find(x=>enabled[x.group] && x.name.toLowerCase().includes(q));
+  if(s) selectSat(s); else showErr('No tracked satellite matches “'+q+'”.');
+}
+
+/* ---------- Clocks ---------- */
+function tickClock(){
+  const n=new Date();
+  $('c-utc').textContent=n.toISOString().slice(11,19);
+  $('c-loc').textContent=n.toLocaleTimeString([], {hour12:false});
+}
+
+/* ---------- Boot ---------- */
+async function boot(){
+  if(typeof Globe==='undefined' || typeof satellite==='undefined'){
+    $('loadmsg').textContent='Failed to initialise 3D libraries. Check your connection and reopen.'; return;
+  }
+  initGlobe();
+  renderLegend();
+  $('loadmsg').textContent='Fetching live orbital elements…';
+  await loadData();
+  updateLegendCounts();
+  updateIssOrbit();
+  propagate();
+  $('loader').classList.add('fade');
+  setTimeout(()=>$('loader').remove(),700);
+
+  setIn
