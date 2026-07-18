@@ -118,6 +118,8 @@
     border:1px solid var(--border);color:var(--accent);box-shadow:0 8px 24px rgba(0,0,0,.5);transition:.15s}
   #gotome:hover{background:rgba(90,209,255,.18);box-shadow:var(--glow)}
   #gotome:active{transform:scale(.92)}
+  #gotome.busy{color:#fff;animation:locpulse 1s ease-in-out infinite}
+  @keyframes locpulse{0%,100%{box-shadow:0 8px 24px rgba(0,0,0,.5)}50%{box-shadow:0 0 20px var(--accent),0 0 8px var(--accent)}}
 
   #err{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:70;
     background:rgba(120,30,30,.9);border:1px solid #ff6b6b;color:#ffdede;padding:9px 16px;
@@ -364,6 +366,9 @@ function initGlobe(){
   const controls = world.controls();
   controls.autoRotate = true; controls.autoRotateSpeed = 0.28;
   controls.enableDamping = true; controls.dampingFactor = 0.1;
+  // Touch gestures: one finger rotates; two fingers rotate (and pinch to zoom).
+  // three.js TOUCH enum: ROTATE=0, PAN=1, DOLLY_PAN=2, DOLLY_ROTATE=3
+  if(controls.touches){ controls.touches.ONE = 0; controls.touches.TWO = 3; }
   // stop auto-rotate once the user interacts
   ['pointerdown','wheel','touchstart'].forEach(ev=>
     world.renderer().domElement.addEventListener(ev,()=>{controls.autoRotate=false},{once:true}));
@@ -421,26 +426,35 @@ function updateIssOrbit(){
 }
 
 /* ---------- Location ---------- */
-function setObserver(lat,lng){
+const ME_ZOOM = 1.15;   // how tightly the camera centres on your location
+function setObserver(lat,lng,recenter){
   observer = { lat, lng, gd:{ longitude:satellite.degreesToRadians(lng),
     latitude:satellite.degreesToRadians(lat), height:0.05 } };
   world.ringsData([{lat,lng}]).ringAltitude(0.006);
-  $('oh-sub').innerHTML = `Your location · <b>${lat.toFixed(2)}°, ${lng.toFixed(2)}°</b>`;
-  world.pointOfView({lat,lng,altitude:2.2},1200);
+  $('oh-sub').innerHTML = `Your location · <b>${lat.toFixed(3)}°, ${lng.toFixed(3)}°</b>`;
   world.controls().autoRotate=false;
+  if(recenter!==false) world.pointOfView({lat,lng,altitude:ME_ZOOM},1200);
   if(isMobile()) openSheet('overhead');
 }
+// Bottom-right location button: get your location if needed, then centre on it.
 function flyToMe(){
-  if(observer){ world.controls().autoRotate=false; world.pointOfView({lat:observer.lat,lng:observer.lng,altitude:2.2},1200); }
-  else requestLocation();   // not located yet — ask, then setObserver flies there
+  if(observer){
+    world.controls().autoRotate=false;
+    world.pointOfView({lat:observer.lat,lng:observer.lng,altitude:ME_ZOOM},1200);
+  } else {
+    requestLocation();      // fetches an exact fix, then centres via setObserver
+  }
 }
 function requestLocation(){
   if(!navigator.geolocation){ showErr('Geolocation is not available in this browser.'); return; }
   $('locbtn').textContent='Locating…';
+  $('gotome').classList.add('busy');
   navigator.geolocation.getCurrentPosition(
-    p=>{ setObserver(p.coords.latitude,p.coords.longitude); $('locbtn').textContent='📍 Location set'; },
-    e=>{ showErr('Location permission denied — showing the global view.'); $('locbtn').textContent='📍 Use my location'; },
-    {enableHighAccuracy:false,timeout:10000,maximumAge:60000});
+    p=>{ setObserver(p.coords.latitude, p.coords.longitude, true);
+         $('locbtn').textContent='📍 Location set'; $('gotome').classList.remove('busy'); },
+    e=>{ showErr('Location permission denied — showing the global view.');
+         $('locbtn').textContent='📍 Use my location'; $('gotome').classList.remove('busy'); },
+    {enableHighAccuracy:true, timeout:15000, maximumAge:0});   // exact, fresh fix
 }
 
 /* ---------- UI rendering ---------- */
