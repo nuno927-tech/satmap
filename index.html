@@ -385,6 +385,10 @@
     <div class="switch" id="sw-rotate" role="switch"></div>
   </div>
   <div class="stg">
+    <div class="lbl">Ambient music<small>Soft celestial background</small></div>
+    <div class="switch" id="sw-music" role="switch"></div>
+  </div>
+  <div class="stg">
     <div class="lbl">Show ISS orbit path<small>Red trajectory arc</small></div>
     <div class="switch" id="sw-isspath" role="switch"></div>
   </div>
@@ -522,7 +526,7 @@ let SATS = [];            // {name,id,group,color,satrec, lat,lng,alt,altKm,spee
 let observer = null;      // {lat,lng, gd:{longitude,latitude,height}}
 let selected = null;
 // User preferences (synced to the signed-in account)
-const prefs = { units:'metric', time:'24', autorotate:true, issPath:true, cutoff:0,
+const prefs = { units:'metric', time:'24', autorotate:true, issPath:true, cutoff:0, music:true,
   notify:false, notifyGroups:{ iss:true, stations:false, visual:false } };
 const fmtDist = km => km==null ? '—' : (prefs.units==='imperial'
   ? Math.round(km*0.621371).toLocaleString()+' mi' : Math.round(km).toLocaleString()+' km');
@@ -534,6 +538,76 @@ function showToast(msg, ok){
   const t=$('toast'); if(!t) return;
   t.textContent=msg; t.className='show'+(ok?' ok':'');
   clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'), 3600);
+}
+
+/* ---------- Ambient "celestial" music (Web Audio, synthesized live) ---------- */
+const Music = (function(){
+  let ctx=null, master, filter, voices=[], chordTimer=null, bellTimer=null, started=false, idx=0;
+  const CHORDS=[
+    [130.81,164.81,196.00,246.94],  // Cmaj7
+    [110.00,164.81,196.00,246.94],  // Am7
+    [146.83,174.61,220.00,261.63],  // Dm7
+    [196.00,246.94,146.83,174.61]   // G-ish
+  ];
+  const BELLS=[523.25,587.33,659.25,783.99,880.00];
+  function build(){
+    ctx=new (window.AudioContext||window.webkitAudioContext)();
+    master=ctx.createGain(); master.gain.value=0.0001;
+    filter=ctx.createBiquadFilter(); filter.type='lowpass'; filter.frequency.value=900; filter.Q.value=0.3;
+    filter.connect(master); master.connect(ctx.destination);
+    for(let i=0;i<4;i++){
+      const g=ctx.createGain(); g.gain.value=0.16; g.connect(filter);
+      const o1=ctx.createOscillator(); o1.type='sine'; o1.detune.value=-6;
+      const o2=ctx.createOscillator(); o2.type='triangle'; o2.detune.value=6;
+      const f=CHORDS[0][i]; o1.frequency.value=f; o2.frequency.value=f;
+      o1.connect(g); o2.connect(g); o1.start(); o2.start();
+      voices.push({o1,o2});
+    }
+  }
+  function setChord(c, glide){
+    const t=ctx.currentTime;
+    voices.forEach((v,i)=>{ const f=c[i%c.length]; [v.o1,v.o2].forEach(o=>{
+      o.frequency.cancelScheduledValues(t); o.frequency.setValueAtTime(Math.max(o.frequency.value,1),t);
+      o.frequency.exponentialRampToValueAtTime(f, t+glide); }); });
+  }
+  function bell(){
+    if(!ctx) return;
+    const f=BELLS[Math.floor(Math.random()*BELLS.length)];
+    const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=f;
+    const g=ctx.createGain(); g.gain.value=0; o.connect(g); g.connect(filter);
+    const t=ctx.currentTime;
+    g.gain.linearRampToValueAtTime(0.045,t+0.03); g.gain.exponentialRampToValueAtTime(0.0008,t+3.6);
+    o.start(t); o.stop(t+3.7);
+    bellTimer=setTimeout(bell, 7000+Math.random()*13000);
+  }
+  return {
+    start(){
+      if(!ctx) build();
+      if(ctx.state==='suspended') ctx.resume();
+      master.gain.cancelScheduledValues(ctx.currentTime);
+      master.gain.setValueAtTime(Math.max(master.gain.value,0.0001), ctx.currentTime);
+      master.gain.linearRampToValueAtTime(0.08, ctx.currentTime+ (started?1.5:4));
+      if(started) return;
+      started=true; setChord(CHORDS[0],0.01);
+      chordTimer=setInterval(()=>{ idx=(idx+1)%CHORDS.length; setChord(CHORDS[idx],6); }, 16000);
+      bellTimer=setTimeout(bell, 6000);
+    },
+    stop(){
+      if(!ctx||!started) return;
+      master.gain.cancelScheduledValues(ctx.currentTime);
+      master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
+      master.gain.linearRampToValueAtTime(0.0001, ctx.currentTime+1.4);
+      clearInterval(chordTimer); clearTimeout(bellTimer); started=false;
+    },
+    isRunning(){ return !!(started && ctx && ctx.state==='running'); }
+  };
+})();
+let musicArmed=false;
+function armMusic(){                      // browsers block audio until a user gesture
+  if(musicArmed) return; musicArmed=true;
+  const go=()=>{ musicArmed=false; if(prefs.music) Music.start(); };
+  document.addEventListener('pointerdown', go, {once:true});
+  document.addEventListener('keydown', go, {once:true});
 }
 
 /* ---------- TLE fetching ---------- */
@@ -1040,6 +1114,8 @@ function applyPrefs(){
   document.querySelectorAll('#seg-cutoff button').forEach(b=>b.classList.toggle('sel', +b.dataset.v===prefs.cutoff));
   if($('c-loc')) tickClock();
   $('sw-rotate').classList.toggle('on', prefs.autorotate);
+  $('sw-music').classList.toggle('on', prefs.music);
+  if(prefs.music){ if(!Music.isRunning()) armMusic(); } else { Music.stop(); }
   $('sw-isspath').classList.toggle('on', prefs.issPath);
   $('sw-notify').classList.toggle('on', prefs.notify);
   $('notify-groups').classList.toggle('show', prefs.notify);
@@ -1055,6 +1131,7 @@ function initSettingsUI(){
   document.querySelectorAll('#seg-time button').forEach(b=>b.onclick=()=>{ prefs.time=b.dataset.v; applyPrefs(); saveSettings(); });
   document.querySelectorAll('#seg-cutoff button').forEach(b=>b.onclick=()=>{ prefs.cutoff=+b.dataset.v; applyPrefs(); saveSettings(); });
   $('sw-rotate').onclick=()=>{ prefs.autorotate=!prefs.autorotate; applyPrefs(); saveSettings(); };
+  $('sw-music').onclick=()=>{ prefs.music=!prefs.music; if(prefs.music) Music.start(); else Music.stop(); applyPrefs(); saveSettings(); };
   $('sw-isspath').onclick=()=>{ prefs.issPath=!prefs.issPath; applyPrefs(); saveSettings(); };
   $('sw-notify').onclick=async ()=>{
     if(!prefs.notify){ const ok=await enableNotifications(); if(!ok) return; prefs.notify=true; }
@@ -1131,7 +1208,7 @@ function collectSettings(){
   const groups={}; GROUPS.forEach(g=>groups[g.id]=!!enabled[g.id]);
   let zoom=null; try{ zoom=world.pointOfView().altitude; }catch(e){}
   return { groups, lat: observer?observer.lat:null, lng: observer?observer.lng:null, zoom,
-    units: prefs.units, time: prefs.time, autorotate: prefs.autorotate, issPath: prefs.issPath, cutoff: prefs.cutoff,
+    units: prefs.units, time: prefs.time, autorotate: prefs.autorotate, issPath: prefs.issPath, cutoff: prefs.cutoff, music: prefs.music,
     notify: prefs.notify, notifyGroups: prefs.notifyGroups,
     updatedAt: Date.now() };
 }
@@ -1149,6 +1226,7 @@ function applySettings(s){
   try{
     if(typeof s.units==='string') prefs.units=s.units;
     if(s.time==='12'||s.time==='24') prefs.time=s.time;
+    if(typeof s.music==='boolean') prefs.music=s.music;
     if(typeof s.autorotate==='boolean') prefs.autorotate=s.autorotate;
     if(typeof s.issPath==='boolean') prefs.issPath=s.issPath;
     if(typeof s.cutoff==='number') prefs.cutoff=s.cutoff;
