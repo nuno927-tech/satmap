@@ -1,5 +1,5 @@
-/* SatMap service worker — app-shell caching + offline fallback */
-const VERSION = 'satmap-v43';
+/* SkyWatch service worker — app-shell caching + offline fallback */
+const VERSION = 'skywatch-v45';
 const SHELL = [
   './',
   './index.html',

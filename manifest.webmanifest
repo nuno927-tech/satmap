@@ -1,6 +1,6 @@
 {
-  "name": "SatMap — Live Satellite & ISS Tracker",
-  "short_name": "SatMap",
+  "name": "SkyWatch — Live Satellite & ISS Tracker",
+  "short_name": "SkyWatch",
   "description": "Track the ISS and hundreds of satellites in real time on a 3D globe.",
   "start_url": "./?source=pwa",
   "scope": "./",
