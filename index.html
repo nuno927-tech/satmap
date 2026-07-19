@@ -238,10 +238,16 @@
   #d-head h3{margin:0}
   #d-actions{margin-top:0}
   /* Collapse / expand */
+  /* which body shows (instant) */
+  #d-satonly{display:block}
   #d-launch{display:none}
   #detail.launch #d-satonly{display:none}
   #detail.launch #d-launch{display:block}
-  #detail.collapsed #d-satonly,#detail.collapsed #d-launch{display:none}   /* listed last: wins on collapse */
+  /* collapse/expand animates smoothly on the active body */
+  #d-satonly,#d-launch{overflow:hidden;max-height:2000px;opacity:1;
+    transition:max-height .4s cubic-bezier(.32,.72,0,1),opacity .3s ease}
+  #detail.collapsed #d-satonly,#detail.collapsed #d-launch{max-height:0;opacity:0}
+  @media (prefers-reduced-motion:reduce){ #d-satonly,#d-launch{transition:none} }
   #d-more{display:flex;align-items:center;justify-content:center;gap:7px;margin:14px 0 4px;
     color:var(--accent);font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
     cursor:pointer;user-select:none;animation:dmore 1.5s ease-in-out infinite}
@@ -254,7 +260,7 @@
   #d-fav:hover{background:rgba(255,211,77,.2)}
   #d-fav.on{background:rgba(255,211,77,.2);border-color:rgba(255,211,77,.55)}
   /* "seen on" date/time picker */
-  .d-seenwhen{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:9px}
+  .d-seenwhen{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:0}
   .d-seenwhen label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
   #d-seen-dt{flex:1;min-width:150px;padding:7px 9px;border-radius:9px;border:1px solid var(--border);
     background:var(--panel-solid);color:var(--text);font-size:12px;font-family:inherit;color-scheme:dark}
@@ -324,6 +330,11 @@
   /* launch detail card */
   .d-badge.b-launch{background:rgba(255,107,53,.18);color:#ff9a6b;border-color:rgba(255,107,53,.45)}
   .lc-count{font-size:22px;font-weight:700;color:#ff9a6b;font-variant-numeric:tabular-nums;margin:6px 0 12px;letter-spacing:.5px}
+  .lc-seen{display:flex;gap:8px;margin:10px 0 12px}
+  .lc-seenbtn{flex:1;padding:9px 6px;border-radius:10px;border:1px solid var(--border);
+    background:rgba(120,160,255,.06);color:var(--text);font-size:11.5px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s}
+  .lc-seenbtn:hover{background:rgba(87,224,138,.12)}
+  .lc-seenbtn.on{background:rgba(87,224,138,.18);border-color:rgba(87,224,138,.5);color:#57e08a}
   #d-launch .d-src{margin-top:10px}
   .d-src span{color:var(--muted)}
   .fr-search{display:flex;gap:6px;margin-bottom:8px}
@@ -425,6 +436,11 @@
     border:1px solid var(--accent);background:rgba(90,209,255,.14);color:var(--accent);
     font-size:12px;font-weight:600;cursor:pointer}
   #installbtn:hover{background:rgba(90,209,255,.24)}
+  #sharebtn{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;width:100%;
+    padding:11px;border-radius:11px;border:1px solid var(--border);background:rgba(120,160,255,.08);
+    color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s}
+  #sharebtn:hover{background:rgba(90,209,255,.14);border-color:rgba(90,209,255,.5);color:var(--accent)}
+  #sharebtn svg{display:block}
 
   /* Mobile bottom toolbar (hidden on desktop) */
   #mbar{display:none}
@@ -567,6 +583,7 @@
     <label class="ng"><span>🚀 Rocket launches</span><span class="switch sm" id="nt-rocket"></span></label>
   </div>
   <div class="note" id="stg-note"></div>
+  <button id="sharebtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.7 15.7 6.3M8.3 13.3l7.4 4.4"/></svg> Share this app</button>
 </div>
 
 <div id="overhead" class="panel">
@@ -587,6 +604,11 @@
       <button id="d-seen">👁 Mark as seen</button>
       <button id="d-fav" title="Add to favorites">☆ Favorite</button>
     </div>
+    <div id="d-seenwhen" class="d-seenwhen">
+      <label for="d-seen-dt">Seen on</label>
+      <input type="datetime-local" id="d-seen-dt" />
+      <button id="d-seen-update" class="d-mini">Update time</button>
+    </div>
   </div>
   <div id="d-more"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg><span id="d-more-lbl">Swipe up for details</span></div>
   <div id="d-satonly">
@@ -599,11 +621,6 @@
     <div class="row"><b>Elevation</b><span id="d-el">—</span></div>
     <div class="row"><b>Range</b><span id="d-rng">—</span></div>
     <div class="row"><b>NORAD ID</b><span id="d-id">—</span></div>
-    <div id="d-seenwhen" class="d-seenwhen">
-      <label for="d-seen-dt">Seen on</label>
-      <input type="datetime-local" id="d-seen-dt" />
-      <button id="d-seen-update" class="d-mini">Update time</button>
-    </div>
     <div id="d-meta"></div>
     <div id="d-passes"></div>
   </div>
@@ -1206,7 +1223,8 @@ function renderFrame(){
   if(usePoints){ overhead=renderPoints(); }              // sats on the GPU
   else { const r=renderHtml(); overhead=r.overhead; satHtml=r.list; }   // sats as HTML markers
   // Launch-pad pins + the selected-satellite highlight ride the HTML-elements layer.
-  const extra = enabled['rocket'] ? launchPins.filter(p=>p.lat!=null) : [];
+  // launches can't be "seen"/"favorited", so hide their pins while those filters are on
+  const extra = (enabled['rocket'] && !favOnly && !seenOnly) ? launchPins.filter(p=>p.lat!=null) : [];
   if(selected && selected.lat!=null){
     selMarker.lat=selected.lat; selMarker.lng=selected.lng; selMarker.alt=selected.alt; extra.push(selMarker);
   }
@@ -1278,6 +1296,7 @@ function pickSat(e, THREE, dom){
   rc.setFromCamera(m, world.camera());
   const hits=rc.intersectObject(satPoints, false);
   if(hits && hits.length){ const si=pointSatIndex[hits[0].index]; if(si!=null && SATS[si]) selectSat(SATS[si]); }
+  else if(selected || selectedLaunch){ clearSelection(); }   // tapped empty space → dismiss the highlight
 }
 
 /* ---------- ISS orbit path ---------- */
@@ -1375,7 +1394,8 @@ function firePassNotification(sat, p){
   const durMin=Math.max(1,Math.round((p.end-p.start)/60000));
   const title='🛰 '+sat.name+' visible pass';
   const opts={ body:`In ~${mins} min · look ${azCompass(p.startAz)}, rising to ${Math.round(p.peakEl)}° · visible ~${durMin} min`,
-    tag:'satmap-'+sat.id+'-'+Math.round(p.start/60000), icon:'icon-192.png', badge:'icon-192.png', renotify:false };
+    tag:'satmap-'+sat.id+'-'+Math.round(p.start/60000), icon:'icon-192.png', badge:'icon-192.png', renotify:false,
+    data:{type:'sat', id:sat.id} };
   try{
     if(navigator.serviceWorker && navigator.serviceWorker.ready)
       navigator.serviceWorker.ready.then(r=>r.showNotification(title,opts)).catch(()=>{ new Notification(title,opts); });
@@ -1584,9 +1604,10 @@ function selectSat(s){
   if(isMobile()) openSheet('detail');
   else $('detail').style.display='block';
 }
+// Drop the current satellite/launch selection and its map highlight (the pulsing ring).
+function deselectSat(){ if(!selected && !selectedLaunch) return; selected=null; selectedLaunch=null; renderFrame(); }
 function clearSelection(){
-  selected=null; selectedLaunch=null;
-  renderFrame();   // drop the highlight right away
+  deselectSat();
   if(isMobile()) closeSheets();
   else $('detail').style.display='none';
 }
@@ -1858,7 +1879,7 @@ function ingestLaunches(results){
       image:img, vidURL:vid, infoURL:info
     };
   }).filter(l=>l.net);
-  buildLaunchPins(); updateLegendCounts(); renderLaunchList(); renderFrame(); scanLaunchAlerts();
+  buildLaunchPins(); updateLegendCounts(); renderLaunchList(); renderFrame(); scanLaunchAlerts(); tryOpenTarget();
 }
 function buildLaunchPins(){
   const byPad={};
@@ -1905,6 +1926,7 @@ function selectLaunch(l){
   selected=null; selectedLaunch=l;
   $('detail').classList.add('launch'); collapseDetail();   // launch card: name only until expanded
   const act=$('d-actions'); if(act) act.style.display='none';   // seen/favorite are satellite-only
+  const sw=$('d-seenwhen'); if(sw) sw.style.display='none';     // "seen on" is satellite-only too
   const p=$('d-passes'); if(p) p.innerHTML='';
   if(typeof l.lat==='number') flyTo(l.lat, l.lng, 1.8, 900);
   renderLaunchDetail(l);
@@ -1918,6 +1940,12 @@ function renderLaunchDetail(l){
   h+='<div class="d-badges"><span class="d-badge b-launch">'+esc(l.statusAbbrev||l.status||'TBD')+'</span>'+
      (l.orbit?'<span class="d-badge">'+esc(l.orbit)+'</span>':'')+'</div>';
   h+='<div class="lc-count" id="lc-count">'+countdownStr(l.net)+'</div>';
+  if(currentUser){ const e=seenEntry(l.id);
+    h+='<div class="lc-seen">'+
+      '<button class="lc-seenbtn'+(e&&e.how==='overhead'?' on':'')+'" data-how="overhead">👁 Seen overhead</button>'+
+      '<button class="lc-seenbtn'+(e&&e.how==='person'?' on':'')+'" data-how="person">🧍 In person</button>'+
+    '</div>';
+  }
   const rows=[['Mission',l.mission],['Vehicle',l.rocket],['Provider',l.provider],
     ['When', l.net?fmtLaunchTime(l.net):'TBD'],['Status', l.status],['Pad', l.padName],['Site', l.locationName]];
   h+=rows.filter(r=>r[1]).map(r=>'<div class="row"><b>'+r[0]+'</b><span>'+esc(r[1])+'</span></div>').join('');
@@ -1927,6 +1955,30 @@ function renderLaunchDetail(l){
   if(l.infoURL && l.infoURL!==l.vidURL) links.push('<a href="'+esc(l.infoURL)+'" target="_blank" rel="noopener">Details</a>');
   h+='<div class="d-src">'+(links.length?links.join(' · ')+' · ':'')+'Data: The Space Devs</div>';
   box.innerHTML=h;
+  box.querySelectorAll('.lc-seenbtn').forEach(b=>b.onclick=()=>markLaunchSeen(l, b.dataset.how));
+}
+// Mark a rocket launch as seen (overhead or in person) — becomes a badge like satellites.
+async function markLaunchSeen(l, how){
+  if(!currentUser||!window.fb){ showErr('Sign in to log sightings (account icon, top-right).'); return; }
+  if(!myProfile||!myProfile.username){ showErr('Choose a username first (Friends tab).'); return; }
+  const {db, doc, setDoc}=window.fb; const me=currentUser.uid;
+  const list=(Array.isArray(myProfile.seen))?myProfile.seen.slice():[];
+  const i=list.findIndex(x=>x.id===l.id);
+  const label=(how==='person'?'in person':'overhead');
+  let msg, added=false;
+  if(i>=0){
+    if(list[i].how===how){ list.splice(i,1); msg='Removed “'+l.rocket+'” sighting'; }
+    else { list[i]=Object.assign({}, list[i], {how, ts:Date.now()}); msg='Updated to seen '+label; }
+  } else {
+    list.push({id:l.id, name:l.provider+' · '+l.rocket, ts:Date.now(), kind:'launch', how}); added=true;
+    msg='🏅 Badge earned: '+l.rocket+' ('+label+')';
+  }
+  const count=list.length;
+  try{
+    await setDoc(doc(db,'profiles',me), {seen:list, badges:count}, {merge:true});
+    if(myProfile.unameLower){ try{ await setDoc(doc(db,'usernames',myProfile.unameLower), {badges:count}, {merge:true}); }catch(e){} }
+    showToast(msg, added);
+  }catch(e){ console.error(e); showErr('Could not save: '+(e.code||e.message||e)); }
 }
 function launchBand(dt){
   if(dt < -120e3) return null;
@@ -1954,9 +2006,30 @@ function scanLaunchAlerts(){
     launchNotified.add(key);
     showNotif('🚀 '+l.provider+' — '+l.rocket, {
       body: l.mission+' '+msg[band]+(l.padName?(' · '+l.padName):''),
-      tag:'launch-'+l.id+'-'+band, icon:'icon-192.png', badge:'icon-192.png' });
+      tag:'launch-'+l.id+'-'+band, icon:'icon-192.png', badge:'icon-192.png', data:{type:'launch', id:l.id} });
   }
   try{ localStorage.setItem('satmap_launch_notified', JSON.stringify([...launchNotified].slice(-500))); }catch(e){}
+}
+
+/* ---------- Deep link from a clicked notification ---------- */
+let pendingTarget=null;
+function openTarget(t){ if(!t||!t.id) return; pendingTarget=t; tryOpenTarget(); }
+function tryOpenTarget(){
+  if(!pendingTarget) return;
+  const t=pendingTarget;
+  if(t.type==='launch'){
+    const l=LAUNCHES.find(x=>x.id===t.id);
+    if(l){ enabled['rocket']=true; renderLaunchList(); selectLaunch(l); pendingTarget=null; }
+    else if(!LAUNCHES.length){ loadLaunches(); }   // retries from ingestLaunches once loaded
+    return;
+  }
+  const s=SATS.find(x=>x.id===t.id);
+  if(s){ enabled[s.group]=true; selectSat(s); pendingTarget=null; }
+}
+function targetFromHash(){
+  const m=(location.hash||'').match(/sel=([^&]+)/); if(!m) return null;
+  const p=decodeURIComponent(m[1]).split(':');
+  return p.length===2 ? {type:p[0], id:p[1]} : null;
 }
 
 /* ---------- Boot ---------- */
@@ -1989,6 +2062,12 @@ async function boot(){
 
   $('gotome').onclick=flyToMe;
   $('search').addEventListener('keydown',e=>{ if(e.key==='Enter') doSearch(e.target.value); });
+
+  // Deep link: clicked notification (cold start via #sel=, or live via SW message)
+  const ht=targetFromHash();
+  if(ht){ try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} openTarget(ht); }
+  if('serviceWorker' in navigator)
+    navigator.serviceWorker.addEventListener('message', e=>{ if(e.data && e.data.satmapSelect) openTarget(e.data.satmapSelect); });
 }
 
 /* ---------- Mobile sheets + bottom toolbar ---------- */
@@ -1999,8 +2078,13 @@ function syncBar(){
   const map={ 'mb-layers':'controls', 'mb-over':'overhead', 'mb-friends':'friends', 'mb-settings':'settings' };
   for(const btn in map){ const b=$(btn), sheet=$(map[btn]); if(b && sheet) b.classList.toggle('active', sheet.classList.contains('open')); }
 }
-function closeSheets(){ SHEETS.forEach(s=>$(s).classList.remove('open')); $('backdrop').classList.remove('show'); syncBar(); }
+function closeSheets(){
+  const detWasOpen=$('detail').classList.contains('open');
+  SHEETS.forEach(s=>$(s).classList.remove('open')); $('backdrop').classList.remove('show'); syncBar();
+  if(detWasOpen) deselectSat();     // closing the detail sheet clears its map highlight
+}
 function openSheet(id){
+  if(id!=='detail' && $('detail').classList.contains('open')) deselectSat();   // navigating away drops the highlight
   SHEETS.forEach(s=>{ if(s!==id) $(s).classList.remove('open'); });
   $(id).classList.add('open'); $('backdrop').classList.add('show'); syncBar();
 }
@@ -2107,7 +2191,21 @@ function initSettingsUI(){
       if(k==='rocket') scanLaunchAlerts(); else scanAlerts(); };
   });
   $('settingsbtn').onclick=(e)=>{ e.stopPropagation(); $('accountmenu').classList.remove('open'); toggleSheet('settings'); };
+  const sb=$('sharebtn'); if(sb) sb.onclick=shareApp;
   applyPrefs();
+}
+// Share a link to the app — native share sheet where available, otherwise copy to clipboard.
+function appShareUrl(){ return (location.origin + location.pathname).replace(/index\.html$/, ''); }
+async function shareApp(){
+  const url=appShareUrl();
+  const data={ title:'SatMap — Live Satellite & ISS Tracker',
+    text:'Track the ISS and hundreds of satellites live on a 3D globe 🛰️', url };
+  if(navigator.share){
+    try{ await navigator.share(data); return; }
+    catch(e){ if(e && e.name==='AbortError') return; }   // user dismissed the share sheet
+  }
+  try{ await navigator.clipboard.writeText(url); showToast('🔗 Link copied — share it with friends!'); return; }catch(e){}
+  showErr('Share this link: '+url);
 }
 
 /* ---------- PWA: install prompt + first-run popup ---------- */
@@ -2307,6 +2405,7 @@ function startSocial(user){
   if(unsubMyProfile) unsubMyProfile();
   unsubMyProfile = onSnapshot(doc(db,'profiles',user.uid), s=>{
     myProfile = s.exists()? s.data() : null; rebuildSeenSet(); renderMe(); updateAccountUI(currentUser); renderLeaderboard();
+    if(selectedLaunch) renderLaunchDetail(selectedLaunch);
   }, err=>console.warn('profile sub',err));
   if(unsubFriends) unsubFriends();
   unsubFriends = onSnapshot(collection(db,'profiles',user.uid,'friends'), snap=>{

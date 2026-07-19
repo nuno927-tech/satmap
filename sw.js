@@ -1,5 +1,5 @@
 /* SatMap service worker — app-shell caching + offline fallback */
-const VERSION = 'satmap-v35';
+const VERSION = 'satmap-v42';
 const SHELL = [
   './',
   './index.html',
@@ -25,12 +25,15 @@ self.addEventListener('activate', (e) => {
 // Focus (or open) the app when a pass-alert notification is clicked.
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
-  e.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((cs) => {
-      for (const c of cs) { if ('focus' in c) return c.focus(); }
-      if (self.clients.openWindow) return self.clients.openWindow('./');
-    })
-  );
+  const data = e.notification.data || {};
+  const sel = (data.type && data.id) ? (data.type + ':' + data.id) : '';
+  e.waitUntil((async () => {
+    const cs = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of cs) {
+      if ('focus' in c) { await c.focus(); if (sel) c.postMessage({ satmapSelect: data }); return; }
+    }
+    if (self.clients.openWindow) return self.clients.openWindow(sel ? ('./#sel=' + encodeURIComponent(sel)) : './');
+  })());
 });
 
 self.addEventListener('fetch', (e) => {
