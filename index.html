@@ -231,6 +231,29 @@
   .fr-locate:hover{color:var(--accent)} .fr-del:hover{color:var(--iss)}
   .acct-uname{font-size:12.5px;color:var(--muted);margin:2px 0 12px}
   .acct-uname b{color:var(--accent)} .acct-uname .lnk{color:var(--accent);cursor:pointer}
+  .fr-sub{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:14px 0 4px}
+  .fr-filter{width:100%;padding:9px 11px;border-radius:10px;border:1px solid var(--border);
+    background:rgba(0,0,0,.35);color:var(--text);font-size:14px;outline:none;margin-bottom:6px}
+  .fr-filter:focus{border-color:var(--accent)}
+  #fr-dir{max-height:260px;overflow-y:auto}
+  .fr-req{display:flex;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid rgba(120,160,255,.08)}
+  .fr-req .fr-nm{flex:1}
+  .fr-acc{padding:6px 12px;border:none;border-radius:9px;background:#2ecc71;color:#04121f;font-size:12px;font-weight:700;cursor:pointer}
+  .fr-den{padding:6px 10px;border:1px solid var(--border);border-radius:9px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer}
+  .fr-reqbox{background:rgba(90,209,255,.08);border:1px solid rgba(90,209,255,.25);border-radius:12px;padding:6px 12px;margin-bottom:6px}
+  .fr-reqbox .fr-sub{margin-top:6px;color:var(--accent)}
+
+  /* Friend-request popup */
+  #reqpop{position:fixed;left:12px;right:12px;bottom:12px;z-index:92;display:none;gap:12px;align-items:center;
+    padding:14px 14px calc(env(safe-area-inset-bottom) + 14px);background:var(--panel-solid);
+    border:1px solid rgba(90,209,255,.4);border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.6);
+    opacity:0;transform:translateY(150%);transition:transform .4s cubic-bezier(.32,.72,0,1),opacity .3s}
+  #reqpop.show{display:flex;opacity:1;transform:translateY(0)}
+  #reqpop .rp-txt{flex:1;font-size:14px;line-height:1.3} #reqpop .rp-txt b{color:var(--accent)}
+  #reqpop .rp-actions{display:flex;gap:6px;flex:0 0 auto}
+  #reqpop #rp-accept{background:#2ecc71;color:#04121f;border:none;font-weight:700;padding:10px 15px;border-radius:11px;font-size:13px;cursor:pointer}
+  #reqpop #rp-deny{background:transparent;border:1px solid var(--border);color:var(--muted);padding:10px 13px;border-radius:11px;font-size:13px;cursor:pointer}
+  @media (min-width:821px){ #reqpop{left:auto;right:16px;width:340px} }
 
   @media (max-width:820px){
     #friends{left:0;right:0;bottom:0;top:auto;width:auto;display:block;
@@ -463,12 +486,20 @@
   <div class="sheet-handle"></div>
   <h2>Friends</h2>
   <div id="fr-me"></div>
-  <div class="fr-search">
-    <input id="fr-q" placeholder="Search by username…" autocomplete="off" />
-    <button id="fr-go">Search</button>
-  </div>
-  <div id="fr-result"></div>
+  <div id="fr-requests"></div>
+  <div class="fr-sub" id="fr-friends-h">Your friends</div>
   <div id="fr-list"></div>
+  <div class="fr-sub">All users · long-press to request</div>
+  <input id="fr-q" class="fr-filter" placeholder="Filter users…" autocomplete="off" />
+  <div id="fr-dir"></div>
+</div>
+
+<div id="reqpop">
+  <div class="rp-txt"><b id="rp-name">@user</b> wants to be your friend</div>
+  <div class="rp-actions">
+    <button id="rp-accept">Accept</button>
+    <button id="rp-deny">Deny</button>
+  </div>
 </div>
 
 <div id="backdrop"></div>
@@ -689,16 +720,100 @@ function buildSatrecs(raw){
   return list;
 }
 
+// Retry a group fetch a few times with growing backoff before giving up.
+async function fetchGroupRetry(g, tries){
+  tries = tries||3; let lastErr;
+  for(let i=0;i<tries;i++){
+    try{ return await fetchGroup(g); }
+    catch(e){ lastErr=e; if(i<tries-1) await new Promise(r=>setTimeout(r, 700*(i+1)*(i+1))); }  // ~0.7s, 2.8s
+  }
+  throw lastErr;
+}
+// Remember the last good data on the device so we can still show a map if the feed is unreachable.
+const TLE_CACHE_KEY='satmap_tle_v1';
+function saveTleCache(groupId, rows){
+  try{
+    let c={}; try{ c=JSON.parse(localStorage.getItem(TLE_CACHE_KEY)||'{}'); }catch(e){}
+    c.ts=Date.now(); c.g=c.g||{}; c.g[groupId]=rows.map(r=>[r.name,r.l1,r.l2]);
+    localStorage.setItem(TLE_CACHE_KEY, JSON.stringify(c));
+  }catch(e){}
+}
+function loadTleCache(groupId){
+  try{
+    const c=JSON.parse(localStorage.getItem(TLE_CACHE_KEY)||'{}');
+    const arr=c.g && c.g[groupId]; if(!arr) return null;
+    return arr.map(a=>({name:a[0], l1:a[1], l2:a[2], id:(a[1]||'').slice(2,7).trim(), group:groupId}));
+  }catch(e){ return null; }
+}
 async function loadData(){
-  const results = await Promise.allSettled(GROUPS.map(fetchGroup));
-  let raw = [];
-  results.forEach((r,i)=>{ if(r.status==='fulfilled') raw = raw.concat(r.value);
-    else console.warn('group failed', GROUPS[i].id, r.reason); });
+  const results = await Promise.allSettled(GROUPS.map(g=>fetchGroupRetry(g,3)));
+  let raw=[], anyFresh=false, anyCache=false;
+  results.forEach((r,i)=>{
+    const g=GROUPS[i];
+    if(r.status==='fulfilled' && r.value && r.value.length){
+      raw=raw.concat(r.value); anyFresh=true; saveTleCache(g.id, r.value);
+    } else {
+      console.warn('group failed', g.id, r.reason);
+      const cached=loadTleCache(g.id);                 // fall back to this group's last good data
+      if(cached && cached.length){ raw=raw.concat(cached); anyCache=true; }
+    }
+  });
   if(!raw.length){
-    showErr('Could not reach the live TLE feed — showing the ISS from cached elements.');
+    showErr('Could not reach the live satellite feed — showing the ISS from cached elements.');
     raw = FALLBACK.map(f=>({name:f.name,l1:f.l1,l2:f.l2,id:f.id,group:f.group}));
+  } else if(!anyFresh && anyCache){
+    showErr('Live feed unavailable — showing saved satellite data.');
   }
   SATS = buildSatrecs(raw);
+}
+
+/* ---------- Background: download the rest of Starlink in batches ---------- */
+let starlinkFull=false, starlinkLoading=false;
+// Desktop pulls (nearly) the whole constellation; mobile is capped so phones stay smooth.
+const STARLINK_MAX = IS_MOBILE ? 500 : 8000;
+async function loadMoreStarlink(){
+  if(starlinkFull || starlinkLoading || !enabled['starlink']) return;
+  let cur=SATS.filter(s=>s.group==='starlink').length;
+  if(cur>=STARLINK_MAX){ starlinkFull=true; return; }
+  starlinkLoading=true;
+  const seen=new Set(SATS.map(s=>s.id));
+  let res;
+  try{ res=await fetch('https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle',{cache:'no-store'}); }
+  catch(e){ starlinkLoading=false; return; }
+  if(!res.ok || !res.body || !res.body.getReader){ starlinkLoading=false; return; }
+  const reader=res.body.getReader(), dec=new TextDecoder();
+  let buf='', name=null, l1=null, batch=[];
+  const flush=async()=>{
+    if(!batch.length) return;
+    buildSatrecs(batch).forEach(s=>{ SATS.push(s); cur++; });
+    batch=[]; updateLegendCounts();
+    await new Promise(r=>setTimeout(r, 90));   // yield so the globe keeps rendering
+  };
+  try{
+    while(true){
+      const {done,value}=await reader.read();
+      if(value) buf += dec.decode(value,{stream:true});
+      let idx;
+      while((idx=buf.indexOf('\n'))>=0){
+        const line=buf.slice(0,idx).replace(/\r$/,''); buf=buf.slice(idx+1);
+        if(!line.trim()) continue;
+        if(line.startsWith('1 ')){ if(name) l1=line; }
+        else if(line.startsWith('2 ')){
+          if(name && l1){ const id=l1.slice(2,7).trim();
+            if(!seen.has(id)){ seen.add(id); batch.push({name, l1, l2:line, id, group:'starlink'}); }
+            name=null; l1=null;
+            if(batch.length>=250) await flush();
+            if(cur+batch.length>=STARLINK_MAX){ await flush(); try{ await reader.cancel(); }catch(e){} starlinkFull=true; starlinkLoading=false; return; }
+          }
+        }
+        else { name=line.trim(); l1=null; }
+      }
+      if(done) break;
+    }
+    await flush();
+    starlinkFull=true;
+  }catch(e){ console.warn('starlink batch load', e); }
+  starlinkLoading=false;
 }
 
 /* ---------- Globe ---------- */
@@ -1051,6 +1166,7 @@ function renderLegend(){
       const id=n.dataset.id; enabled[id]=!enabled[id];
       n.classList.toggle('off',!enabled[id]);
       if(id==='iss') updateIssOrbit();
+      if(id==='starlink' && enabled['starlink']) loadMoreStarlink();
       saveSettings();
     };
   });
@@ -1112,10 +1228,17 @@ async function boot(){
   $('loader').classList.add('fade');
   setTimeout(()=>$('loader').remove(),700);
 
-  setInterval(propagate, UPDATE_MS);
+  // Adaptive propagation: slow the update rate as the satellite count grows so the app stays smooth.
+  (function loop(){
+    propagate();
+    let n=0; for(const s of SATS){ if(enabled[s.group]) n++; }
+    const d = n>3000?1600 : n>1500?1000 : n>700?600 : UPDATE_MS;
+    setTimeout(loop, d);
+  })();
   setInterval(tickClock, 1000); tickClock();
   setInterval(updateIssOrbit, 30000);  // refresh ISS track periodically
   setInterval(scanAlerts, 120000); scanAlerts();  // check for upcoming visible passes to notify
+  setTimeout(loadMoreStarlink, 4000);  // then pull the rest of Starlink in the background
 
   $('locbtn').onclick=requestLocation;
   $('gotome').onclick=flyToMe;
@@ -1267,6 +1390,8 @@ function registerSW(){
 let currentUser=null, unsubSettings=null, applyingRemote=false, saveTimer=null, firstSyncPending=false, wasSignedIn=false;
 // Friends / presence
 let myProfile=null, friends=[], unsubFriends=null, unsubMyProfile=null, friendProfileUnsubs={}, presenceTimer=null, friendsTick=null;
+// Friend requests + user directory
+let incomingReqs=[], unsubRequests=null, allUsers=[], sentRequests=new Set(), dirFilter='', reqQueue=[], reqPopBusy=false;
 const GOOGLE_G = '<svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.1 0 24 0 14.6 0 6.4 5.4 2.5 13.3l7.8 6.1C12.2 13.3 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5c4.2-3.9 6.6-9.6 6.6-16.9z"/><path fill="#FBBC05" d="M10.3 19.4l-7.8-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.5 10.7l7.8-6.1c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6z"/><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.1-5.5c-2 1.3-4.6 2.1-7.9 2.1-6.4 0-11.8-3.8-13.7-9.4l-7.8 6.1C6.4 42.6 14.6 48 24 48z"/></svg>';
 const USER_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
 
@@ -1424,8 +1549,17 @@ function startSocial(user){
     });
     for(let i=friends.length-1;i>=0;i--){ if(!ids.has(friends[i].uid)){ const fid=friends[i].uid;
       if(friendProfileUnsubs[fid]){ friendProfileUnsubs[fid](); delete friendProfileUnsubs[fid]; } friends.splice(i,1); } }
-    renderFriends(); updateFriendPins();
+    renderFriends(); updateFriendPins(); renderDirectory();
   }, err=>console.warn('friends sub',err));
+  // Incoming friend requests
+  if(unsubRequests) unsubRequests();
+  unsubRequests = onSnapshot(collection(db,'profiles',user.uid,'requests'), snap=>{
+    const prev=new Set(incomingReqs.map(r=>r.uid));
+    incomingReqs = snap.docs.map(d=>{ const x=d.data()||{}; return {uid:d.id, username:x.username||d.id, displayName:x.displayName||'', photoURL:x.photoURL||''}; });
+    incomingReqs.forEach(r=>{ if(!prev.has(r.uid)) showReqPop(r); });   // popup for new arrivals
+    renderRequests();
+  }, err=>console.warn('requests sub',err));
+  loadAllUsers();
   startPresence(); shareLocation();
   if(friendsTick) clearInterval(friendsTick);
   friendsTick=setInterval(evalFriendStatus, 6000);   // catch offline (time-based) transitions
@@ -1434,10 +1568,12 @@ function startSocial(user){
 function stopSocial(){
   if(unsubMyProfile){ unsubMyProfile(); unsubMyProfile=null; }
   if(unsubFriends){ unsubFriends(); unsubFriends=null; }
+  if(unsubRequests){ unsubRequests(); unsubRequests=null; }
   Object.values(friendProfileUnsubs).forEach(u=>{ try{u();}catch(e){} }); friendProfileUnsubs={};
-  friends=[]; myProfile=null;
+  friends=[]; myProfile=null; incomingReqs=[]; allUsers=[]; sentRequests=new Set();
   if(friendsTick){ clearInterval(friendsTick); friendsTick=null; }
-  stopPresence(); updateFriendPins(); renderFriends(); renderMe();
+  hideReqPop();
+  stopPresence(); updateFriendPins(); renderFriends(); renderMe(); renderRequests(); renderDirectory();
 }
 function startPresence(){
   stopPresence();
@@ -1472,34 +1608,92 @@ async function saveUsername(raw){
     showToast('✓ Username set: @'+raw, true);
   }catch(e){ console.error(e); showErr('Could not save username: '+(e.code||e.message||e)); }
 }
-async function searchUser(raw){
-  const el=$('fr-result'); if(!el) return; raw=(raw||'').trim().replace(/^@/,'');
-  if(!raw){ el.innerHTML=''; return; }
-  if(!/^[a-zA-Z0-9_]{3,20}$/.test(raw)){ el.innerHTML='<div class="fr-note">Enter a valid username.</div>'; return; }
-  if(!window.fb||!currentUser){ el.innerHTML='<div class="fr-note">Sign in to search.</div>'; return; }
-  const {db, doc, getDoc}=window.fb;
-  el.innerHTML='<div class="fr-note">Searching…</div>';
+async function loadAllUsers(){
+  if(!window.fb || !currentUser) return;
+  const {db, collection, getDocs, query, limit}=window.fb;
   try{
-    const snap=await getDoc(doc(db,'usernames',raw.toLowerCase()));
-    if(!snap.exists()){ el.innerHTML='<div class="fr-note">No user “@'+raw+'”.</div>'; return; }
-    const u=snap.data();
-    if(u.uid===currentUser.uid){ el.innerHTML='<div class="fr-note">That’s you!</div>'; return; }
-    const already=friends.some(f=>f.uid===u.uid);
-    el.innerHTML='<div class="fr-item"><div class="fr-av">'+(u.photoURL?('<img src="'+u.photoURL+'" referrerpolicy="no-referrer">'):'👤')+'</div>'+
-      '<div class="fr-nm">@'+u.username+'</div>'+(already?'<span class="fr-tag">Added ✓</span>':'<button class="fr-add">Add</button>')+'</div>';
-    const add=el.querySelector('.fr-add'); if(add) add.onclick=()=>addFriend(u);
-  }catch(e){ console.error(e); el.innerHTML='<div class="fr-note">Search failed. Check your connection.</div>'; }
+    const snap=await getDocs(query(collection(db,'usernames'), limit(300)));
+    allUsers = snap.docs.map(d=>d.data()).filter(u=>u && u.uid && u.uid!==currentUser.uid);
+    renderDirectory();
+  }catch(e){ console.warn('directory', e); const el=$('fr-dir'); if(el) el.innerHTML='<div class="fr-note">Couldn’t load the user list.</div>'; }
 }
-async function addFriend(u){
-  if(!myProfile||!myProfile.username){ showErr('Choose your own username first.'); return; }
+function renderDirectory(){
+  const el=$('fr-dir'); if(!el) return;
+  if(!currentUser){ el.innerHTML=''; return; }
+  const friendIds=new Set(friends.map(f=>f.uid)), reqIds=new Set(incomingReqs.map(r=>r.uid));
+  const f=(dirFilter||'').toLowerCase().replace(/^@/,'');
+  const list=allUsers.filter(u=> !f || (u.username||'').toLowerCase().includes(f))
+    .sort((a,b)=>(a.username||'').localeCompare(b.username||''));
+  if(!list.length){ el.innerHTML='<div class="fr-note">'+(allUsers.length?'No match.':'No other users have a username yet.')+'</div>'; return; }
+  el.innerHTML=list.slice(0,150).map(u=>{
+    let tag;
+    if(friendIds.has(u.uid)) tag='<span class="fr-tag">Friend ✓</span>';
+    else if(reqIds.has(u.uid)) tag='<span class="fr-tag">Wants to add you</span>';
+    else if(sentRequests.has(u.uid)) tag='<span class="fr-tag">Requested</span>';
+    else tag='<span class="fr-tag">hold to add</span>';
+    return '<div class="fr-item fr-du" data-uid="'+u.uid+'" title="Long-press to send a friend request">'+
+      '<div class="fr-av">'+(u.photoURL?('<img src="'+u.photoURL+'" referrerpolicy="no-referrer">'):'👤')+'</div>'+
+      '<div class="fr-nm">@'+(u.username||'user')+'</div>'+tag+'</div>';
+  }).join('');
+  el.querySelectorAll('.fr-du').forEach(n=>{
+    const u=allUsers.find(x=>x.uid===n.dataset.uid); if(!u) return;
+    if(friendIds.has(u.uid)||sentRequests.has(u.uid)) return;   // already friends / already requested
+    let timer=null, sx=0, sy=0; const clr=()=>{ if(timer){clearTimeout(timer);timer=null;} };
+    n.addEventListener('pointerdown',e=>{ clr(); sx=e.clientX; sy=e.clientY; timer=setTimeout(()=>{ timer=null;
+      const r=incomingReqs.find(x=>x.uid===u.uid);
+      if(r) acceptRequest(r);            // they already requested you → long-press accepts
+      else sendFriendRequest(u);
+      if(navigator.vibrate){try{navigator.vibrate(15);}catch(e){}}
+    }, 500); });
+    ['pointerup','pointerleave','pointercancel'].forEach(ev=>n.addEventListener(ev,clr));
+    n.addEventListener('pointermove',e=>{ if(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10) clr(); });
+  });
+}
+async function sendFriendRequest(u){
+  if(!myProfile||!myProfile.username){ showErr('Choose your own username first (top of this panel).'); return; }
+  if(!window.fb||!currentUser) return;
   const {db, doc, setDoc}=window.fb; const me=currentUser.uid;
   try{
-    await setDoc(doc(db,'profiles',me,'friends',u.uid), {username:u.username, displayName:u.displayName||'', photoURL:u.photoURL||'', since:Date.now()});
-    await setDoc(doc(db,'profiles',u.uid,'friends',me), {username:myProfile.username, displayName:currentUser.displayName||'', photoURL:currentUser.photoURL||'', since:Date.now()});
-    showToast('✓ Added @'+u.username, true);
-    const q=$('fr-q'); if(q) q.value=''; const r=$('fr-result'); if(r) r.innerHTML='';
-  }catch(e){ console.error(e); showErr('Could not add friend: '+(e.code||e.message||e)); }
+    await setDoc(doc(db,'profiles',u.uid,'requests',me), {username:myProfile.username, displayName:currentUser.displayName||'', photoURL:currentUser.photoURL||'', ts:Date.now()});
+    sentRequests.add(u.uid);
+    showToast('✓ Friend request sent to @'+u.username, true);
+    renderDirectory();
+  }catch(e){ console.error(e); showErr('Could not send request: '+(e.code||e.message||e)); }
 }
+async function acceptRequest(r){
+  if(!window.fb||!currentUser) return;
+  const {db, doc, setDoc, deleteDoc}=window.fb; const me=currentUser.uid;
+  try{
+    await setDoc(doc(db,'profiles',me,'friends',r.uid), {username:r.username, displayName:r.displayName||'', photoURL:r.photoURL||'', since:Date.now()});
+    await setDoc(doc(db,'profiles',r.uid,'friends',me), {username:(myProfile&&myProfile.username)||'', displayName:currentUser.displayName||'', photoURL:currentUser.photoURL||'', since:Date.now()});
+    await deleteDoc(doc(db,'profiles',me,'requests',r.uid));
+    showToast('✓ You and @'+r.username+' are now friends', true);
+  }catch(e){ console.error(e); showErr('Could not accept: '+(e.code||e.message||e)); }
+}
+async function denyRequest(uid, uname){
+  if(!window.fb||!currentUser) return;
+  const {db, doc, deleteDoc}=window.fb;
+  try{ await deleteDoc(doc(db,'profiles',currentUser.uid,'requests',uid)); showToast('Declined @'+(uname||''));
+  }catch(e){ console.error(e); showErr('Could not decline: '+(e.code||e.message||e)); }
+}
+function renderRequests(){
+  const el=$('fr-requests'); if(!el) return;
+  if(!incomingReqs.length){ el.innerHTML=''; renderDirectory(); return; }
+  el.innerHTML='<div class="fr-reqbox"><div class="fr-sub">Friend requests</div>'+
+    incomingReqs.map(r=>'<div class="fr-req"><div class="fr-av">'+(r.photoURL?('<img src="'+r.photoURL+'" referrerpolicy="no-referrer">'):'👤')+'</div>'+
+      '<div class="fr-nm">@'+r.username+'</div>'+
+      '<button class="fr-acc" data-uid="'+r.uid+'">Accept</button>'+
+      '<button class="fr-den" data-uid="'+r.uid+'" data-un="'+r.username+'">Deny</button></div>').join('')+'</div>';
+  el.querySelectorAll('.fr-acc').forEach(b=>b.onclick=()=>{ const r=incomingReqs.find(x=>x.uid===b.dataset.uid); if(r) acceptRequest(r); });
+  el.querySelectorAll('.fr-den').forEach(b=>b.onclick=()=>denyRequest(b.dataset.uid, b.dataset.un));
+  renderDirectory();
+}
+function showReqPop(r){
+  const pop=$('reqpop'); if(!pop) return;
+  pop._req=r; $('rp-name').textContent='@'+r.username; pop.classList.add('show');
+  clearTimeout(pop._tm); pop._tm=setTimeout(()=>pop.classList.remove('show'), 12000);
+}
+function hideReqPop(){ const pop=$('reqpop'); if(pop) pop.classList.remove('show'); }
 async function removeFriend(uid, uname){
   const {db, doc, deleteDoc}=window.fb;
   try{ await deleteDoc(doc(db,'profiles',currentUser.uid,'friends',uid));
@@ -1521,7 +1715,7 @@ function renderMe(){
 function renderFriends(){
   const el=$('fr-list'); if(!el) return;
   if(!currentUser){ el.innerHTML=''; return; }
-  if(!friends.length){ el.innerHTML='<div class="fr-note">No friends yet — search a username above to add someone.</div>'; return; }
+  if(!friends.length){ el.innerHTML='<div class="fr-note">No friends yet — long-press someone in “All users” below to send a request.</div>'; return; }
   const now=Date.now();
   el.innerHTML=friends.slice().sort((a,b)=>(b.lastSeen||0)-(a.lastSeen||0)).map(f=>{
     const on=(now-(f.lastSeen||0)<150000);
@@ -1563,10 +1757,12 @@ function evalFriendStatus(){
   updateFriendPins();
 }
 function initFriendsUI(){
-  const go=$('fr-go'), q=$('fr-q');
-  if(go) go.onclick=()=>searchUser(q?q.value:'');
-  if(q) q.addEventListener('keydown',e=>{ if(e.key==='Enter') searchUser(q.value); });
-  renderMe(); renderFriends();
+  const q=$('fr-q');
+  if(q) q.addEventListener('input', ()=>{ dirFilter=q.value; renderDirectory(); });
+  const acc=$('rp-accept'), den=$('rp-deny');
+  if(acc) acc.onclick=()=>{ const pop=$('reqpop'), r=pop&&pop._req; hideReqPop(); if(r) acceptRequest(r); };
+  if(den) den.onclick=()=>{ const pop=$('reqpop'), r=pop&&pop._req; hideReqPop(); if(r) denyRequest(r.uid, r.username); };
+  renderMe(); renderFriends(); renderRequests(); renderDirectory();
 }
 
 /* ---------- Global community counter (total users + online now) ---------- */
@@ -1632,7 +1828,8 @@ initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); 
         onAuthStateChanged: authMod.onAuthStateChanged,
         doc: fsMod.doc, setDoc: fsMod.setDoc, onSnapshot: fsMod.onSnapshot,
         getDoc: fsMod.getDoc, collection: fsMod.collection, deleteDoc: fsMod.deleteDoc,
-        getCountFromServer: fsMod.getCountFromServer, query: fsMod.query, where: fsMod.where
+        getCountFromServer: fsMod.getCountFromServer, query: fsMod.query, where: fsMod.where,
+        getDocs: fsMod.getDocs, limit: fsMod.limit
       };
       initAuth();
       startCommunityStats();
