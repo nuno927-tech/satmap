@@ -224,6 +224,14 @@
     background:rgba(255,211,77,.10);color:#ffd34d;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
   #d-fav:hover{background:rgba(255,211,77,.2)}
   #d-fav.on{background:rgba(255,211,77,.2);border-color:rgba(255,211,77,.55)}
+  /* "seen on" date/time picker */
+  .d-seenwhen{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:9px}
+  .d-seenwhen label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  #d-seen-dt{flex:1;min-width:150px;padding:7px 9px;border-radius:9px;border:1px solid var(--border);
+    background:var(--panel-solid);color:var(--text);font-size:12px;font-family:inherit;color-scheme:dark}
+  .d-mini{padding:7px 10px;border-radius:9px;border:1px solid var(--border);background:rgba(87,224,138,.14);
+    color:#57e08a;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .d-mini:hover{background:rgba(87,224,138,.24)}
   /* orbit / launch badges */
   .d-badges{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px}
   .d-badge{font-size:10.5px;letter-spacing:.4px;padding:3px 8px;border-radius:999px;
@@ -249,6 +257,9 @@
   .fav-toggle{background:transparent;border:1px solid var(--border);border-radius:10px;color:#ffd34d;
     padding:6px 11px;font-size:12px;cursor:pointer;font-weight:600}
   .fav-toggle.on{background:rgba(255,211,77,.18);border-color:rgba(255,211,77,.5)}
+  .seen-toggle{background:transparent;border:1px solid var(--border);border-radius:10px;color:#57e08a;
+    padding:6px 11px;font-size:12px;cursor:pointer;font-weight:600}
+  .seen-toggle.on{background:rgba(87,224,138,.18);border-color:rgba(87,224,138,.5)}
   /* autocomplete */
   .search-wrap{position:relative}
   .ac{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:40;display:none;
@@ -261,6 +272,31 @@
   .ac-nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ac-cat{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;flex:0 0 auto}
   .ac-empty{padding:9px 11px;font-size:12px;color:var(--muted)}
+  /* Rocket launches */
+  .launchpin{font-size:15px;line-height:1;cursor:pointer;pointer-events:auto;user-select:none;
+    filter:drop-shadow(0 0 4px rgba(255,107,53,.95));transition:font-size .15s}
+  .launchpin:hover{font-size:21px}
+  #launchlist{margin-top:6px;max-height:min(40vh,340px);overflow-y:auto}
+  .ll-h{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:12px 0 6px}
+  .ll-empty{font-size:12px;color:var(--muted);padding:4px 0}
+  .ll-card{border:1px solid var(--border);border-radius:12px;padding:9px 11px;margin-bottom:7px;cursor:pointer;
+    background:rgba(255,107,53,.05);transition:background .15s}
+  .ll-card:hover{background:rgba(255,107,53,.12)}
+  .ll-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px}
+  .ll-prov{font-size:11px;color:#ff9a6b;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ll-status{font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:2px 7px;border-radius:999px;
+    background:rgba(120,160,255,.14);color:var(--muted);flex:0 0 auto;white-space:nowrap}
+  .ll-status.s-go,.ll-status.s-success{background:rgba(87,224,138,.18);color:#57e08a}
+  .ll-status.s-tbd,.ll-status.s-tbc{background:rgba(255,211,77,.16);color:#ffd34d}
+  .ll-status.s-hold,.ll-status.s-failure,.ll-status.s-partialfailure{background:rgba(255,90,77,.18);color:#ff7a6d}
+  .ll-mission{font-size:13px;font-weight:600;line-height:1.25}
+  .ll-sub{font-size:11px;color:var(--muted);margin-top:1px}
+  .ll-cd{font-size:12px;color:#ff9a6b;font-variant-numeric:tabular-nums;margin-top:4px;font-weight:600}
+  /* launch detail card */
+  .d-badge.b-launch{background:rgba(255,107,53,.18);color:#ff9a6b;border-color:rgba(255,107,53,.45)}
+  .lc-count{font-size:22px;font-weight:700;color:#ff9a6b;font-variant-numeric:tabular-nums;margin:6px 0 12px;letter-spacing:.5px}
+  #d-launch .d-src{margin-top:10px}
+  .d-src span{color:var(--muted)}
   .fr-search{display:flex;gap:6px;margin-bottom:8px}
   .fr-search input{flex:1;min-width:0;padding:9px 11px;border-radius:10px;border:1px solid var(--border);
     background:rgba(0,0,0,.35);color:var(--text);font-size:14px;outline:none}
@@ -408,17 +444,22 @@
     #err{bottom:calc(env(safe-area-inset-bottom) + 78px)}
     #toast{bottom:calc(env(safe-area-inset-bottom) + 78px)}
 
-    /* Bottom toolbar */
-    #mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;gap:8px;
-      padding:8px 10px calc(env(safe-area-inset-bottom) + 8px);
-      background:linear-gradient(0deg,rgba(3,6,15,.95),rgba(3,6,15,.4) 70%,rgba(3,6,15,0))}
-    #mbar button{flex:1;height:50px;border-radius:15px;border:1px solid var(--border);
-      background:var(--panel);color:var(--text);font-size:11px;font-weight:600;letter-spacing:.3px;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-      backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);cursor:pointer}
-    #mbar button .ic{font-size:18px;line-height:1}
-    #mbar button.active{color:var(--accent);border-color:rgba(90,209,255,.6);
-      background:rgba(90,209,255,.12)}
+    /* Floating bottom bar */
+    #mbar{display:flex;position:fixed;left:50%;transform:translateX(-50%);
+      bottom:calc(env(safe-area-inset-bottom) + 12px);z-index:50;gap:4px;padding:7px;
+      background:rgba(12,18,34,.72);backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);
+      border:1px solid rgba(120,160,255,.16);border-radius:26px;
+      box-shadow:0 14px 40px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06)}
+    #mbar button{width:66px;height:54px;border:none;border-radius:19px;background:transparent;
+      color:var(--muted);font-size:10px;font-weight:600;letter-spacing:.3px;cursor:pointer;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+      transition:color .18s,background .18s,transform .12s;-webkit-tap-highlight-color:transparent}
+    #mbar button .ic{display:flex;align-items:center;justify-content:center;width:24px;height:24px}
+    #mbar button .ic svg{width:23px;height:23px;display:block}
+    #mbar button:active{transform:scale(.9)}
+    #mbar button.active{color:var(--accent);background:rgba(90,209,255,.14);
+      box-shadow:inset 0 0 0 1px rgba(90,209,255,.38),0 0 18px rgba(90,209,255,.22)}
+    #mbar button.active .ic svg{filter:drop-shadow(0 0 5px rgba(90,209,255,.65))}
   }
 </style>
 </head>
@@ -485,7 +526,7 @@
     </div>
   </div>
   <div class="stg">
-    <div class="lbl">Pass alerts<small>Notify before a visible night pass</small></div>
+    <div class="lbl">Alerts<small>Visible night passes &amp; rocket launches</small></div>
     <div class="switch" id="sw-notify" role="switch"></div>
   </div>
   <div id="notify-groups">
@@ -493,6 +534,7 @@
     <label class="ng"><span>🛰 ISS</span><span class="switch sm" id="nt-iss"></span></label>
     <label class="ng"><span>Other stations</span><span class="switch sm" id="nt-stations"></span></label>
     <label class="ng"><span>Brightest satellites</span><span class="switch sm" id="nt-visual"></span></label>
+    <label class="ng"><span>🚀 Rocket launches</span><span class="switch sm" id="nt-rocket"></span></label>
   </div>
   <div class="note" id="stg-note"></div>
 </div>
@@ -510,21 +552,29 @@
   <div class="sheet-handle"></div>
   <div class="x" onclick="clearSelection()">✕</div>
   <h3 id="d-name">—</h3>
-  <div id="d-badges" class="d-badges"></div>
-  <div class="row"><b>Group</b><span id="d-group">—</span></div>
-  <div class="row"><b>Latitude</b><span id="d-lat">—</span></div>
-  <div class="row"><b>Longitude</b><span id="d-lng">—</span></div>
-  <div class="row"><b>Altitude</b><span id="d-alt">—</span></div>
-  <div class="row"><b>Speed</b><span id="d-spd">—</span></div>
-  <div class="row"><b>Elevation</b><span id="d-el">—</span></div>
-  <div class="row"><b>Range</b><span id="d-rng">—</span></div>
-  <div class="row"><b>NORAD ID</b><span id="d-id">—</span></div>
-  <div class="d-actions">
-    <button id="d-seen">👁 Mark as seen</button>
-    <button id="d-fav" title="Add to favorites">☆ Favorite</button>
+  <div id="d-satonly">
+    <div id="d-badges" class="d-badges"></div>
+    <div class="row"><b>Group</b><span id="d-group">—</span></div>
+    <div class="row"><b>Latitude</b><span id="d-lat">—</span></div>
+    <div class="row"><b>Longitude</b><span id="d-lng">—</span></div>
+    <div class="row"><b>Altitude</b><span id="d-alt">—</span></div>
+    <div class="row"><b>Speed</b><span id="d-spd">—</span></div>
+    <div class="row"><b>Elevation</b><span id="d-el">—</span></div>
+    <div class="row"><b>Range</b><span id="d-rng">—</span></div>
+    <div class="row"><b>NORAD ID</b><span id="d-id">—</span></div>
+    <div class="d-actions">
+      <button id="d-seen">👁 Mark as seen</button>
+      <button id="d-fav" title="Add to favorites">☆ Favorite</button>
+    </div>
+    <div id="d-seenwhen" class="d-seenwhen">
+      <label for="d-seen-dt">Seen on</label>
+      <input type="datetime-local" id="d-seen-dt" />
+      <button id="d-seen-update" class="d-mini">Update time</button>
+    </div>
+    <div id="d-meta"></div>
+    <div id="d-passes"></div>
   </div>
-  <div id="d-meta"></div>
-  <div id="d-passes"></div>
+  <div id="d-launch"></div>
 </div>
 
 <div id="controls" class="panel">
@@ -542,8 +592,10 @@
       <button data-v="GEO">GEO</button>
     </div>
     <button id="fav-toggle" class="fav-toggle" title="Show only your favorites">★ Favorites</button>
+    <button id="seen-toggle" class="seen-toggle" title="Show only satellites you've marked seen">👁 Seen</button>
   </div>
   <div class="legend" id="legend"></div>
+  <div id="launchlist"></div>
   <button id="installbtn">⬇ Install app</button>
 </div>
 
@@ -551,10 +603,10 @@
 
 <!-- Mobile bottom toolbar -->
 <nav id="mbar">
-  <button id="mb-layers"><span class="ic">🛰️</span>Layers</button>
-  <button id="mb-over"><span class="ic">📡</span>Overhead</button>
-  <button id="mb-friends"><span class="ic">👥</span>Friends</button>
-  <button id="mb-settings"><span class="ic">⚙️</span>Settings</button>
+  <button id="mb-layers"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 21 7l-9 4.5L3 7l9-4.5Z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg></span>Layers</button>
+  <button id="mb-over"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5a9.5 9.5 0 0 1 14 0"/><path d="M8 15.5a5 5 0 0 1 8 0"/><circle cx="12" cy="19" r="1.1" fill="currentColor" stroke="none"/></svg></span>Overhead</button>
+  <button id="mb-friends"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M15.6 6.3a3 3 0 0 1 .2 5.5"/><path d="M16.6 13.3a5.5 5.5 0 0 1 3.9 5.2"/></svg></span>Friends</button>
+  <button id="mb-settings"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.6v3M12 18.4v3M21.4 12h-3M5.6 12h-3M18.6 5.4l-2.1 2.1M7.5 16.5l-2.1 2.1M18.6 18.6l-2.1-2.1M7.5 7.5 5.4 5.4"/></svg></span>Settings</button>
 </nav>
 
 <div id="friends" class="panel">
@@ -622,6 +674,7 @@ const GROUPS = [
   { id:'gps-ops',  label:'GPS',       color:'#ffd34d', cap:40 },
   { id:'galileo',  label:'Galileo',   color:'#c58cff', cap:40 },
   { id:'weather',  label:'Weather',   color:'#57e08a', cap:60 },
+  { id:'rocket',   label:'Launches',  color:'#ff6b35', launches:true },   // upcoming rocket launches (Launch Library 2)
 ];
 // GPU point rendering handles large counts, so mobile only trims caps slightly now.
 if(IS_MOBILE) GROUPS.forEach(g=>{ if(g.cap) g.cap = Math.max(12, Math.round(g.cap*0.85)); });
@@ -635,15 +688,21 @@ const FALLBACK = [{
 }];
 
 let SATS = [];            // {name,id,group,color,satrec, lat,lng,alt,altKm,speed,elevation,azimuth,rangeKm, el}
+let LAUNCHES = [];        // upcoming rocket launches (Launch Library 2)
+let launchPins = [];      // globe pins for launch pads (deduped by pad)
 let observer = null;      // {lat,lng, gd:{longitude,latitude,height}}
 let selected = null;
+let selectedLaunch = null;
 // User preferences (synced to the signed-in account)
 const prefs = { units:'metric', time:'24', autorotate:true, issPath:true, cutoff:0, music:true,
-  notify:false, notifyGroups:{ iss:true, stations:false, visual:false }, favs:[] };
+  notify:false, notifyGroups:{ iss:true, stations:false, visual:false, rocket:true }, favs:[] };
 // Favorites (starred sats) + client-side filters (no network).
 let favs = new Set();
+let seenSet = new Set();  // ids of satellites you've marked "seen" (from your profile)
 let altFilter = 'all';   // all | LEO | MEO | GEO
 let favOnly = false;
+let seenOnly = false;
+function rebuildSeenSet(){ seenSet = new Set((myProfile && Array.isArray(myProfile.seen)) ? myProfile.seen.map(x=>x.id) : []); }
 const fmtDist = km => km==null ? '—' : (prefs.units==='imperial'
   ? Math.round(km*0.621371).toLocaleString()+' mi' : Math.round(km).toLocaleString()+' km');
 const fmtSpeed = kms => !kms ? '—' : (prefs.units==='imperial'
@@ -853,7 +912,7 @@ function readTleCache(id){
 }
 async function loadData(){
   const now=Date.now();
-  const results = await Promise.all(GROUPS.map(async g=>{
+  const results = await Promise.all(GROUPS.filter(g=>!g.launches).map(async g=>{
     const c=readTleCache(g.id);
     if(c && c.rows.length && now-c.ts < TLE_TTL) return {rows:c.rows, live:false};        // fresh cache → skip network
     try{ const rows=await fetchGroupRetry(g,2); if(rows && rows.length){ saveTleCache(g.id, rows); return {rows, live:true}; } throw new Error('empty'); }
@@ -935,6 +994,14 @@ function initGlobe(){
     .showAtmosphere(true).atmosphereColor('#5ad1ff').atmosphereAltitude(0.16)
     .htmlLat('lat').htmlLng('lng').htmlAltitude('alt')
     .htmlElement(d=>{
+      if(d._launch){                                   // launch-pad pin
+        const el=document.createElement('div');
+        el.className='launchpin';
+        el.textContent='🚀';
+        el.title=d.launch.name+(d.count>1?(' (+'+(d.count-1)+' more here)'):'');
+        el.onclick=(ev)=>{ ev.stopPropagation(); selectLaunch(d.launch); };
+        return el;
+      }
       const el = document.createElement('div');
       el.className = 'sat' + (d.id==='25544' ? ' iss' : '');
       el.style.color = d.color;
@@ -1081,7 +1148,7 @@ function renderPoints(){
   return overhead;
 }
 
-// Fallback renderer: globe.gl HTML markers. Returns overhead count.
+// Fallback renderer: compute overhead + return the sat list for the HTML-markers layer.
 function renderHtml(){
   let overhead=0;
   const active=SATS.filter(s=>enabled[s.group] && s.lat!=null && s.lng!=null && passesFilter(s));
@@ -1090,12 +1157,16 @@ function renderHtml(){
     if(up) overhead++;
     if(s.el) s.el.classList.toggle('up', up);
   }
-  world.htmlElementsData(active);
-  return overhead;
+  return {overhead, list:active};
 }
 
 function renderFrame(){
-  const overhead = usePoints ? renderPoints() : renderHtml();
+  let overhead=0, satHtml=[];
+  if(usePoints){ overhead=renderPoints(); }              // sats on the GPU
+  else { const r=renderHtml(); overhead=r.overhead; satHtml=r.list; }   // sats as HTML markers
+  // Launch-pad pins always ride the HTML-elements layer (few of them; DOM is fine).
+  const pins = enabled['rocket'] ? launchPins.filter(p=>p.lat!=null) : [];
+  if(world) world.htmlElementsData(satHtml.concat(pins));
   let active=0; for(const s of SATS){ if(enabled[s.group] && passesFilter(s)) active++; }
   $('s-total').textContent = active;
   $('s-over').textContent = observer ? overhead : '—';
@@ -1417,6 +1488,9 @@ function renderLegend(){
       timer=setTimeout(()=>{                       // long-press → center the map on this group's object
         timer=null; n._lp=true;
         const id=n.dataset.id;
+        if(id==='rocket'){ const p=launchPins[0];
+          if(p){ if(isMobile()) closeSheets(); flyTo(p.lat,p.lng,1.6,900); if(navigator.vibrate){try{navigator.vibrate(15);}catch(e){}} showToast('🎯 '+p.launch.name); }
+          else showErr('No launch pads to center on yet.'); return; }
         const sat=SATS.find(s=> s.group===id && typeof s.lat==='number' && typeof s.lng==='number');
         if(sat){
           if(isMobile()) closeSheets();
@@ -1437,25 +1511,30 @@ function renderLegend(){
       n.classList.toggle('off',!enabled[id]);
       if(id==='iss') updateIssOrbit();
       if(id==='starlink' && enabled['starlink']) loadMoreStarlink();
+      if(id==='rocket'){ renderLaunchList(); if(enabled['rocket'] && !LAUNCHES.length) loadLaunches(); renderFrame(); }
       saveSettings();
     };
   });
 }
 function updateLegendCounts(){
-  GROUPS.forEach(g=>{ const c=SATS.filter(s=>s.group===g.id).length; const el=$('ct-'+g.id); if(el) el.textContent=c; });
+  GROUPS.forEach(g=>{ const c = g.launches ? LAUNCHES.length : SATS.filter(s=>s.group===g.id).length; const el=$('ct-'+g.id); if(el) el.textContent=c; });
 }
 
 function selectSat(s){
-  selected=s;
+  selected=s; selectedLaunch=null;
+  const so=$('d-satonly'), dl=$('d-launch');
+  if(so) so.style.display=''; if(dl) dl.style.display='none';
   flyTo(s.lat, s.lng, 1.8, 900);
   renderDetail(s);
+  const dt=$('d-seen-dt');   // seed the picker once per selection (recorded time, or now)
+  if(dt){ const e=seenEntry(s.id); dt.max = tsToLocalInput(Date.now()); dt.value = tsToLocalInput(e?e.ts:Date.now()); }
   enrichDetail(s);   // fetch launch/owner/type/decay + photo (cached, on-demand)
   if(s.id==='25544') renderPasses(); else { const p=$('d-passes'); if(p) p.innerHTML=''; }
   if(isMobile()) openSheet('detail');
   else $('detail').style.display='block';
 }
 function clearSelection(){
-  selected=null;
+  selected=null; selectedLaunch=null;
   if(isMobile()) closeSheets();
   else $('detail').style.display='none';
 }
@@ -1576,9 +1655,10 @@ function loadFavsLocal(){
   try{ const a=JSON.parse(localStorage.getItem('satmap_favs')||'null'); if(Array.isArray(a)){ favs=new Set(a); prefs.favs=a; } }catch(e){}
 }
 
-// Client-side filter test (altitude band + favorites-only). Enabled-group check is separate.
+// Client-side filter test (altitude band + favorites-only + seen-only). Enabled-group check is separate.
 function passesFilter(s){
   if(favOnly && !favs.has(s.id)) return false;
+  if(seenOnly && !seenSet.has(s.id)) return false;
   if(altFilter!=='all' && orbitClass(s)!==altFilter) return false;
   return true;
 }
@@ -1594,12 +1674,20 @@ function renderDetail(s){
   $('d-el').textContent=s.elevation!=null?s.elevation.toFixed(1)+'°':'—';
   $('d-rng').textContent=fmtDist(s.rangeKm);
   $('d-id').textContent=s.id;
+  const entry=seenEntry(s.id), seen=!!entry;
   const btn=$('d-seen');
   if(btn){
-    const seen = myProfile && Array.isArray(myProfile.seen) && myProfile.seen.some(x=>x.id===s.id);
     btn.textContent = seen ? '✓ Seen — tap to remove' : '👁 Mark as seen';
-    btn.classList.toggle('on', !!seen);
-    btn.onclick = ()=>markSeen(s);
+    btn.classList.toggle('on', seen);
+    btn.onclick = ()=>{
+      if(seen){ markSeen(s); }                                   // remove sighting
+      else { const dt=$('d-seen-dt'); markSeen(s, dt?localInputToTs(dt.value):Date.now()); }
+    };
+  }
+  const sw=$('d-seenwhen'); if(sw) sw.style.display = currentUser ? '' : 'none';
+  const upd=$('d-seen-update');
+  if(upd){ upd.style.display = seen ? '' : 'none';
+    upd.onclick = ()=>{ const dt=$('d-seen-dt'); if(dt) updateSeenTime(s, localInputToTs(dt.value)); };
   }
   const ob=orbitDetails(s), oc=orbitClass(s), ly=launchYearOf(s);
   const badges=$('d-badges');
@@ -1631,6 +1719,12 @@ function initFilters(){
   const ft=$('fav-toggle');
   if(ft) ft.onclick=()=>{ favOnly=!favOnly; ft.classList.toggle('on', favOnly);
     if(favOnly && favs.size===0) showToast('No favorites yet — open a satellite and tap ☆ Favorite.');
+    renderFrame(); };
+  const st=$('seen-toggle');
+  if(st) st.onclick=()=>{ seenOnly=!seenOnly; st.classList.toggle('on', seenOnly);
+    if(seenOnly && seenSet.size===0) showToast(currentUser
+      ? 'Nothing marked seen yet — open a satellite and tap 👁 Mark as seen.'
+      : 'Sign in and mark satellites as “seen” to use this filter.');
     renderFrame(); };
   const inp=$('search');
   if(inp){
@@ -1664,6 +1758,153 @@ function renderAutocomplete(q){
 /* ---------- Clocks ---------- */
 function tickClock(){
   $('c-loc').textContent=new Date().toLocaleTimeString([], {hour12: prefs.time==='12'});
+  updateLaunchCountdowns();   // live T-minus on the selected launch + the list
+}
+
+/* ---------- Rocket launches (Launch Library 2) ---------- */
+const LL_BASES = ['https://ll.thespacedevs.com/2.2.0', 'https://lldev.thespacedevs.com/2.2.0'];
+const launchNotified = (()=>{ try{ return new Set(JSON.parse(localStorage.getItem('satmap_launch_notified')||'[]')); }catch(e){ return new Set(); } })();
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function pick(o,path){ try{ return path.split('.').reduce((a,k)=>a&&a[k], o); }catch(e){ return undefined; } }
+
+async function loadLaunches(){
+  const ck='satmap_launches';
+  try{ const c=JSON.parse(localStorage.getItem(ck)||'null'); if(c && Date.now()-c.t<18e5){ ingestLaunches(c.d); return; } }catch(e){}  // 30-min cache
+  let data=null;
+  for(const base of LL_BASES){
+    try{
+      const r=await fetch(base+'/launch/upcoming/?limit=30&mode=detailed',{cache:'no-store'});
+      if(r.status===429 || !r.ok) continue;
+      const j=await r.json();
+      if(j && Array.isArray(j.results)){ data=j.results; break; }
+    }catch(e){}
+  }
+  if(data){ try{ localStorage.setItem(ck, JSON.stringify({t:Date.now(), d:data})); }catch(e){} ingestLaunches(data); }
+  else {
+    try{ const c=JSON.parse(localStorage.getItem(ck)||'null'); if(c){ ingestLaunches(c.d); return; } }catch(e){}
+    const el=$('launchlist'); if(el && enabled['rocket']) el.innerHTML='<div class="ll-h">🚀 Upcoming launches</div><div class="ll-empty">Couldn’t reach the launch feed — check back shortly.</div>';
+  }
+}
+function ingestLaunches(results){
+  LAUNCHES = (results||[]).map(r=>{
+    const pad=r.pad||{}, loc=pad.location||{};
+    const img = typeof r.image==='string' ? r.image : (pick(r,'image.image_url')||null);
+    const vid = pick(r,'vidURLs.0.url') || (Array.isArray(r.vidURLs)&&typeof r.vidURLs[0]==='string'?r.vidURLs[0]:null);
+    const info= pick(r,'infoURLs.0.url')|| (Array.isArray(r.infoURLs)&&typeof r.infoURLs[0]==='string'?r.infoURLs[0]:null);
+    const lat = pad.latitude!=null?parseFloat(pad.latitude):NaN, lng=pad.longitude!=null?parseFloat(pad.longitude):NaN;
+    return {
+      id:r.id, name:r.name||'Launch',
+      provider:pick(r,'launch_service_provider.name')||'—',
+      rocket:pick(r,'rocket.configuration.full_name')||pick(r,'rocket.configuration.name')||'—',
+      mission:pick(r,'mission.name')||r.name||'—',
+      missionDesc:pick(r,'mission.description')||'',
+      orbit:pick(r,'mission.orbit.name')||'',
+      net:r.net?new Date(r.net):null,
+      status:pick(r,'status.name')||'', statusAbbrev:pick(r,'status.abbrev')||'',
+      padName:pad.name||'', locationName:loc.name||'', country:loc.country_code||'',
+      lat:(isFinite(lat)?lat:null), lng:(isFinite(lng)?lng:null),
+      image:img, vidURL:vid, infoURL:info
+    };
+  }).filter(l=>l.net);
+  buildLaunchPins(); updateLegendCounts(); renderLaunchList(); renderFrame(); scanLaunchAlerts();
+}
+function buildLaunchPins(){
+  const byPad={};
+  for(const l of LAUNCHES){
+    if(typeof l.lat!=='number') continue;
+    const k=l.lat.toFixed(2)+','+l.lng.toFixed(2);
+    if(!byPad[k]) byPad[k]={lat:l.lat, lng:l.lng, alt:0.012, _launch:true, launch:l, count:0};
+    byPad[k].count++;
+    if(l.net && (!byPad[k].launch.net || l.net<byPad[k].launch.net)) byPad[k].launch=l;
+  }
+  launchPins=Object.values(byPad);
+}
+function countdownStr(net){
+  if(!net) return 'Launch time TBD';
+  let dt=net.getTime()-Date.now(); const past=dt<0; dt=Math.abs(dt);
+  const d=Math.floor(dt/864e5), h=Math.floor(dt%864e5/36e5), m=Math.floor(dt%36e5/6e4), s=Math.floor(dt%6e4/1e3);
+  const parts = d>0 ? (d+'d '+h+'h '+m+'m') : h>0 ? (h+'h '+m+'m '+s+'s') : (m+'m '+s+'s');
+  return (past?'T+ ':'T- ')+parts;
+}
+function fmtLaunchTime(net){
+  return net.toLocaleString([], {weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', hour12: prefs.time==='12'});
+}
+function statusClass(a){ return (a||'TBD').toLowerCase().replace(/[^a-z]/g,''); }
+function renderLaunchList(){
+  const el=$('launchlist'); if(!el) return;
+  if(!enabled['rocket']){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display='block';
+  if(!LAUNCHES.length){ el.innerHTML='<div class="ll-h">🚀 Upcoming launches</div><div class="ll-empty">Loading upcoming launches…</div>'; return; }
+  el.innerHTML='<div class="ll-h">🚀 Upcoming launches</div>'+LAUNCHES.slice(0,30).map((l,i)=>
+    '<div class="ll-card" data-i="'+i+'">'+
+      '<div class="ll-top"><span class="ll-prov">'+esc(l.provider)+'</span>'+
+        '<span class="ll-status s-'+statusClass(l.statusAbbrev)+'">'+esc(l.statusAbbrev||'TBD')+'</span></div>'+
+      '<div class="ll-mission">'+esc(l.mission)+'</div>'+
+      '<div class="ll-sub">'+esc(l.rocket)+'</div>'+
+      '<div class="ll-cd" id="lcd-'+esc(l.id)+'">'+countdownStr(l.net)+'</div>'+
+    '</div>').join('');
+  el.querySelectorAll('.ll-card').forEach(c=>c.onclick=()=>{ const l=LAUNCHES[+c.dataset.i]; if(isMobile()) closeSheets(); selectLaunch(l); });
+}
+function updateLaunchCountdowns(){
+  if(selectedLaunch){ const el=$('lc-count'); if(el) el.textContent=countdownStr(selectedLaunch.net); }
+  if(enabled['rocket'] && LAUNCHES.length){ for(const l of LAUNCHES){ const el=document.getElementById('lcd-'+l.id); if(el) el.textContent=countdownStr(l.net); } }
+}
+function selectLaunch(l){
+  selected=null; selectedLaunch=l;
+  const so=$('d-satonly'), dl=$('d-launch');
+  if(so) so.style.display='none'; if(dl) dl.style.display='block';
+  const p=$('d-passes'); if(p) p.innerHTML='';
+  if(typeof l.lat==='number') flyTo(l.lat, l.lng, 1.8, 900);
+  renderLaunchDetail(l);
+  if(isMobile()) openSheet('detail'); else $('detail').style.display='block';
+}
+function renderLaunchDetail(l){
+  $('d-name').textContent = l.provider+' · '+l.rocket;
+  const box=$('d-launch'); if(!box) return;
+  let h='';
+  if(l.image) h+='<img class="d-photo" src="'+esc(l.image)+'" alt="" loading="lazy" onerror="this.remove()"/>';
+  h+='<div class="d-badges"><span class="d-badge b-launch">'+esc(l.statusAbbrev||l.status||'TBD')+'</span>'+
+     (l.orbit?'<span class="d-badge">'+esc(l.orbit)+'</span>':'')+'</div>';
+  h+='<div class="lc-count" id="lc-count">'+countdownStr(l.net)+'</div>';
+  const rows=[['Mission',l.mission],['Vehicle',l.rocket],['Provider',l.provider],
+    ['When', l.net?fmtLaunchTime(l.net):'TBD'],['Status', l.status],['Pad', l.padName],['Site', l.locationName]];
+  h+=rows.filter(r=>r[1]).map(r=>'<div class="row"><b>'+r[0]+'</b><span>'+esc(r[1])+'</span></div>').join('');
+  if(l.missionDesc) h+='<div class="d-desc">'+esc(l.missionDesc.slice(0,280))+(l.missionDesc.length>280?'…':'')+'</div>';
+  const links=[];
+  if(l.vidURL) links.push('<a href="'+esc(l.vidURL)+'" target="_blank" rel="noopener">▶ Webcast</a>');
+  if(l.infoURL && l.infoURL!==l.vidURL) links.push('<a href="'+esc(l.infoURL)+'" target="_blank" rel="noopener">Details</a>');
+  h+='<div class="d-src">'+(links.length?links.join(' · ')+' · ':'')+'Data: The Space Devs</div>';
+  box.innerHTML=h;
+}
+function launchBand(dt){
+  if(dt < -120e3) return null;
+  if(dt <= 120e3) return 'liftoff';
+  if(dt <= 3600e3) return '1h';
+  if(dt <= 864e5) return 'day';
+  return null;
+}
+function showNotif(title, opts){
+  try{
+    if(navigator.serviceWorker && navigator.serviceWorker.ready)
+      navigator.serviceWorker.ready.then(r=>r.showNotification(title,opts)).catch(()=>{ new Notification(title,opts); });
+    else new Notification(title,opts);
+  }catch(e){ try{ new Notification(title,opts); }catch(_){} }
+}
+function scanLaunchAlerts(){
+  if(!prefs.notify || !(prefs.notifyGroups && prefs.notifyGroups.rocket)) return;
+  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  const now=Date.now();
+  const msg={ day:'launches within 24 hours', '1h':'launches within the hour', liftoff:'is lifting off now' };
+  for(const l of LAUNCHES){
+    if(!l.net) continue;
+    const band=launchBand(l.net.getTime()-now); if(!band) continue;
+    const key=l.id+':'+band; if(launchNotified.has(key)) continue;
+    launchNotified.add(key);
+    showNotif('🚀 '+l.provider+' — '+l.rocket, {
+      body: l.mission+' '+msg[band]+(l.padName?(' · '+l.padName):''),
+      tag:'launch-'+l.id+'-'+band, icon:'icon-192.png', badge:'icon-192.png' });
+  }
+  try{ localStorage.setItem('satmap_launch_notified', JSON.stringify([...launchNotified].slice(-500))); }catch(e){}
 }
 
 /* ---------- Boot ---------- */
@@ -1689,8 +1930,10 @@ async function boot(){
   scheduleTick();           // start the propagation/render loop (worker- or main-thread-driven)
   setInterval(tickClock, 1000); tickClock();
   setInterval(updateIssOrbit, 30000);  // refresh ISS track periodically
-  setInterval(scanAlerts, 120000); scanAlerts();  // check for upcoming visible passes to notify
+  setInterval(()=>{ scanAlerts(); scanLaunchAlerts(); }, 120000); scanAlerts();  // visible passes + launch alerts
   setTimeout(loadMoreStarlink, 4000);  // then pull the rest of Starlink in the background
+  if(enabled['rocket']) setTimeout(loadLaunches, 2500);   // fetch upcoming launches in the background
+  setInterval(()=>{ if(enabled['rocket']) loadLaunches(); }, 18e5);  // refresh launches every 30 min
 
   $('gotome').onclick=flyToMe;
   $('search').addEventListener('keydown',e=>{ if(e.key==='Enter') doSearch(e.target.value); });
@@ -1701,9 +1944,8 @@ const mq = window.matchMedia('(max-width:820px)');
 function isMobile(){ return mq.matches; }
 const SHEETS = ['controls','overhead','detail','settings','friends'];
 function syncBar(){
-  const c=$('controls').classList.contains('open'), o=$('overhead').classList.contains('open');
-  if($('mb-layers')) $('mb-layers').classList.toggle('active',c);
-  if($('mb-over'))   $('mb-over').classList.toggle('active',o);
+  const map={ 'mb-layers':'controls', 'mb-over':'overhead', 'mb-friends':'friends', 'mb-settings':'settings' };
+  for(const btn in map){ const b=$(btn), sheet=$(map[btn]); if(b && sheet) b.classList.toggle('active', sheet.classList.contains('open')); }
 }
 function closeSheets(){ SHEETS.forEach(s=>$(s).classList.remove('open')); $('backdrop').classList.remove('show'); syncBar(); }
 function openSheet(id){
@@ -1759,7 +2001,7 @@ function applyPrefs(){
   $('sw-isspath').classList.toggle('on', prefs.issPath);
   $('sw-notify').classList.toggle('on', prefs.notify);
   $('notify-groups').classList.toggle('show', prefs.notify);
-  ['iss','stations','visual'].forEach(k=>{ const el=$('nt-'+k); if(el) el.classList.toggle('on', !!(prefs.notifyGroups&&prefs.notifyGroups[k])); });
+  ['iss','stations','visual','rocket'].forEach(k=>{ const el=$('nt-'+k); if(el) el.classList.toggle('on', !!(prefs.notifyGroups&&prefs.notifyGroups[k])); });
   if(typeof world!=='undefined' && world){
     world.controls().autoRotate = prefs.autorotate;
     updateIssOrbit();
@@ -1778,9 +2020,10 @@ function initSettingsUI(){
     else prefs.notify=false;
     applyPrefs(); saveSettings(); if(prefs.notify) scanAlerts();
   };
-  ['iss','stations','visual'].forEach(k=>{
+  ['iss','stations','visual','rocket'].forEach(k=>{
     const sw=$('nt-'+k); if(!sw) return;
-    (sw.closest('.ng')||sw).onclick=()=>{ prefs.notifyGroups[k]=!prefs.notifyGroups[k]; applyPrefs(); saveSettings(); scanAlerts(); };
+    (sw.closest('.ng')||sw).onclick=()=>{ prefs.notifyGroups[k]=!prefs.notifyGroups[k]; applyPrefs(); saveSettings();
+      if(k==='rocket') scanLaunchAlerts(); else scanAlerts(); };
   });
   $('settingsbtn').onclick=(e)=>{ e.stopPropagation(); $('accountmenu').classList.remove('open'); toggleSheet('settings'); };
   applyPrefs();
@@ -1874,7 +2117,7 @@ function applySettings(s){
     if(typeof s.issPath==='boolean') prefs.issPath=s.issPath;
     if(typeof s.cutoff==='number') prefs.cutoff=s.cutoff;
     if(typeof s.notify==='boolean') prefs.notify=s.notify;
-    if(s.notifyGroups && typeof s.notifyGroups==='object') prefs.notifyGroups=Object.assign({iss:true,stations:false,visual:false}, s.notifyGroups);
+    if(s.notifyGroups && typeof s.notifyGroups==='object') prefs.notifyGroups=Object.assign({iss:true,stations:false,visual:false,rocket:true}, s.notifyGroups);
     if(Array.isArray(s.favs)){ const merged=new Set([...favs, ...s.favs]); favs=merged; prefs.favs=[...merged];
       try{ localStorage.setItem('satmap_favs', JSON.stringify(prefs.favs)); }catch(e){} }
     applyPrefs();
@@ -1982,7 +2225,7 @@ function startSocial(user){
   const {db, doc, collection, onSnapshot}=window.fb;
   if(unsubMyProfile) unsubMyProfile();
   unsubMyProfile = onSnapshot(doc(db,'profiles',user.uid), s=>{
-    myProfile = s.exists()? s.data() : null; renderMe(); updateAccountUI(currentUser); renderLeaderboard();
+    myProfile = s.exists()? s.data() : null; rebuildSeenSet(); renderMe(); updateAccountUI(currentUser); renderLeaderboard();
   }, err=>console.warn('profile sub',err));
   if(unsubFriends) unsubFriends();
   unsubFriends = onSnapshot(collection(db,'profiles',user.uid,'friends'), snap=>{
@@ -2025,6 +2268,8 @@ function stopSocial(){
   if(unsubRequests){ unsubRequests(); unsubRequests=null; }
   Object.values(friendProfileUnsubs).forEach(u=>{ try{u();}catch(e){} }); friendProfileUnsubs={};
   friends=[]; myProfile=null; incomingReqs=[]; allUsers=[]; sentRequests=new Set(); pinnedFriends.clear();
+  rebuildSeenSet();   // clears the seen set on sign-out
+  if(seenOnly){ seenOnly=false; const st=$('seen-toggle'); if(st) st.classList.remove('on'); }
   if(friendsTick){ clearInterval(friendsTick); friendsTick=null; }
   hideReqPop();
   stopPresence(); updateFriendPins(); renderFriends(); renderMe(); renderRequests(); renderDirectory(); renderLeaderboard();
@@ -2079,21 +2324,42 @@ async function deleteUsername(){
   }catch(e){ console.error(e); showErr('Could not delete username: '+(e.code||e.message||e)); }
 }
 // Mark a satellite as "seen" → earns a badge, saved to your profile + username (for the leaderboard).
-async function markSeen(sat){
+async function markSeen(sat, whenTs){
   if(!currentUser||!window.fb){ showErr('Sign in to collect badges (account icon, top-right).'); return; }
   if(!myProfile||!myProfile.username){ showErr('Choose a username first (Friends tab).'); return; }
   const {db, doc, setDoc}=window.fb; const me=currentUser.uid;
   const list=(myProfile && Array.isArray(myProfile.seen)) ? myProfile.seen.slice() : [];
   const i=list.findIndex(x=>x.id===sat.id);
   let added;
-  if(i>=0){ list.splice(i,1); added=false; } else { list.push({id:sat.id, name:sat.name, ts:Date.now()}); added=true; }
+  if(i>=0){ list.splice(i,1); added=false; }
+  else { list.push({id:sat.id, name:sat.name, ts:(whenTs||Date.now())}); added=true; }
   const count=list.length;
   try{
     await setDoc(doc(db,'profiles',me), {seen:list, badges:count}, {merge:true});
     if(myProfile.unameLower){ try{ await setDoc(doc(db,'usernames',myProfile.unameLower), {badges:count}, {merge:true}); }catch(e){} }
-    showToast(added ? ('🏅 Badge earned: '+sat.name) : ('Removed “'+sat.name+'” from seen'), added);
+    showToast(added ? ('🏅 Badge earned: '+sat.name+' · seen '+fmtSeen(whenTs||Date.now())) : ('Removed “'+sat.name+'” from seen'), added);
   }catch(e){ console.error(e); showErr('Could not save badge: '+(e.code||e.message||e)); }
 }
+// Edit the recorded date/time of an existing sighting.
+async function updateSeenTime(sat, ts){
+  if(!currentUser||!window.fb||!myProfile) return;
+  const {db, doc, setDoc}=window.fb;
+  const list=(Array.isArray(myProfile.seen)) ? myProfile.seen.slice() : [];
+  const i=list.findIndex(x=>x.id===sat.id);
+  if(i<0){ return markSeen(sat, ts); }               // not seen yet → record it at this time
+  list[i]=Object.assign({}, list[i], {ts});
+  try{
+    await setDoc(doc(db,'profiles',currentUser.uid), {seen:list}, {merge:true});
+    showToast('Updated sighting: '+sat.name+' · '+fmtSeen(ts));
+  }catch(e){ console.error(e); showErr('Could not update time: '+(e.code||e.message||e)); }
+}
+// datetime-local <-> timestamp helpers (values are local time)
+function tsToLocalInput(ts){ const d=new Date(ts||Date.now()); const p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); }
+function localInputToTs(v){ const t=Date.parse(v); if(isNaN(t)) return Date.now(); return Math.min(t, Date.now()); }
+function fmtSeen(ts){ return new Date(ts).toLocaleString([], {month:'short', day:'numeric', year:'numeric',
+  hour:'numeric', minute:'2-digit', hour12: prefs.time==='12'}); }
+function seenEntry(id){ return (myProfile && Array.isArray(myProfile.seen)) ? myProfile.seen.find(x=>x.id===id) : null; }
 async function loadAllUsers(){
   if(!window.fb || !currentUser) return;
   const {db, collection, getDocs, query, limit}=window.fb;
