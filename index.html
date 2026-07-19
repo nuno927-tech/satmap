@@ -313,9 +313,28 @@
   .fr-tabs{display:flex;gap:6px;margin:6px 0 12px;background:rgba(120,160,255,.06);border:1px solid var(--border);border-radius:12px;padding:4px}
   .fr-tabs button{flex:1;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:600;padding:8px;border-radius:9px;cursor:pointer}
   .fr-tabs button.on{background:rgba(90,209,255,.16);color:var(--accent)}
-  #fr-pane-leader{display:none}
+  #fr-pane-feed,#fr-pane-leader{display:none}
+  #friends.tab-feed #fr-pane-friends{display:none}
+  #friends.tab-feed #fr-pane-feed{display:block}
   #friends.tab-leader #fr-pane-friends{display:none}
   #friends.tab-leader #fr-pane-leader{display:block}
+  .fr-tabs button{font-size:12px;padding:8px 4px}
+  /* Feed */
+  .feed-row{padding:9px 4px;border-bottom:1px solid rgba(120,160,255,.07);font-size:13px;line-height:1.45;cursor:pointer}
+  .feed-row:last-child{border-bottom:none}
+  .feed-row:hover{background:rgba(90,209,255,.06);border-radius:8px}
+  .feed-u{color:var(--accent);font-weight:600}
+  .feed-row b{color:var(--text)}
+  .feed-t{display:block;font-size:10.5px;color:var(--muted);margin-top:1px}
+  /* Ping button on a friend */
+  .fr-ping{flex:0 0 auto;width:30px;height:30px;border-radius:8px;border:1px solid var(--border);
+    background:rgba(90,209,255,.1);color:var(--text);cursor:pointer;font-size:14px;line-height:1}
+  .fr-ping:hover{background:rgba(90,209,255,.22);border-color:rgba(90,209,255,.5)}
+  #snapbtn{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:9px;width:100%;
+    padding:11px;border-radius:11px;border:1px solid var(--border);background:rgba(120,160,255,.08);
+    color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s}
+  #snapbtn:hover{background:rgba(90,209,255,.14);border-color:rgba(90,209,255,.5);color:var(--accent)}
+  #snapbtn svg{display:block}
   .fr-lb-ctrl{display:flex;gap:8px;margin-bottom:10px}
   .fr-lb-ctrl button{border:1px solid var(--border);background:rgba(120,160,255,.08);color:var(--text);border-radius:10px;padding:7px 11px;font-size:12px;font-weight:600;cursor:pointer}
   .fr-achbtn{width:100%;margin:8px 0 4px;border:1px solid rgba(255,211,77,.4);background:rgba(255,211,77,.1);color:#ffd34d;border-radius:11px;padding:10px;font-size:12px;font-weight:700;cursor:pointer}
@@ -787,6 +806,7 @@
   <div class="note" id="stg-note"></div>
   <button id="sharebtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.7 15.7 6.3M8.3 13.3l7.4 4.4"/></svg> Share this app</button>
   <button id="tourbtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.7-.9 1.4v.3"/><path d="M12 16.5h.01"/></svg> Take the tour</button>
+  <button id="snapbtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg> Share a snapshot</button>
 </div>
 
 <div id="overhead" class="panel">
@@ -870,7 +890,15 @@
   <h2>Friends</h2>
   <div class="fr-tabs">
     <button id="frt-friends" class="on">Friends</button>
-    <button id="frt-leader">🏆 Leaderboard</button>
+    <button id="frt-feed">📡 Feed</button>
+    <button id="frt-leader">🏆 Board</button>
+  </div>
+  <div id="fr-pane-feed">
+    <div class="fr-lb-ctrl">
+      <button id="feed-scope" class="fav-toggle on">Friends only</button>
+      <button id="feed-refresh" title="Refresh">⟳ Refresh</button>
+    </div>
+    <div id="fr-feed"></div>
   </div>
   <div id="fr-pane-friends">
     <div id="fr-me"></div>
@@ -1267,7 +1295,7 @@ async function loadMoreStarlink(){
 /* ---------- Globe ---------- */
 let world;
 function initGlobe(){
-  world = Globe()(document.getElementById('globe'))
+  world = Globe({ rendererConfig:{ preserveDrawingBuffer:true } })(document.getElementById('globe'))
     .globeImageUrl((THEMES[prefs.theme]||THEMES.blue).img)
     .bumpImageUrl(IMG+'earth-topology.png')
     .backgroundImageUrl(IMG+'night-sky.png')
@@ -2630,6 +2658,7 @@ function initSettingsUI(){
   });
   $('settingsbtn').onclick=(e)=>{ e.stopPropagation(); $('accountmenu').classList.remove('open'); toggleSheet('settings'); };
   const sb=$('sharebtn'); if(sb) sb.onclick=shareApp;
+  const snp=$('snapbtn'); if(snp) snp.onclick=shareSnapshot;
   applyPrefs();
 }
 // Share a link to the app — native share sheet where available, otherwise copy to clipboard.
@@ -2877,7 +2906,7 @@ function startSocial(user){
     renderRequests();
   }, err=>console.warn('requests sub',err));
   loadAllUsers();
-  startPresence(); shareLocation();
+  startPresence(); shareLocation(); startPings(user.uid);
   if(friendsTick) clearInterval(friendsTick);
   friendsTick=setInterval(evalFriendStatus, 6000);   // catch offline (time-based) transitions
   renderMe();
@@ -2886,6 +2915,7 @@ function stopSocial(){
   if(unsubMyProfile){ unsubMyProfile(); unsubMyProfile=null; }
   if(unsubFriends){ unsubFriends(); unsubFriends=null; }
   if(unsubRequests){ unsubRequests(); unsubRequests=null; }
+  if(unsubPings){ unsubPings(); unsubPings=null; }
   Object.values(friendProfileUnsubs).forEach(u=>{ try{u();}catch(e){} }); friendProfileUnsubs={};
   friends=[]; myProfile=null; incomingReqs=[]; allUsers=[]; sentRequests=new Set(); pinnedFriends.clear();
   rebuildSeenSet();   // clears the seen set on sign-out
@@ -2998,6 +3028,7 @@ async function logSighting(s, ts){
   else { list.push({id:s.id, name:s.name, kind:'sat', group:s.group, oc:orbitClass(s), ts, last:ts, count:1}); n=1; }
   try{ await commitSeen(list, addSightDay(myProfile.sightDays, ts));
     showToast(n===1?('🏅 New badge: '+s.name):('👁 Sighting #'+n+' logged: '+s.name), true);
+    if(n===1) postFeed({name:s.name, id:s.id, kind:'sat'});
   }catch(e){ console.error(e); showErr('Could not save: '+(e.code||e.message||e)); }
 }
 async function logLaunchSighting(l, how){
@@ -3009,6 +3040,7 @@ async function logLaunchSighting(l, how){
   else { list.push({id:l.id, name:l.provider+' · '+l.rocket, kind:'launch', how, ts, last:ts, count:1}); n=1; }
   try{ await commitSeen(list, addSightDay(myProfile.sightDays, ts));
     showToast((n===1?'🏅 New badge: ':'👁 Sighting #'+n+': ')+l.rocket+' ('+(how==='person'?'in person':'overhead')+')', true);
+    if(n===1) postFeed({name:l.provider+' · '+l.rocket, id:l.id, kind:'launch', how});
   }catch(e){ console.error(e); showErr('Could not save: '+(e.code||e.message||e)); }
 }
 async function removeSeen(id, name){
@@ -3044,6 +3076,81 @@ function renderAchievements(s){
 function initAchievements(){
   const c=$('ach-close'); if(c) c.onclick=()=>$('achieve').classList.remove('show');
   const a=$('achieve'); if(a) a.addEventListener('click', e=>{ if(e.target===a) a.classList.remove('show'); });
+}
+
+/* ---------- Sighting feed ---------- */
+let feedItems=[], feedScope='friends';
+async function postFeed(entry){
+  if(!currentUser||!window.fb||!myProfile||!myProfile.username) return;
+  const {db, collection, addDoc}=window.fb;
+  try{ await addDoc(collection(db,'feed'), Object.assign({uid:currentUser.uid, username:myProfile.username, ts:Date.now()}, entry)); }
+  catch(e){ console.warn('feed post', e); }
+}
+async function loadFeed(){
+  const el=$('fr-feed'); if(!el) return;
+  if(!currentUser||!window.fb){ el.innerHTML='<div class="fr-note">Sign in to see the feed.</div>'; return; }
+  const {db, collection, query, orderBy, limit, getDocs}=window.fb;
+  try{ const snap=await getDocs(query(collection(db,'feed'), orderBy('ts','desc'), limit(60)));
+    feedItems=snap.docs.map(d=>d.data()); }
+  catch(e){ console.warn('feed load', e); el.innerHTML='<div class="fr-note">Couldn’t load the feed.</div>'; return; }
+  renderFeed();
+}
+function timeAgo(ts){ const s=Math.max(1,Math.round((Date.now()-ts)/1000));
+  if(s<60) return s+'s ago'; const m=Math.round(s/60); if(m<60) return m+'m ago';
+  const h=Math.round(m/60); if(h<24) return h+'h ago'; return Math.round(h/24)+'d ago'; }
+function renderFeed(){
+  const el=$('fr-feed'); if(!el || !currentUser) return;
+  const fset=new Set(friends.map(f=>f.uid)); fset.add(currentUser.uid);
+  let items=(feedScope==='friends') ? feedItems.filter(x=>fset.has(x.uid)) : feedItems;
+  items=items.slice(0,40);
+  if(!items.length){ el.innerHTML='<div class="fr-note">'+(feedScope==='friends'?'No sightings from you or your friends yet.':'No sightings posted yet.')+'</div>'; return; }
+  const verb=x=> x.kind==='launch' ? (x.how==='person'?'saw a launch:':'watched a launch:') : 'spotted';
+  el.innerHTML=items.map((x,i)=>'<div class="feed-row" data-i="'+i+'"><span class="feed-u">@'+esc(x.username||'user')+'</span> '+
+    esc(verb(x))+' <b>'+esc(x.name||'an object')+'</b><span class="feed-t">'+timeAgo(x.ts)+'</span></div>').join('');
+  el.querySelectorAll('.feed-row').forEach(r=>r.onclick=()=>{ const x=items[+r.dataset.i]; if(x&&x.id) openTarget({type:x.kind==='launch'?'launch':'sat', id:x.id}); });
+}
+
+/* ---------- Ping a friend to look up ---------- */
+let unsubPings=null;
+async function pingFriend(uid, name){
+  if(!currentUser||!window.fb||!myProfile) return;
+  const {db, collection, addDoc}=window.fb;
+  let extra='';
+  try{ const iss=SATS.find(s=>s.id==='25544');
+    if(iss && observer){ const now=new Date(simNow()), pv=satellite.propagate(iss.satrec, now);
+      if(pv&&pv.position){ const la=satellite.ecfToLookAngles(observer.gd, satellite.eciToEcf(pv.position, satellite.gstime(now)));
+        if(la.elevation*R2D>0) extra=' The ISS is over me right now!'; } } }catch(e){}
+  try{ await addDoc(collection(db,'profiles',uid,'pings'),
+      {fromId:currentUser.uid, fromName:(myProfile.username||'A friend'), text:'Look up! 🛰️'+extra, ts:Date.now()});
+    showToast('👋 Pinged @'+name+' to look up'); }
+  catch(e){ console.error(e); showErr('Could not ping: '+(e.code||e.message||e)); }
+}
+function startPings(uid){
+  if(!window.fb) return; const {db, collection, onSnapshot, deleteDoc, doc}=window.fb;
+  if(unsubPings) unsubPings();
+  unsubPings=onSnapshot(collection(db,'profiles',uid,'pings'), snap=>{
+    snap.docChanges().forEach(ch=>{ if(ch.type!=='added') return; const p=ch.doc.data();
+      if(Date.now()-(p.ts||0) > 3600000){ try{ deleteDoc(doc(db,'profiles',uid,'pings',ch.doc.id)); }catch(e){} return; }  // stale
+      showToast('👋 @'+(p.fromName||'friend')+': '+(p.text||'Look up!'), true);
+      try{ if('Notification' in window && Notification.permission==='granted') showNotif('👋 @'+(p.fromName||'friend'), {body:p.text||'Look up! 🛰️', tag:'ping-'+ch.doc.id, icon:'icon-192.png'}); }catch(e){}
+      try{ deleteDoc(doc(db,'profiles',uid,'pings',ch.doc.id)); }catch(e){}
+    });
+  }, err=>console.warn('pings', err));
+}
+
+/* ---------- Share a globe snapshot ---------- */
+async function shareSnapshot(){
+  try{
+    const url=world.renderer().domElement.toDataURL('image/png');
+    const blob=await (await fetch(url)).blob();
+    const file=new File([blob], 'skywatch.png', {type:'image/png'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file], title:'SkyWatch', text:'My sky on SkyWatch 🛰️ '+appShareUrl()}); return; }
+      catch(e){ if(e&&e.name==='AbortError') return; }
+    }
+    const a=document.createElement('a'); a.href=url; a.download='skywatch.png'; a.click();
+    showToast('📷 Snapshot saved');
+  }catch(e){ console.error(e); showErr('Could not capture the view.'); }
 }
 // datetime-local <-> timestamp helpers (values are local time)
 function tsToLocalInput(ts){ const d=new Date(ts||Date.now()); const p=n=>String(n).padStart(2,'0');
@@ -3185,11 +3292,13 @@ function renderFriends(){
     return '<div class="fr-item"><span class="fr-status '+(on?'on':'off')+'"></span>'+
       '<div class="fr-nm">@'+f.username+(has?'':' <small>· no location</small>')+'</div>'+
       '<span class="fr-badge" title="Badges collected">🏅 '+(f.badges||0)+'</span>'+
+      '<button class="fr-ping" data-uid="'+f.uid+'" data-un="'+f.username+'" title="Ping to look up">👋</button>'+
       (has?'<button class="fr-locate" data-uid="'+f.uid+'" title="Show on map">📍</button>':'')+
       '<button class="fr-del" data-uid="'+f.uid+'" data-un="'+f.username+'" title="Remove">✕</button></div>';
   }).join('');
   el.querySelectorAll('.fr-locate').forEach(b=>b.onclick=()=>locateFriend(b.dataset.uid));
   el.querySelectorAll('.fr-del').forEach(b=>b.onclick=()=>removeFriend(b.dataset.uid,b.dataset.un));
+  el.querySelectorAll('.fr-ping').forEach(b=>b.onclick=()=>pingFriend(b.dataset.uid,b.dataset.un));
 }
 const PIN_SHOW_MS = 9000;   // how long a friend's pin flashes on the map after a status change
 function updateFriendPins(){
@@ -3238,14 +3347,18 @@ function initFriendsUI(){
   const rf=$('fr-refresh');
   if(rf) rf.onclick=async ()=>{ if(!currentUser){ showErr('Sign in to load users.'); return; }
     rf.classList.add('spin'); await loadAllUsers(); rf.classList.remove('spin'); showToast('User list refreshed'); };
-  // sub-tabs
-  const showTab=(leader)=>{ $('friends').classList.toggle('tab-leader', leader);
-    $('frt-friends').classList.toggle('on', !leader); $('frt-leader').classList.toggle('on', leader);
-    if(leader) renderLeaderboard(); };
-  if($('frt-friends')) $('frt-friends').onclick=()=>showTab(false);
-  if($('frt-leader'))  $('frt-leader').onclick=()=>showTab(true);
+  // sub-tabs: friends / feed / leader
+  const showTab=(name)=>{ const f=$('friends'); f.classList.remove('tab-feed','tab-leader');
+    if(name!=='friends') f.classList.add('tab-'+name);
+    ['friends','feed','leader'].forEach(t=>{ const b=$('frt-'+t); if(b) b.classList.toggle('on', t===name); });
+    if(name==='leader') renderLeaderboard(); if(name==='feed') loadFeed(); };
+  if($('frt-friends')) $('frt-friends').onclick=()=>showTab('friends');
+  if($('frt-feed'))    $('frt-feed').onclick=()=>showTab('feed');
+  if($('frt-leader'))  $('frt-leader').onclick=()=>showTab('leader');
   if($('lb-friends-toggle')) $('lb-friends-toggle').onclick=(e)=>{ lbFriendsOnly=!lbFriendsOnly; e.currentTarget.classList.toggle('on', lbFriendsOnly); renderLeaderboard(); };
   if($('lb-refresh')) $('lb-refresh').onclick=async (e)=>{ if(!currentUser) return; e.currentTarget.textContent='…'; await loadAllUsers(); e.currentTarget.textContent='⟳ Refresh'; renderLeaderboard(); };
+  if($('feed-scope')) $('feed-scope').onclick=(e)=>{ feedScope=(feedScope==='friends')?'all':'friends'; e.currentTarget.classList.toggle('on', feedScope==='friends'); e.currentTarget.textContent=feedScope==='friends'?'Friends only':'Everyone'; renderFeed(); };
+  if($('feed-refresh')) $('feed-refresh').onclick=async (e)=>{ e.currentTarget.textContent='…'; await loadFeed(); e.currentTarget.textContent='⟳ Refresh'; };
   if($('fr-myach')) $('fr-myach').onclick=openMyAchievements;
   renderMe(); renderFriends(); renderRequests(); renderDirectory(); renderLeaderboard();
 }
@@ -3316,7 +3429,7 @@ initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); 
         doc: fsMod.doc, setDoc: fsMod.setDoc, onSnapshot: fsMod.onSnapshot,
         getDoc: fsMod.getDoc, collection: fsMod.collection, deleteDoc: fsMod.deleteDoc,
         getCountFromServer: fsMod.getCountFromServer, query: fsMod.query, where: fsMod.where,
-        getDocs: fsMod.getDocs, limit: fsMod.limit
+        getDocs: fsMod.getDocs, limit: fsMod.limit, orderBy: fsMod.orderBy, addDoc: fsMod.addDoc
       };
       initAuth();
       startCommunityStats();
