@@ -599,9 +599,22 @@ const Music = (function(){
       master.gain.linearRampToValueAtTime(0.0001, ctx.currentTime+1.4);
       clearInterval(chordTimer); clearTimeout(bellTimer); started=false;
     },
+    // Foreground-only: halt audio processing when hidden, keep 'started' so we can resume.
+    pause(){ clearInterval(chordTimer); clearTimeout(bellTimer);
+      if(ctx && ctx.state==='running') ctx.suspend(); },
+    resume(){ if(!started) return;
+      if(ctx && ctx.state==='suspended') ctx.resume();
+      clearInterval(chordTimer); clearTimeout(bellTimer);
+      chordTimer=setInterval(()=>{ idx=(idx+1)%CHORDS.length; setChord(CHORDS[idx],6); }, 16000);
+      bellTimer=setTimeout(bell, 4000);
+    },
     isRunning(){ return !!(started && ctx && ctx.state==='running'); }
   };
 })();
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden) Music.pause();
+  else if(prefs.music) Music.resume();
+});
 let musicArmed=false;
 function armMusic(){                      // browsers block audio until a user gesture
   if(musicArmed) return; musicArmed=true;
@@ -977,16 +990,40 @@ function renderOverhead(active, count){
 function renderLegend(){
   const el=$('legend');
   el.innerHTML = GROUPS.map(g=>`
-    <div class="lg" data-id="${g.id}">
+    <div class="lg" data-id="${g.id}" title="Tap to toggle · long-press to center on the map">
       <div class="dot" style="color:${g.color}"></div>
       <div class="nm">${g.label}</div>
       <div class="ct mono" id="ct-${g.id}">0</div>
     </div>`).join('');
-  el.querySelectorAll('.lg').forEach(n=>n.onclick=()=>{
-    const id=n.dataset.id; enabled[id]=!enabled[id];
-    n.classList.toggle('off',!enabled[id]);
-    if(id==='iss') updateIssOrbit();
-    saveSettings();
+  el.querySelectorAll('.lg').forEach(n=>{
+    let timer=null, sx=0, sy=0;
+    const clear=()=>{ if(timer){ clearTimeout(timer); timer=null; } };
+    n.addEventListener('pointerdown', e=>{
+      n._lp=false; sx=e.clientX; sy=e.clientY; clear();
+      timer=setTimeout(()=>{                       // long-press → center the map on this group's object
+        timer=null; n._lp=true;
+        const id=n.dataset.id;
+        const sat=SATS.find(s=> s.group===id && typeof s.lat==='number' && typeof s.lng==='number');
+        if(sat){
+          if(isMobile()) closeSheets();
+          flyTo(sat.lat, sat.lng, 1.6, 900);
+          if(navigator.vibrate){ try{ navigator.vibrate(15); }catch(e){} }
+          showToast('🎯 Centered on '+sat.name);
+        } else {
+          const lbl=(GROUPS.find(g=>g.id===id)||{label:id}).label;
+          showErr('No live '+lbl+' object to center on yet.');
+        }
+      }, 500);
+    });
+    ['pointerup','pointerleave','pointercancel'].forEach(ev=>n.addEventListener(ev, clear));
+    n.addEventListener('pointermove', e=>{ if(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10) clear(); });
+    n.onclick=()=>{
+      if(n._lp){ n._lp=false; return; }            // it was a long-press — don't toggle
+      const id=n.dataset.id; enabled[id]=!enabled[id];
+      n.classList.toggle('off',!enabled[id]);
+      if(id==='iss') updateIssOrbit();
+      saveSettings();
+    };
   });
 }
 function updateLegendCounts(){
