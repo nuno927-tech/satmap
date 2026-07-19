@@ -81,10 +81,6 @@
   .lg .dot{width:11px;height:11px;border-radius:50%;box-shadow:0 0 8px currentColor}
   .lg .nm{flex:1;font-size:13px}
   .lg .ct{font-size:12px;color:var(--muted)}
-  #locbtn{margin-top:12px;width:100%;padding:9px;border-radius:10px;border:1px solid var(--border);
-    background:rgba(90,209,255,.12);color:var(--accent);font-size:12px;font-weight:600;letter-spacing:.5px;
-    cursor:pointer;transition:.15s}
-  #locbtn:hover{background:rgba(90,209,255,.22)}
 
   /* Selection detail */
   #detail{left:16px;top:74px;width:270px;padding:14px 16px;display:none;
@@ -341,7 +337,7 @@
     #controls h2{margin-top:2px}
     .lg{padding:12px 8px} .lg .nm{font-size:15px}
     .oh{padding:13px 10px} .oh .nm{font-size:15px}
-    #locbtn{padding:14px;font-size:13px} #installbtn{padding:14px;font-size:13px}
+    #installbtn{padding:14px;font-size:13px}
     #search{padding:12px 14px;font-size:16px}
     #detail .row{padding:8px 0;font-size:13px}
 
@@ -468,7 +464,6 @@
   <h2>Filter &amp; Search</h2>
   <input id="search" placeholder="Search a satellite…" autocomplete="off" />
   <div class="legend" id="legend"></div>
-  <button id="locbtn">📍 Use my location</button>
   <button id="installbtn">⬇ Install app</button>
 </div>
 
@@ -722,47 +717,44 @@ function buildSatrecs(raw){
 
 // Retry a group fetch a few times with growing backoff before giving up.
 async function fetchGroupRetry(g, tries){
-  tries = tries||3; let lastErr;
+  tries = tries||2; let lastErr;
   for(let i=0;i<tries;i++){
     try{ return await fetchGroup(g); }
-    catch(e){ lastErr=e; if(i<tries-1) await new Promise(r=>setTimeout(r, 700*(i+1)*(i+1))); }  // ~0.7s, 2.8s
+    catch(e){ lastErr=e; if(i<tries-1) await new Promise(r=>setTimeout(r, 1500*(i+1))); }
   }
   throw lastErr;
 }
-// Remember the last good data on the device so we can still show a map if the feed is unreachable.
-const TLE_CACHE_KEY='satmap_tle_v1';
-function saveTleCache(groupId, rows){
-  try{
-    let c={}; try{ c=JSON.parse(localStorage.getItem(TLE_CACHE_KEY)||'{}'); }catch(e){}
-    c.ts=Date.now(); c.g=c.g||{}; c.g[groupId]=rows.map(r=>[r.name,r.l1,r.l2]);
-    localStorage.setItem(TLE_CACHE_KEY, JSON.stringify(c));
-  }catch(e){}
+// On-device cache with a time-to-live. Celestrak throttles IPs that request too often, so we
+// serve each feed from cache and only re-fetch after it goes stale — far kinder on the feed,
+// and it means a temporary outage just shows saved data instead of failing.
+const TLE_CACHE_KEY='satmap_tle_v2';
+const TLE_TTL = 3*3600*1000;   // re-fetch a feed at most once every 3 hours
+function saveTleCache(id, rows){
+  try{ let c={}; try{ c=JSON.parse(localStorage.getItem(TLE_CACHE_KEY)||'{}'); }catch(e){}
+    c.g=c.g||{}; c.g[id]={ ts:Date.now(), r:rows.map(x=>[x.name,x.l1,x.l2]) };
+    localStorage.setItem(TLE_CACHE_KEY, JSON.stringify(c)); }catch(e){}
 }
-function loadTleCache(groupId){
-  try{
-    const c=JSON.parse(localStorage.getItem(TLE_CACHE_KEY)||'{}');
-    const arr=c.g && c.g[groupId]; if(!arr) return null;
-    return arr.map(a=>({name:a[0], l1:a[1], l2:a[2], id:(a[1]||'').slice(2,7).trim(), group:groupId}));
+function readTleCache(id){
+  try{ const c=JSON.parse(localStorage.getItem(TLE_CACHE_KEY)||'{}'); const e=c.g&&c.g[id];
+    if(!e||!e.r) return null;
+    return { ts:e.ts||0, rows:e.r.map(a=>({name:a[0],l1:a[1],l2:a[2],id:(a[1]||'').slice(2,7).trim(),group:id})) };
   }catch(e){ return null; }
 }
 async function loadData(){
-  const results = await Promise.allSettled(GROUPS.map(g=>fetchGroupRetry(g,3)));
-  let raw=[], anyFresh=false, anyCache=false;
-  results.forEach((r,i)=>{
-    const g=GROUPS[i];
-    if(r.status==='fulfilled' && r.value && r.value.length){
-      raw=raw.concat(r.value); anyFresh=true; saveTleCache(g.id, r.value);
-    } else {
-      console.warn('group failed', g.id, r.reason);
-      const cached=loadTleCache(g.id);                 // fall back to this group's last good data
-      if(cached && cached.length){ raw=raw.concat(cached); anyCache=true; }
-    }
-  });
+  const now=Date.now();
+  const results = await Promise.all(GROUPS.map(async g=>{
+    const c=readTleCache(g.id);
+    if(c && c.rows.length && now-c.ts < TLE_TTL) return {rows:c.rows, live:false};        // fresh cache → skip network
+    try{ const rows=await fetchGroupRetry(g,2); if(rows && rows.length){ saveTleCache(g.id, rows); return {rows, live:true}; } throw new Error('empty'); }
+    catch(e){ console.warn('group failed', g.id, e); return (c && c.rows.length) ? {rows:c.rows, live:false} : {rows:[], failed:true}; }
+  }));
+  let raw=[], anyLive=false, anyFail=false;
+  results.forEach(r=>{ if(r.rows && r.rows.length){ raw=raw.concat(r.rows); if(r.live) anyLive=true; } if(r.failed) anyFail=true; });
   if(!raw.length){
     showErr('Could not reach the live satellite feed — showing the ISS from cached elements.');
     raw = FALLBACK.map(f=>({name:f.name,l1:f.l1,l2:f.l2,id:f.id,group:f.group}));
-  } else if(!anyFresh && anyCache){
-    showErr('Live feed unavailable — showing saved satellite data.');
+  } else if(anyFail && !anyLive){
+    showErr('Live feed busy — showing recently saved satellite data.');
   }
   SATS = buildSatrecs(raw);
 }
@@ -773,6 +765,8 @@ let starlinkFull=false, starlinkLoading=false;
 const STARLINK_MAX = IS_MOBILE ? 500 : 8000;
 async function loadMoreStarlink(){
   if(starlinkFull || starlinkLoading || !enabled['starlink']) return;
+  // Only pull the big full list occasionally — hammering Celestrak every load gets the IP throttled.
+  try{ const last=+localStorage.getItem('satmap_sl_ts')||0; if(Date.now()-last < 6*3600*1000){ starlinkFull=true; return; } }catch(e){}
   let cur=SATS.filter(s=>s.group==='starlink').length;
   if(cur>=STARLINK_MAX){ starlinkFull=true; return; }
   starlinkLoading=true;
@@ -803,7 +797,7 @@ async function loadMoreStarlink(){
             if(!seen.has(id)){ seen.add(id); batch.push({name, l1, l2:line, id, group:'starlink'}); }
             name=null; l1=null;
             if(batch.length>=250) await flush();
-            if(cur+batch.length>=STARLINK_MAX){ await flush(); try{ await reader.cancel(); }catch(e){} starlinkFull=true; starlinkLoading=false; return; }
+            if(cur+batch.length>=STARLINK_MAX){ await flush(); try{ await reader.cancel(); }catch(e){} try{localStorage.setItem('satmap_sl_ts',String(Date.now()));}catch(e){} starlinkFull=true; starlinkLoading=false; return; }
           }
         }
         else { name=line.trim(); l1=null; }
@@ -811,6 +805,7 @@ async function loadMoreStarlink(){
       if(done) break;
     }
     await flush();
+    try{localStorage.setItem('satmap_sl_ts',String(Date.now()));}catch(e){}
     starlinkFull=true;
   }catch(e){ console.warn('starlink batch load', e); }
   starlinkLoading=false;
@@ -1105,13 +1100,10 @@ function flyToMe(){
 }
 function requestLocation(){
   if(!navigator.geolocation){ showErr('Geolocation is not available in this browser.'); return; }
-  $('locbtn').textContent='Locating…';
   $('gotome').classList.add('busy');
   navigator.geolocation.getCurrentPosition(
-    p=>{ setObserver(p.coords.latitude, p.coords.longitude, true);
-         $('locbtn').textContent='📍 Location set'; $('gotome').classList.remove('busy'); },
-    e=>{ showErr('Location permission denied — showing the global view.');
-         $('locbtn').textContent='📍 Use my location'; $('gotome').classList.remove('busy'); },
+    p=>{ setObserver(p.coords.latitude, p.coords.longitude, true); $('gotome').classList.remove('busy'); },
+    e=>{ showErr('Location permission denied — showing the global view.'); $('gotome').classList.remove('busy'); },
     {enableHighAccuracy:true, timeout:15000, maximumAge:0});   // exact, fresh fix
 }
 
@@ -1240,7 +1232,6 @@ async function boot(){
   setInterval(scanAlerts, 120000); scanAlerts();  // check for upcoming visible passes to notify
   setTimeout(loadMoreStarlink, 4000);  // then pull the rest of Starlink in the background
 
-  $('locbtn').onclick=requestLocation;
   $('gotome').onclick=flyToMe;
   $('search').addEventListener('keydown',e=>{ if(e.key==='Enter') doSearch(e.target.value); });
 }
