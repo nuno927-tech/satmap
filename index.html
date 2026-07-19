@@ -85,7 +85,11 @@
   /* Selection detail */
   #detail{left:16px;top:74px;width:270px;padding:14px 16px;display:none;
     max-height:calc(100vh - 100px);overflow-y:auto}
-  #detail .x{position:absolute;top:10px;right:12px;color:var(--muted);cursor:pointer;font-size:16px}
+  #detail .x,#settings .x,#friends .x{position:absolute;top:12px;right:14px;z-index:3;
+    width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;
+    color:var(--muted);cursor:pointer;font-size:15px;border:1px solid var(--border);
+    background:rgba(120,160,255,.06);transition:color .15s,background .15s}
+  #detail .x:hover,#settings .x:hover,#friends .x:hover{color:var(--text);background:rgba(120,160,255,.16)}
   #d-passes:empty{display:none}
   .pass-h{font-size:12px;font-weight:700;color:var(--accent);margin:12px 0 6px;letter-spacing:.3px}
   .pass-sub{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:9px 0 3px}
@@ -116,6 +120,15 @@
   .sat.up{background:#fff!important;color:#fff!important;
     box-shadow:0 0 9px #fff,0 0 20px var(--star);width:11px;height:11px}
   .sat.iss.up{width:16px;height:16px}
+  .sat.sel{box-shadow:0 0 10px #fff,0 0 22px var(--accent)!important}
+  /* Selected-satellite highlight (rides the html-elements layer, tracks the sat) */
+  .sel-wrap{position:relative;width:0;height:0;pointer-events:none;z-index:5}
+  .sel-core{position:absolute;left:0;top:0;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;
+    border:2px solid var(--accent);box-shadow:0 0 9px var(--accent),inset 0 0 6px var(--accent)}
+  .sel-ring{position:absolute;left:0;top:0;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;
+    border:2px solid var(--accent);opacity:0;animation:selpulse 1.6s ease-out infinite}
+  .sel-ring.d2{animation-delay:.8s}
+  @keyframes selpulse{0%{transform:scale(.7);opacity:.9}70%{opacity:.2}100%{transform:scale(2.6);opacity:0}}
 
   /* Floating "center on me" button */
   #gotome{position:fixed;right:16px;bottom:16px;z-index:25;width:52px;height:52px;border-radius:50%;
@@ -220,6 +233,22 @@
   #d-seen:hover{background:rgba(90,209,255,.2)}
   #d-seen.on{background:rgba(87,224,138,.16);border-color:rgba(87,224,138,.5);color:#57e08a}
   .d-actions{display:flex;gap:8px;margin-top:12px}
+  /* Detail card header (name + action buttons at the top) */
+  #d-head{display:flex;flex-direction:column;gap:10px}
+  #d-head h3{margin:0}
+  #d-actions{margin-top:0}
+  /* Collapse / expand */
+  #d-launch{display:none}
+  #detail.launch #d-satonly{display:none}
+  #detail.launch #d-launch{display:block}
+  #detail.collapsed #d-satonly,#detail.collapsed #d-launch{display:none}   /* listed last: wins on collapse */
+  #d-more{display:flex;align-items:center;justify-content:center;gap:7px;margin:14px 0 4px;
+    color:var(--accent);font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+    cursor:pointer;user-select:none;animation:dmore 1.5s ease-in-out infinite}
+  #d-more svg{display:block}
+  #detail:not(.collapsed) #d-more{display:none}
+  @keyframes dmore{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  @media (prefers-reduced-motion:reduce){ #d-more{animation:none} }
   #d-fav{flex:0 0 auto;padding:9px 12px;border-radius:10px;border:1px solid var(--border);
     background:rgba(255,211,77,.10);color:#ffd34d;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
   #d-fav:hover{background:rgba(255,211,77,.2)}
@@ -425,7 +454,7 @@
     #overhead{padding:0 16px calc(env(safe-area-inset-bottom) + 16px);display:block}
     #overhead .head{padding-top:0}
     #overhead #ohlist{overflow:visible;padding:6px 0}
-    #detail .x{display:none}          /* swipe down to close instead */
+    #detail .x,#settings .x,#friends .x{display:none}   /* swipe down / backdrop to close instead */
     .sheet-handle{cursor:grab}
     .sheet-handle{display:block;width:42px;height:5px;border-radius:3px;
       background:var(--muted);opacity:.45;margin:10px auto 8px;flex:0 0 auto}
@@ -490,6 +519,7 @@
 
 <div id="settings" class="panel">
   <div class="sheet-handle"></div>
+  <div class="x" onclick="closeWindow('settings')" title="Close">✕</div>
   <h2>Settings</h2>
   <div class="stg">
     <div class="lbl">Units<small>Altitude, speed &amp; range</small></div>
@@ -551,7 +581,14 @@
 <div id="detail" class="panel mono">
   <div class="sheet-handle"></div>
   <div class="x" onclick="clearSelection()">✕</div>
-  <h3 id="d-name">—</h3>
+  <div id="d-head">
+    <h3 id="d-name">—</h3>
+    <div class="d-actions" id="d-actions">
+      <button id="d-seen">👁 Mark as seen</button>
+      <button id="d-fav" title="Add to favorites">☆ Favorite</button>
+    </div>
+  </div>
+  <div id="d-more"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg><span id="d-more-lbl">Swipe up for details</span></div>
   <div id="d-satonly">
     <div id="d-badges" class="d-badges"></div>
     <div class="row"><b>Group</b><span id="d-group">—</span></div>
@@ -562,10 +599,6 @@
     <div class="row"><b>Elevation</b><span id="d-el">—</span></div>
     <div class="row"><b>Range</b><span id="d-rng">—</span></div>
     <div class="row"><b>NORAD ID</b><span id="d-id">—</span></div>
-    <div class="d-actions">
-      <button id="d-seen">👁 Mark as seen</button>
-      <button id="d-fav" title="Add to favorites">☆ Favorite</button>
-    </div>
     <div id="d-seenwhen" class="d-seenwhen">
       <label for="d-seen-dt">Seen on</label>
       <input type="datetime-local" id="d-seen-dt" />
@@ -611,6 +644,7 @@
 
 <div id="friends" class="panel">
   <div class="sheet-handle"></div>
+  <div class="x" onclick="closeWindow('friends')" title="Close">✕</div>
   <h2>Friends</h2>
   <div id="fr-me"></div>
   <div id="fr-requests"></div>
@@ -693,6 +727,7 @@ let launchPins = [];      // globe pins for launch pads (deduped by pad)
 let observer = null;      // {lat,lng, gd:{longitude,latitude,height}}
 let selected = null;
 let selectedLaunch = null;
+const selMarker = {lat:null, lng:null, alt:0, _sel:true};   // pulsing highlight that tracks the selected sat
 // User preferences (synced to the signed-in account)
 const prefs = { units:'metric', time:'24', autorotate:true, issPath:true, cutoff:0, music:true,
   notify:false, notifyGroups:{ iss:true, stations:false, visual:false, rocket:true }, favs:[] };
@@ -994,6 +1029,11 @@ function initGlobe(){
     .showAtmosphere(true).atmosphereColor('#5ad1ff').atmosphereAltitude(0.16)
     .htmlLat('lat').htmlLng('lng').htmlAltitude('alt')
     .htmlElement(d=>{
+      if(d._sel){                                      // pulsing highlight on the selected satellite
+        const w=document.createElement('div'); w.className='sel-wrap';
+        w.innerHTML='<div class="sel-core"></div><div class="sel-ring"></div><div class="sel-ring d2"></div>';
+        return w;
+      }
       if(d._launch){                                   // launch-pad pin
         const el=document.createElement('div');
         el.className='launchpin';
@@ -1136,9 +1176,10 @@ function renderPoints(){
     if(up) overhead++;
     const c=world.getCoords(s.lat, s.lng, s.alt);
     pos[k*3]=c.x; pos[k*3+1]=c.y; pos[k*3+2]=c.z;
-    const rgb = up ? WHITE : (s._rgb || (s._rgb=hexRgb(s.color)));
+    const isSel = s===selected;
+    const rgb = (isSel || up) ? WHITE : (s._rgb || (s._rgb=hexRgb(s.color)));
     col[k*3]=rgb[0]; col[k*3+1]=rgb[1]; col[k*3+2]=rgb[2];
-    sz[k] = (s.id==='25544') ? 9 : up ? 6 : (s===selected ? 7.5 : (favs.size && favs.has(s.id) ? 5.5 : 3.2));
+    sz[k] = isSel ? 11 : (s.id==='25544') ? 9 : up ? 6 : (favs.size && favs.has(s.id) ? 5.5 : 3.2);
     pointSatIndex[k]=i; k++;
   }
   satGeo.setDrawRange(0,k);
@@ -1155,7 +1196,7 @@ function renderHtml(){
   for(const s of active){
     const up = observer && s.elevation!=null && s.elevation>prefs.cutoff;
     if(up) overhead++;
-    if(s.el) s.el.classList.toggle('up', up);
+    if(s.el){ s.el.classList.toggle('up', up); s.el.classList.toggle('sel', s===selected); }
   }
   return {overhead, list:active};
 }
@@ -1164,9 +1205,12 @@ function renderFrame(){
   let overhead=0, satHtml=[];
   if(usePoints){ overhead=renderPoints(); }              // sats on the GPU
   else { const r=renderHtml(); overhead=r.overhead; satHtml=r.list; }   // sats as HTML markers
-  // Launch-pad pins always ride the HTML-elements layer (few of them; DOM is fine).
-  const pins = enabled['rocket'] ? launchPins.filter(p=>p.lat!=null) : [];
-  if(world) world.htmlElementsData(satHtml.concat(pins));
+  // Launch-pad pins + the selected-satellite highlight ride the HTML-elements layer.
+  const extra = enabled['rocket'] ? launchPins.filter(p=>p.lat!=null) : [];
+  if(selected && selected.lat!=null){
+    selMarker.lat=selected.lat; selMarker.lng=selected.lng; selMarker.alt=selected.alt; extra.push(selMarker);
+  }
+  if(world) world.htmlElementsData(satHtml.concat(extra));
   let active=0; for(const s of SATS){ if(enabled[s.group] && passesFilter(s)) active++; }
   $('s-total').textContent = active;
   $('s-over').textContent = observer ? overhead : '—';
@@ -1520,11 +1564,18 @@ function updateLegendCounts(){
   GROUPS.forEach(g=>{ const c = g.launches ? LAUNCHES.length : SATS.filter(s=>s.group===g.id).length; const el=$('ct-'+g.id); if(el) el.textContent=c; });
 }
 
+// Camera altitude that frames a satellite: must sit farther out than the sat (which is at s.alt
+// radii above the surface, on the same view axis) or it ends up behind the camera. Lower = tighter.
+function focusAltFor(s){ return Math.max(0.85, (s && s.alt ? s.alt : 0) + 0.6); }
+function expandDetail(){ const d=$('detail'); if(d) d.classList.remove('collapsed'); }
+function collapseDetail(){ const d=$('detail'); if(d){ d.classList.add('collapsed');
+  const lbl=$('d-more-lbl'); if(lbl) lbl.textContent = isMobile() ? 'Swipe up for details' : 'Click for details'; } }
 function selectSat(s){
   selected=s; selectedLaunch=null;
-  const so=$('d-satonly'), dl=$('d-launch');
-  if(so) so.style.display=''; if(dl) dl.style.display='none';
-  flyTo(s.lat, s.lng, 1.8, 900);
+  $('detail').classList.remove('launch'); collapseDetail();   // open showing just name + action buttons
+  const act=$('d-actions'); if(act) act.style.display='';
+  flyTo(s.lat, s.lng, focusAltFor(s), 900);   // zoom in and centre the satellite
+  renderFrame();                               // highlight it immediately (ring + bright point)
   renderDetail(s);
   const dt=$('d-seen-dt');   // seed the picker once per selection (recorded time, or now)
   if(dt){ const e=seenEntry(s.id); dt.max = tsToLocalInput(Date.now()); dt.value = tsToLocalInput(e?e.ts:Date.now()); }
@@ -1535,6 +1586,7 @@ function selectSat(s){
 }
 function clearSelection(){
   selected=null; selectedLaunch=null;
+  renderFrame();   // drop the highlight right away
   if(isMobile()) closeSheets();
   else $('detail').style.display='none';
 }
@@ -1851,8 +1903,8 @@ function updateLaunchCountdowns(){
 }
 function selectLaunch(l){
   selected=null; selectedLaunch=l;
-  const so=$('d-satonly'), dl=$('d-launch');
-  if(so) so.style.display='none'; if(dl) dl.style.display='block';
+  $('detail').classList.add('launch'); collapseDetail();   // launch card: name only until expanded
+  const act=$('d-actions'); if(act) act.style.display='none';   // seen/favorite are satellite-only
   const p=$('d-passes'); if(p) p.innerHTML='';
   if(typeof l.lat==='number') flyTo(l.lat, l.lng, 1.8, 900);
   renderLaunchDetail(l);
@@ -1953,6 +2005,12 @@ function openSheet(id){
   $(id).classList.add('open'); $('backdrop').classList.add('show'); syncBar();
 }
 function toggleSheet(id){ $(id).classList.contains('open') ? closeSheets() : openSheet(id); }
+// Explicit close for pop-over windows (desktop has no swipe/backdrop to dismiss them).
+function closeWindow(id){
+  if(isMobile()){ closeSheets(); return; }
+  const el=$(id); if(el) el.classList.remove('open');
+  syncBar();
+}
 // Swipe a bottom sheet downward to dismiss it (only when scrolled to the top).
 function enableSwipeClose(el){
   let sy=0, cy=0, drag=false;
@@ -1986,7 +2044,30 @@ function initMobileUI(){
   $('mb-over').addEventListener('click', ()=>toggleSheet('overhead'));
   $('mb-friends').addEventListener('click', ()=>toggleSheet('friends'));
   $('mb-settings').addEventListener('click', ()=>toggleSheet('settings'));
-  SHEETS.forEach(id=>enableSwipeClose($(id)));   // swipe-down to close
+  SHEETS.forEach(id=>{ if(id!=='detail') enableSwipeClose($(id)); });   // swipe-down to close
+  enableDetailGesture($('detail'));                                     // detail card: swipe up = expand, down = collapse/close
+  const more=$('d-more'); if(more) more.addEventListener('click', expandDetail);
+}
+// Detail card gesture: swipe up reveals the details; swipe down collapses (then closes).
+function enableDetailGesture(el){
+  if(!el) return;
+  let sy=0, cy=0, drag=false;
+  el.addEventListener('touchstart', e=>{
+    if(e.touches.length!==1){ drag=false; return; }
+    sy=cy=e.touches[0].clientY; drag=true; el.style.transition='none';
+  }, {passive:true});
+  el.addEventListener('touchmove', e=>{
+    if(!drag) return; cy=e.touches[0].clientY; const dy=cy-sy;
+    if(dy>0 && el.scrollTop<=0) el.style.transform='translateY('+dy+'px)';   // downward drag follows the finger
+  }, {passive:true});
+  const end=()=>{
+    if(!drag) return; drag=false; const dy=cy-sy;
+    el.style.transition=''; el.style.transform='';
+    if(dy < -36){ expandDetail(); }
+    else if(dy > 80){ el.classList.contains('collapsed') ? closeSheets() : collapseDetail(); }
+  };
+  el.addEventListener('touchend', end, {passive:true});
+  el.addEventListener('touchcancel', end, {passive:true});
 }
 
 /* ---------- Settings ---------- */
