@@ -313,11 +313,33 @@
   .fr-tabs{display:flex;gap:6px;margin:6px 0 12px;background:rgba(120,160,255,.06);border:1px solid var(--border);border-radius:12px;padding:4px}
   .fr-tabs button{flex:1;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:600;padding:8px;border-radius:9px;cursor:pointer}
   .fr-tabs button.on{background:rgba(90,209,255,.16);color:var(--accent)}
-  #fr-pane-feed,#fr-pane-leader{display:none}
-  #friends.tab-feed #fr-pane-friends{display:none}
+  #fr-pane-feed,#fr-pane-leader,#fr-pane-add{display:none}
+  #friends.tab-feed #fr-pane-friends,#friends.tab-add #fr-pane-friends,#friends.tab-leader #fr-pane-friends{display:none}
   #friends.tab-feed #fr-pane-feed{display:block}
-  #friends.tab-leader #fr-pane-friends{display:none}
   #friends.tab-leader #fr-pane-leader{display:block}
+  #friends.tab-add #fr-pane-add{display:block}
+  #friends.tab-add .fr-tabs{display:none}     /* hide tab bar inside the add-friends drill-in */
+  /* Profile header */
+  #fr-profile{margin:4px 0 12px}
+  .fr-prof{display:flex;align-items:center;gap:11px;cursor:pointer;padding:4px 2px;border-radius:10px}
+  .fr-prof:hover{background:rgba(90,209,255,.06)}
+  .fr-avatar{width:40px;height:40px;border-radius:50%;background:rgba(90,209,255,.16);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex:0 0 auto}
+  .fr-prof-id{flex:1;min-width:0}
+  .fr-prof-name{font-size:15px;font-weight:600;color:var(--text)}
+  .fr-prof-sub{font-size:11.5px;color:var(--accent)}
+  #fr-profile .fr-del-un{flex:0 0 auto}
+  .fr-prof-stats{display:flex;border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-top:10px}
+  .fr-prof-stats div{flex:1;text-align:center;padding:8px 4px}
+  .fr-prof-stats div+div{border-left:1px solid var(--border)}
+  .fr-prof-stats b{display:block;font-size:16px;color:var(--accent)}
+  .fr-prof-stats span{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+  /* Add-friends button + back */
+  .fr-addbtn{width:100%;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:8px;
+    padding:11px;border-radius:11px;border:1px solid var(--border);background:rgba(120,160,255,.08);
+    color:var(--text);font-size:13px;font-weight:600;cursor:pointer}
+  .fr-addbtn:hover{background:rgba(90,209,255,.14);border-color:rgba(90,209,255,.5);color:var(--accent)}
+  .fr-back{background:transparent;border:none;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;padding:4px 0 10px}
   .fr-tabs button{font-size:12px;padding:8px 4px}
   /* Feed */
   .feed-row{padding:9px 4px;border-bottom:1px solid rgba(120,160,255,.07);font-size:13px;line-height:1.45;cursor:pointer}
@@ -888,10 +910,17 @@
   <div class="sheet-handle"></div>
   <div class="x" onclick="closeWindow('friends')" title="Close">✕</div>
   <h2>Friends</h2>
+  <div id="fr-profile"></div>
   <div class="fr-tabs">
     <button id="frt-friends" class="on">Friends</button>
     <button id="frt-feed">📡 Feed</button>
     <button id="frt-leader">🏆 Board</button>
+  </div>
+  <div id="fr-pane-friends">
+    <div id="fr-requests"></div>
+    <div class="fr-sub" id="fr-friends-h">Your friends</div>
+    <div id="fr-list"></div>
+    <button id="fr-add" class="fr-addbtn"><span>🔍</span> Add friends</button>
   </div>
   <div id="fr-pane-feed">
     <div class="fr-lb-ctrl">
@@ -900,23 +929,19 @@
     </div>
     <div id="fr-feed"></div>
   </div>
-  <div id="fr-pane-friends">
-    <div id="fr-me"></div>
-    <button id="fr-myach" class="fr-achbtn">🏅 My achievements</button>
-    <div id="fr-requests"></div>
-    <div class="fr-sub" id="fr-friends-h">Your friends</div>
-    <div id="fr-list"></div>
-    <div class="fr-sub fr-sub-row"><span>All users · long-press to request</span><button id="fr-refresh" title="Refresh list">⟳</button></div>
-    <div id="fr-total" class="fr-total">—</div>
-    <input id="fr-q" class="fr-filter" placeholder="Filter users…" autocomplete="off" />
-    <div id="fr-dir"></div>
-  </div>
   <div id="fr-pane-leader">
     <div class="fr-lb-ctrl">
       <button id="lb-friends-toggle" class="fav-toggle">Friends only</button>
       <button id="lb-refresh" title="Refresh">⟳ Refresh</button>
     </div>
     <div id="fr-leader"></div>
+  </div>
+  <div id="fr-pane-add">
+    <button id="fr-add-back" class="fr-back">‹ Back to friends</button>
+    <div class="fr-sub fr-sub-row"><span>All users · long-press to request</span><button id="fr-refresh" title="Refresh list">⟳</button></div>
+    <div id="fr-total" class="fr-total">—</div>
+    <input id="fr-q" class="fr-filter" placeholder="Search users…" autocomplete="off" />
+    <div id="fr-dir"></div>
   </div>
 </div>
 
@@ -3277,11 +3302,24 @@ async function removeFriend(uid, uname){
   }catch(e){ console.error(e); showErr('Could not remove: '+(e.code||e.message||e)); }
 }
 function renderMe(){
-  const el=$('fr-me'); if(!el) return;
+  const el=$('fr-profile'); if(!el) return;
   if(!currentUser){ el.innerHTML='<div class="fr-note">Sign in (account icon, top-right) to use friends.</div>'; return; }
   if(myProfile && myProfile.username){
-    el.innerHTML='<div class="fr-me">You are <b>@'+myProfile.username+'</b> · 🏅 '+(myProfile.badges||0)+' <span class="fr-del-un" id="del-uname">delete username</span></div>';
-    const d=$('del-uname'); if(d) d.onclick=deleteUsername;
+    const st=statsFromProfile(myProfile), score=scoreOf(st, achEarned(st)), ini=(myProfile.username[0]||'?').toUpperCase();
+    el.innerHTML=
+      '<div class="fr-prof" id="fr-prof-open">'+
+        '<div class="fr-avatar">'+ini+'</div>'+
+        '<div class="fr-prof-id"><div class="fr-prof-name">@'+myProfile.username+'</div>'+
+          '<div class="fr-prof-sub">View achievements ›</div></div>'+
+        '<span class="fr-del-un" id="del-uname">delete</span>'+
+      '</div>'+
+      '<div class="fr-prof-stats">'+
+        '<div><b>'+st.badges+'</b><span>badges</span></div>'+
+        '<div><b>'+st.maxStreak+'</b><span>streak</span></div>'+
+        '<div><b>'+score+'</b><span>score</span></div>'+
+      '</div>';
+    const op=$('fr-prof-open'); if(op) op.onclick=(e)=>{ if(e.target.id!=='del-uname') openMyAchievements(); };
+    const d=$('del-uname'); if(d) d.onclick=(e)=>{ e.stopPropagation(); deleteUsername(); };
   } else {
     el.innerHTML='<div class="fr-note">Pick a username so friends can find you:</div>'+
       '<div class="fr-search"><input id="uname-in" placeholder="username" maxlength="20" autocomplete="off"/><button id="uname-save">Save</button></div>';
@@ -3292,7 +3330,7 @@ function renderMe(){
 function renderFriends(){
   const el=$('fr-list'); if(!el) return;
   if(!currentUser){ el.innerHTML=''; return; }
-  if(!friends.length){ el.innerHTML='<div class="fr-note">No friends yet — long-press someone in “All users” below to send a request.</div>'; return; }
+  if(!friends.length){ el.innerHTML='<div class="fr-note">No friends yet — tap “Add friends” below to find people.</div>'; return; }
   const now=Date.now();
   el.innerHTML=friends.slice().sort((a,b)=>(b.lastSeen||0)-(a.lastSeen||0)).map(f=>{
     const on=(now-(f.lastSeen||0)<150000);
@@ -3355,19 +3393,20 @@ function initFriendsUI(){
   const rf=$('fr-refresh');
   if(rf) rf.onclick=async ()=>{ if(!currentUser){ showErr('Sign in to load users.'); return; }
     rf.classList.add('spin'); await loadAllUsers(); rf.classList.remove('spin'); showToast('User list refreshed'); };
-  // sub-tabs: friends / feed / leader
-  const showTab=(name)=>{ const f=$('friends'); f.classList.remove('tab-feed','tab-leader');
+  // sub-tabs: friends / feed / leader (+ the "add friends" drill-in)
+  const showTab=(name)=>{ const f=$('friends'); f.classList.remove('tab-feed','tab-leader','tab-add');
     if(name!=='friends') f.classList.add('tab-'+name);
-    ['friends','feed','leader'].forEach(t=>{ const b=$('frt-'+t); if(b) b.classList.toggle('on', t===name); });
-    if(name==='leader') renderLeaderboard(); if(name==='feed') loadFeed(); };
+    ['friends','feed','leader'].forEach(t=>{ const b=$('frt-'+t); if(b) b.classList.toggle('on', t===name || (name==='add'&&t==='friends')); });
+    if(name==='leader') renderLeaderboard(); if(name==='feed') loadFeed(); if(name==='add') renderDirectory(); };
   if($('frt-friends')) $('frt-friends').onclick=()=>showTab('friends');
   if($('frt-feed'))    $('frt-feed').onclick=()=>showTab('feed');
   if($('frt-leader'))  $('frt-leader').onclick=()=>showTab('leader');
+  if($('fr-add'))      $('fr-add').onclick=()=>{ showTab('add'); if(currentUser && !allUsers.length) loadAllUsers(); };
+  if($('fr-add-back')) $('fr-add-back').onclick=()=>showTab('friends');
   if($('lb-friends-toggle')) $('lb-friends-toggle').onclick=(e)=>{ lbFriendsOnly=!lbFriendsOnly; e.currentTarget.classList.toggle('on', lbFriendsOnly); renderLeaderboard(); };
   if($('lb-refresh')) $('lb-refresh').onclick=async (e)=>{ if(!currentUser) return; e.currentTarget.textContent='…'; await loadAllUsers(); e.currentTarget.textContent='⟳ Refresh'; renderLeaderboard(); };
   if($('feed-scope')) $('feed-scope').onclick=(e)=>{ feedScope=(feedScope==='friends')?'all':'friends'; e.currentTarget.classList.toggle('on', feedScope==='friends'); e.currentTarget.textContent=feedScope==='friends'?'Friends only':'Everyone'; renderFeed(); };
   if($('feed-refresh')) $('feed-refresh').onclick=async (e)=>{ e.currentTarget.textContent='…'; await loadFeed(); e.currentTarget.textContent='⟳ Refresh'; };
-  if($('fr-myach')) $('fr-myach').onclick=openMyAchievements;
   renderMe(); renderFriends(); renderRequests(); renderDirectory(); renderLeaderboard();
 }
 
