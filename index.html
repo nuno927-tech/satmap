@@ -47,6 +47,7 @@
   #stat{display:flex;gap:18px;pointer-events:auto}
   .stat b{display:block;font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
   .stat span{font-size:16px;color:var(--accent)}
+  .on-ct{color:#2ecc71;font-size:13px}
 
   /* Panels */
   .panel{position:fixed;z-index:20;background:var(--panel);backdrop-filter:blur(14px);
@@ -287,7 +288,8 @@
     #topbar{padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;gap:10px;
       background:linear-gradient(180deg,rgba(3,6,15,.92),rgba(3,6,15,0))}
     #brand h1{font-size:16px} #brand .tag{display:none}
-    #stat{gap:12px} .stat span{font-size:14px} .stat b{font-size:9px}
+    #stat{gap:10px} .stat span{font-size:14px} .stat b{font-size:9px} .stat.ov{display:none}
+    .on-ct{font-size:11px}
     #clocks{gap:12px} .clock span{font-size:13px} .clock b{font-size:9px}
 
     /* Backdrop behind open sheets */
@@ -349,7 +351,8 @@
   </div>
   <div id="stat" class="mono">
     <div class="stat"><b>Tracking</b><span id="s-total">—</span></div>
-    <div class="stat"><b>Overhead</b><span id="s-over">—</span></div>
+    <div class="stat ov"><b>Overhead</b><span id="s-over">—</span></div>
+    <div class="stat"><b>Users</b><span id="s-users">—</span></div>
   </div>
   <div id="clocks" class="mono">
     <div class="clock"><b>Local</b><span id="c-loc">—</span></div>
@@ -1413,8 +1416,11 @@ function stopSocial(){
 function startPresence(){
   stopPresence();
   const beat=()=>{ if(!currentUser||!window.fb) return;
+    const now=Date.now();
     window.fb.setDoc(window.fb.doc(window.fb.db,'profiles',currentUser.uid),
-      {lastSeen:Date.now(), online:true, displayName:currentUser.displayName||'', photoURL:currentUser.photoURL||''}, {merge:true}).catch(()=>{}); };
+      {lastSeen:now, online:true, displayName:currentUser.displayName||'', photoURL:currentUser.photoURL||''}, {merge:true}).catch(()=>{});
+    // public presence ping (timestamp only) for the global user counter
+    window.fb.setDoc(window.fb.doc(window.fb.db,'presence',currentUser.uid), {ts:now}, {merge:true}).catch(()=>{}); };
   beat(); presenceTimer=setInterval(beat, 60000);
 }
 function stopPresence(){ if(presenceTimer){ clearInterval(presenceTimer); presenceTimer=null; } }
@@ -1537,6 +1543,24 @@ function initFriendsUI(){
   renderMe(); renderFriends();
 }
 
+/* ---------- Global community counter (total users + online now) ---------- */
+let statsTick=null;
+async function fetchCommunityStats(){
+  if(!window.fb || !window.fb.getCountFromServer) return;
+  const {db, collection, getCountFromServer, query, where}=window.fb;
+  try{
+    const total  = (await getCountFromServer(collection(db,'presence'))).data().count;
+    const online = (await getCountFromServer(query(collection(db,'presence'), where('ts','>', Date.now()-150000)))).data().count;
+    const el=$('s-users');
+    if(el) el.innerHTML = total.toLocaleString()+' <span class="on-ct">'+online.toLocaleString()+' online</span>';
+  }catch(e){ console.warn('community stats', e); }
+}
+function startCommunityStats(){
+  fetchCommunityStats();
+  if(statsTick) clearInterval(statsTick);
+  statsTick=setInterval(fetchCommunityStats, 60000);
+}
+
 initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); initFriendsUI();
 </script>
 
@@ -1581,9 +1605,11 @@ initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); 
         signOut: authMod.signOut,
         onAuthStateChanged: authMod.onAuthStateChanged,
         doc: fsMod.doc, setDoc: fsMod.setDoc, onSnapshot: fsMod.onSnapshot,
-        getDoc: fsMod.getDoc, collection: fsMod.collection, deleteDoc: fsMod.deleteDoc
+        getDoc: fsMod.getDoc, collection: fsMod.collection, deleteDoc: fsMod.deleteDoc,
+        getCountFromServer: fsMod.getCountFromServer, query: fsMod.query, where: fsMod.where
       };
       initAuth();
+      startCommunityStats();
     } catch (fe) {
       console.warn('Firebase init failed — accounts disabled this session:', fe);
     }
