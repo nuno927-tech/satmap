@@ -309,6 +309,45 @@
   #lb-dots{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 20px);left:0;right:0;display:flex;gap:7px;justify-content:center}
   #lb-dots span{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.35)}
   #lb-dots span.on{background:#fff;width:18px;border-radius:4px}
+  /* Friends sub-tabs */
+  .fr-tabs{display:flex;gap:6px;margin:6px 0 12px;background:rgba(120,160,255,.06);border:1px solid var(--border);border-radius:12px;padding:4px}
+  .fr-tabs button{flex:1;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:600;padding:8px;border-radius:9px;cursor:pointer}
+  .fr-tabs button.on{background:rgba(90,209,255,.16);color:var(--accent)}
+  #fr-pane-leader{display:none}
+  #friends.tab-leader #fr-pane-friends{display:none}
+  #friends.tab-leader #fr-pane-leader{display:block}
+  .fr-lb-ctrl{display:flex;gap:8px;margin-bottom:10px}
+  .fr-lb-ctrl button{border:1px solid var(--border);background:rgba(120,160,255,.08);color:var(--text);border-radius:10px;padding:7px 11px;font-size:12px;font-weight:600;cursor:pointer}
+  .fr-achbtn{width:100%;margin:8px 0 4px;border:1px solid rgba(255,211,77,.4);background:rgba(255,211,77,.1);color:#ffd34d;border-radius:11px;padding:10px;font-size:12px;font-weight:700;cursor:pointer}
+  .fr-achbtn:hover{background:rgba(255,211,77,.2)}
+  .lb-row{cursor:pointer}
+  /* Launch sighting info */
+  .lc-seeninfo{font-size:11px;color:var(--muted);margin:-4px 0 10px}
+  .lc-rm{color:var(--iss);cursor:pointer;text-decoration:underline}
+  /* Achievements page */
+  #achieve{position:fixed;inset:0;z-index:105;display:none;align-items:center;justify-content:center;padding:18px;
+    background:rgba(3,6,15,.8);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  #achieve.show{display:flex}
+  .ach-card{width:min(420px,100%);max-height:86vh;overflow-y:auto;background:var(--panel-solid);border:1px solid var(--border);
+    border-radius:20px;padding:22px 18px;box-shadow:0 24px 60px rgba(0,0,0,.6);position:relative}
+  #ach-close{position:absolute;top:12px;right:14px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+    border-radius:50%;border:1px solid var(--border);background:rgba(120,160,255,.06);color:var(--muted);cursor:pointer}
+  #ach-name{font-size:20px;font-weight:800;text-align:center;margin-bottom:14px;color:var(--text)}
+  .ach-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+  .ach-stats div{text-align:center;background:rgba(120,160,255,.06);border:1px solid var(--border);border-radius:10px;padding:8px 4px}
+  .ach-stats b{display:block;font-size:18px;color:var(--accent)}
+  .ach-stats span{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+  .ach-grid{display:flex;flex-direction:column;gap:8px}
+  .ach-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:12px;border:1px solid var(--border);
+    background:rgba(120,160,255,.04);opacity:.5}
+  .ach-item.on{opacity:1;background:rgba(87,224,138,.1);border-color:rgba(87,224,138,.4)}
+  .ach-ic{font-size:24px;flex:0 0 auto;filter:grayscale(1)}
+  .ach-item.on .ach-ic{filter:none}
+  .ach-txt{flex:1;min-width:0}
+  .ach-txt b{display:block;font-size:13.5px;color:var(--text)}
+  .ach-txt span{font-size:11.5px;color:var(--muted)}
+  .ach-pts{flex:0 0 auto;font-size:12px;font-weight:700;color:#57e08a}
+  .ach-lock{flex:0 0 auto;opacity:.6}
   .d-desc{font-size:12px;line-height:1.5;color:var(--text);margin-bottom:8px}
   .d-src{margin-top:8px;font-size:11px;color:var(--muted)}
   .d-src a{color:var(--accent);text-decoration:none}
@@ -678,6 +717,15 @@
   <div id="lb-dots"></div>
 </div>
 
+<div id="achieve">
+  <div class="ach-card">
+    <div id="ach-close" aria-label="Close">✕</div>
+    <div id="ach-name">—</div>
+    <div id="ach-stats" class="ach-stats"></div>
+    <div id="ach-grid" class="ach-grid"></div>
+  </div>
+</div>
+
 <div id="settings" class="panel">
   <div class="sheet-handle"></div>
   <div class="x" onclick="closeWindow('settings')" title="Close">✕</div>
@@ -820,16 +868,28 @@
   <div class="sheet-handle"></div>
   <div class="x" onclick="closeWindow('friends')" title="Close">✕</div>
   <h2>Friends</h2>
-  <div id="fr-me"></div>
-  <div id="fr-requests"></div>
-  <div class="fr-sub">🏆 Badge leaderboard</div>
-  <div id="fr-leader"></div>
-  <div class="fr-sub" id="fr-friends-h">Your friends</div>
-  <div id="fr-list"></div>
-  <div class="fr-sub fr-sub-row"><span>All users · long-press to request</span><button id="fr-refresh" title="Refresh list">⟳</button></div>
-  <div id="fr-total" class="fr-total">—</div>
-  <input id="fr-q" class="fr-filter" placeholder="Filter users…" autocomplete="off" />
-  <div id="fr-dir"></div>
+  <div class="fr-tabs">
+    <button id="frt-friends" class="on">Friends</button>
+    <button id="frt-leader">🏆 Leaderboard</button>
+  </div>
+  <div id="fr-pane-friends">
+    <div id="fr-me"></div>
+    <button id="fr-myach" class="fr-achbtn">🏅 My achievements</button>
+    <div id="fr-requests"></div>
+    <div class="fr-sub" id="fr-friends-h">Your friends</div>
+    <div id="fr-list"></div>
+    <div class="fr-sub fr-sub-row"><span>All users · long-press to request</span><button id="fr-refresh" title="Refresh list">⟳</button></div>
+    <div id="fr-total" class="fr-total">—</div>
+    <input id="fr-q" class="fr-filter" placeholder="Filter users…" autocomplete="off" />
+    <div id="fr-dir"></div>
+  </div>
+  <div id="fr-pane-leader">
+    <div class="fr-lb-ctrl">
+      <button id="lb-friends-toggle" class="fav-toggle">Friends only</button>
+      <button id="lb-refresh" title="Refresh">⟳ Refresh</button>
+    </div>
+    <div id="fr-leader"></div>
+  </div>
 </div>
 
 <div id="reqpop">
@@ -1958,21 +2018,16 @@ function renderDetail(s){
   $('d-el').textContent=s.elevation!=null?s.elevation.toFixed(1)+'°':'—';
   $('d-rng').textContent=fmtDist(s.rangeKm);
   $('d-id').textContent=s.id;
-  const entry=seenEntry(s.id), seen=!!entry;
+  const entry=seenEntry(s.id), seen=!!entry, cnt=entry?(entry.count||1):0;
   const btn=$('d-seen');
   if(btn){
-    btn.textContent = seen ? '✓ Seen — tap to remove' : '👁 Mark as seen';
+    btn.textContent = seen ? ('✓ Seen '+cnt+'× · log another') : '👁 Log a sighting';
     btn.classList.toggle('on', seen);
-    btn.onclick = ()=>{
-      if(seen){ markSeen(s); }                                   // remove sighting
-      else { const dt=$('d-seen-dt'); markSeen(s, dt?localInputToTs(dt.value):Date.now()); }
-    };
+    btn.onclick = ()=>{ const dt=$('d-seen-dt'); logSighting(s, dt?localInputToTs(dt.value):Date.now()); };
   }
   const sw=$('d-seenwhen'); if(sw) sw.style.display = currentUser ? '' : 'none';
-  const upd=$('d-seen-update');
-  if(upd){ upd.style.display = seen ? '' : 'none';
-    upd.onclick = ()=>{ const dt=$('d-seen-dt'); if(dt) updateSeenTime(s, localInputToTs(dt.value)); };
-  }
+  const upd=$('d-seen-update');   // repurposed as a Remove button when already seen
+  if(upd){ upd.style.display = seen ? '' : 'none'; upd.textContent='Remove'; upd.onclick=()=>removeSeen(s.id, s.name); }
   const ob=orbitDetails(s), oc=orbitClass(s), ly=launchYearOf(s);
   const badges=$('d-badges');
   if(badges){
@@ -2160,11 +2215,12 @@ function renderLaunchDetail(l){
   h+='<div class="d-badges"><span class="d-badge b-launch">'+esc(l.statusAbbrev||l.status||'TBD')+'</span>'+
      (l.orbit?'<span class="d-badge">'+esc(l.orbit)+'</span>':'')+'</div>';
   h+='<div class="lc-count" id="lc-count">'+countdownStr(l.net)+'</div>';
-  if(currentUser){ const e=seenEntry(l.id);
+  if(currentUser){ const e=seenEntry(l.id), c=e?(e.count||1):0;
     h+='<div class="lc-seen">'+
-      '<button class="lc-seenbtn'+(e&&e.how==='overhead'?' on':'')+'" data-how="overhead">👁 Seen overhead</button>'+
-      '<button class="lc-seenbtn'+(e&&e.how==='person'?' on':'')+'" data-how="person">🧍 In person</button>'+
+      '<button class="lc-seenbtn'+(e&&e.how==='overhead'?' on':'')+'" data-how="overhead">👁 Log overhead</button>'+
+      '<button class="lc-seenbtn'+(e&&e.how==='person'?' on':'')+'" data-how="person">🧍 Log in person</button>'+
     '</div>';
+    if(c) h+='<div class="lc-seeninfo">Seen '+c+'× ('+(e.how==='person'?'in person':'overhead')+') · <span class="lc-rm">remove</span></div>';
   }
   const rows=[['Mission',l.mission],['Vehicle',l.rocket],['Provider',l.provider],
     ['When', l.net?fmtLaunchTime(l.net):'TBD'],['Status', l.status],['Pad', l.padName],['Site', l.locationName]];
@@ -2175,7 +2231,8 @@ function renderLaunchDetail(l){
   if(l.infoURL && l.infoURL!==l.vidURL) links.push('<a href="'+esc(l.infoURL)+'" target="_blank" rel="noopener">Details</a>');
   h+='<div class="d-src">'+(links.length?links.join(' · ')+' · ':'')+'Data: The Space Devs</div>';
   box.innerHTML=h;
-  box.querySelectorAll('.lc-seenbtn').forEach(b=>b.onclick=()=>markLaunchSeen(l, b.dataset.how));
+  box.querySelectorAll('.lc-seenbtn').forEach(b=>b.onclick=()=>logLaunchSighting(l, b.dataset.how));
+  const rm=box.querySelector('.lc-rm'); if(rm) rm.onclick=()=>removeSeen(l.id, l.rocket);
   const im=box.querySelector('.d-photo'); if(im && l.image) im.onclick=()=>openLightbox([l.image], 0);
 }
 // Mark a rocket launch as seen (overhead or in person) — becomes a badge like satellites.
@@ -2887,34 +2944,106 @@ async function deleteUsername(){
   }catch(e){ console.error(e); showErr('Could not delete username: '+(e.code||e.message||e)); }
 }
 // Mark a satellite as "seen" → earns a badge, saved to your profile + username (for the leaderboard).
-async function markSeen(sat, whenTs){
-  if(!currentUser||!window.fb){ showErr('Sign in to collect badges (account icon, top-right).'); return; }
-  if(!myProfile||!myProfile.username){ showErr('Choose a username first (Friends tab).'); return; }
-  const {db, doc, setDoc}=window.fb; const me=currentUser.uid;
-  const list=(myProfile && Array.isArray(myProfile.seen)) ? myProfile.seen.slice() : [];
-  const i=list.findIndex(x=>x.id===sat.id);
-  let added;
-  if(i>=0){ list.splice(i,1); added=false; }
-  else { list.push({id:sat.id, name:sat.name, ts:(whenTs||Date.now())}); added=true; }
-  const count=list.length;
-  try{
-    await setDoc(doc(db,'profiles',me), {seen:list, badges:count}, {merge:true});
-    if(myProfile.unameLower){ try{ await setDoc(doc(db,'usernames',myProfile.unameLower), {badges:count}, {merge:true}); }catch(e){} }
-    showToast(added ? ('🏅 Badge earned: '+sat.name+' · seen '+fmtSeen(whenTs||Date.now())) : ('Removed “'+sat.name+'” from seen'), added);
-  }catch(e){ console.error(e); showErr('Could not save badge: '+(e.code||e.message||e)); }
+/* ---------- Sightings + named achievements ---------- */
+const ACH=[
+  {id:'first', ic:'✨', n:'First Light',      d:'Log your first sighting',  p:5,  t:s=>s.sightings>=1},
+  {id:'iss',   ic:'🛰️', n:'ISS Spotter',      d:'Spot the ISS',             p:10, t:s=>s.ids.has('25544')},
+  {id:'sl10',  ic:'🔗', n:'Starlink Hunter',  d:'Spot 10 Starlinks',        p:15, t:s=>s.starlink>=10},
+  {id:'geo',   ic:'🌍', n:'High & Far',       d:'Spot a GEO satellite',     p:15, t:s=>s.geo>=1},
+  {id:'orbits',ic:'🪐', n:'Globetrotter',     d:'Spot LEO, MEO & GEO',      p:20, t:s=>s.orbits>=3},
+  {id:'rocket',ic:'🚀', n:'Rocketeer',        d:'See a rocket launch',      p:15, t:s=>s.launches>=1},
+  {id:'person',ic:'🎟️', n:'Front Row',        d:'See a launch in person',   p:25, t:s=>s.inperson>=1},
+  {id:'strk3', ic:'🔥', n:'On a Roll',        d:'3-day sighting streak',    p:15, t:s=>s.maxStreak>=3},
+  {id:'strk7', ic:'⚡', n:'Week Watcher',     d:'7-day sighting streak',    p:30, t:s=>s.maxStreak>=7},
+  {id:'b25',   ic:'🎖️', n:'Collector',        d:'25 different objects',     p:20, t:s=>s.badges>=25},
+  {id:'s100',  ic:'💯', n:'Centurion',        d:'100 total sightings',      p:30, t:s=>s.sightings>=100},
+  {id:'x5',    ic:'🌟', n:'Devoted',          d:'Spot one object 5×',       p:15, t:s=>s.maxCount>=5},
+];
+function dayStr(ts){ const d=new Date(ts), p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+function addSightDay(days, ts){ const a=Array.isArray(days)?days.slice():[], s=dayStr(ts); if(!a.includes(s)) a.push(s); return a.slice(-160); }
+function streakOf(days){
+  if(!days||!days.length) return {cur:0,max:0};
+  const set=[...new Set(days)].sort(), toN=s=>{ const p=s.split('-').map(Number); return Date.UTC(p[0],p[1]-1,p[2])/864e5; };
+  let max=1,run=1; for(let i=1;i<set.length;i++){ run=(toN(set[i])-toN(set[i-1])===1)?run+1:1; if(run>max)max=run; }
+  let cur=1; for(let i=set.length-1;i>0;i--){ if(toN(set[i])-toN(set[i-1])===1) cur++; else break; }
+  const nowD=Math.floor((Date.now()-new Date().getTimezoneOffset()*60000)/864e5);
+  if(nowD-toN(set[set.length-1])>1) cur=0;
+  return {cur,max};
 }
-// Edit the recorded date/time of an existing sighting.
-async function updateSeenTime(sat, ts){
+function statsFromProfile(p){
+  const seen=Array.isArray(p&&p.seen)?p.seen:[], ids=new Set();
+  let sightings=0, starlink=0, geo=0, launches=0, inperson=0, maxCount=0; const orb=new Set();
+  for(const e of seen){ ids.add(e.id); const c=e.count||1; sightings+=c; if(c>maxCount) maxCount=c;
+    if(e.kind==='launch'){ launches++; if(e.how==='person') inperson++; }
+    else { if(e.group==='starlink'||/STARLINK/i.test(e.name||'')) starlink++; if(e.oc==='GEO') geo++; if(e.oc) orb.add(e.oc); } }
+  const s=streakOf(p&&p.sightDays);
+  return { ids, badges:ids.size, sightings, starlink, geo, orbits:orb.size, launches, inperson, maxCount, streak:s.cur, maxStreak:s.max };
+}
+function achEarned(st){ return ACH.filter(a=>a.t(st)); }
+function scoreOf(st, earned){ return st.sightings + st.badges*2 + earned.reduce((x,a)=>x+a.p,0); }
+async function commitSeen(list, days){
   if(!currentUser||!window.fb||!myProfile) return;
-  const {db, doc, setDoc}=window.fb;
-  const list=(Array.isArray(myProfile.seen)) ? myProfile.seen.slice() : [];
-  const i=list.findIndex(x=>x.id===sat.id);
-  if(i<0){ return markSeen(sat, ts); }               // not seen yet → record it at this time
-  list[i]=Object.assign({}, list[i], {ts});
-  try{
-    await setDoc(doc(db,'profiles',currentUser.uid), {seen:list}, {merge:true});
-    showToast('Updated sighting: '+sat.name+' · '+fmtSeen(ts));
-  }catch(e){ console.error(e); showErr('Could not update time: '+(e.code||e.message||e)); }
+  const {db,doc,setDoc}=window.fb;
+  const st=statsFromProfile({seen:list, sightDays:days}), earned=achEarned(st), score=scoreOf(st,earned);
+  await setDoc(doc(db,'profiles',currentUser.uid), {seen:list, sightDays:days, badges:st.badges}, {merge:true});
+  if(myProfile.unameLower){ try{ await setDoc(doc(db,'usernames',myProfile.unameLower),
+    {badges:st.badges, sightings:st.sightings, streak:st.maxStreak, ach:earned.map(a=>a.id), score}, {merge:true}); }catch(e){} }
+}
+async function logSighting(s, ts){
+  if(!currentUser||!window.fb){ showErr('Sign in to log sightings (account icon, top-right).'); return; }
+  if(!myProfile||!myProfile.username){ showErr('Choose a username first (Friends tab).'); return; }
+  const list=Array.isArray(myProfile.seen)?myProfile.seen.map(e=>Object.assign({},e)):[];
+  const i=list.findIndex(x=>x.id===s.id); let n;
+  if(i>=0){ list[i].count=(list[i].count||1)+1; list[i].last=Math.max(list[i].last||list[i].ts||0, ts); n=list[i].count; }
+  else { list.push({id:s.id, name:s.name, kind:'sat', group:s.group, oc:orbitClass(s), ts, last:ts, count:1}); n=1; }
+  try{ await commitSeen(list, addSightDay(myProfile.sightDays, ts));
+    showToast(n===1?('🏅 New badge: '+s.name):('👁 Sighting #'+n+' logged: '+s.name), true);
+  }catch(e){ console.error(e); showErr('Could not save: '+(e.code||e.message||e)); }
+}
+async function logLaunchSighting(l, how){
+  if(!currentUser||!window.fb){ showErr('Sign in to log sightings.'); return; }
+  if(!myProfile||!myProfile.username){ showErr('Choose a username first (Friends tab).'); return; }
+  const list=Array.isArray(myProfile.seen)?myProfile.seen.map(e=>Object.assign({},e)):[];
+  const i=list.findIndex(x=>x.id===l.id), ts=Date.now(); let n;
+  if(i>=0){ list[i].count=(list[i].count||1)+1; list[i].last=ts; list[i].how=how; n=list[i].count; }
+  else { list.push({id:l.id, name:l.provider+' · '+l.rocket, kind:'launch', how, ts, last:ts, count:1}); n=1; }
+  try{ await commitSeen(list, addSightDay(myProfile.sightDays, ts));
+    showToast((n===1?'🏅 New badge: ':'👁 Sighting #'+n+': ')+l.rocket+' ('+(how==='person'?'in person':'overhead')+')', true);
+  }catch(e){ console.error(e); showErr('Could not save: '+(e.code||e.message||e)); }
+}
+async function removeSeen(id, name){
+  if(!currentUser||!window.fb||!myProfile) return;
+  const list=(Array.isArray(myProfile.seen)?myProfile.seen:[]).filter(e=>e.id!==id);
+  try{ await commitSeen(list, myProfile.sightDays||[]); showToast('Removed “'+(name||'item')+'” from your sightings'); }
+  catch(e){ showErr('Could not remove: '+(e.code||e.message||e)); }
+}
+/* ---------- Achievements page (viewable for any user) ---------- */
+function openMyAchievements(){
+  const st=statsFromProfile(myProfile||{}), earned=achEarned(st);
+  renderAchievements({ username:(myProfile&&myProfile.username)||'you', badges:st.badges, sightings:st.sightings,
+    streak:st.maxStreak, achSet:new Set(earned.map(a=>a.id)), score:scoreOf(st,earned) });
+  $('achieve').classList.add('show');
+}
+function openAchievements(u){
+  if(u && u.uid && currentUser && u.uid===currentUser.uid) return openMyAchievements();
+  renderAchievements({ username:u.username||'user', badges:u.badges||0, sightings:u.sightings||0,
+    streak:u.streak||0, achSet:new Set(u.ach||[]), score:u.score||0 });
+  $('achieve').classList.add('show');
+}
+function renderAchievements(s){
+  $('ach-name').textContent='@'+s.username;
+  $('ach-stats').innerHTML='<div><b>'+s.badges+'</b><span>badges</span></div>'+
+    '<div><b>'+s.sightings+'</b><span>sightings</span></div>'+
+    '<div><b>'+s.streak+'</b><span>best streak</span></div>'+
+    '<div><b>'+s.score+'</b><span>score</span></div>';
+  $('ach-grid').innerHTML=ACH.map(a=>{ const on=s.achSet.has(a.id);
+    return '<div class="ach-item'+(on?' on':'')+'"><div class="ach-ic">'+a.ic+'</div>'+
+      '<div class="ach-txt"><b>'+a.n+'</b><span>'+a.d+'</span></div>'+
+      (on?'<span class="ach-pts">+'+a.p+'</span>':'<span class="ach-lock">🔒</span>')+'</div>'; }).join('');
+}
+function initAchievements(){
+  const c=$('ach-close'); if(c) c.onclick=()=>$('achieve').classList.remove('show');
+  const a=$('achieve'); if(a) a.addEventListener('click', e=>{ if(e.target===a) a.classList.remove('show'); });
 }
 // datetime-local <-> timestamp helpers (values are local time)
 function tsToLocalInput(ts){ const d=new Date(ts||Date.now()); const p=n=>String(n).padStart(2,'0');
@@ -3009,17 +3138,22 @@ function showReqPop(r){
   clearTimeout(pop._tm); pop._tm=setTimeout(()=>pop.classList.remove('show'), 12000);
 }
 function hideReqPop(){ const pop=$('reqpop'); if(pop) pop.classList.remove('show'); }
+let lbFriendsOnly=false;
 function renderLeaderboard(){
   const el=$('fr-leader'); if(!el) return;
   if(!currentUser){ el.innerHTML='<div class="fr-note">Sign in to see the leaderboard.</div>'; return; }
-  const rows=allUsers.map(u=>({username:u.username, badges:u.badges||0, uid:u.uid}));
-  if(myProfile && myProfile.username) rows.push({username:myProfile.username, badges:myProfile.badges||0, uid:currentUser.uid, self:true});
-  rows.sort((a,b)=>(b.badges||0)-(a.badges||0));
-  const top=rows.filter(r=>r.badges>0).slice(0,10);
-  if(!top.length){ el.innerHTML='<div class="fr-note">No badges yet — open a satellite and tap “Mark as seen”. Use ⟳ to refresh others’ counts.</div>'; return; }
+  const friendIds=new Set(friends.map(f=>f.uid));
+  let rows=allUsers.filter(u=>!lbFriendsOnly || friendIds.has(u.uid))
+    .map(u=>({username:u.username, badges:u.badges||0, score:u.score||0, uid:u.uid, ach:u.ach||[], sightings:u.sightings||0, streak:u.streak||0}));
+  if(myProfile && myProfile.username){ const st=statsFromProfile(myProfile), e=achEarned(st);
+    rows.push({username:myProfile.username, badges:st.badges, score:scoreOf(st,e), uid:currentUser.uid, ach:e.map(a=>a.id), sightings:st.sightings, streak:st.maxStreak, self:true}); }
+  rows.sort((a,b)=>(b.score||0)-(a.score||0) || (b.badges||0)-(a.badges||0));
+  const top=rows.filter(r=>r.score>0 || r.badges>0).slice(0,50);
+  if(!top.length){ el.innerHTML='<div class="fr-note">'+(lbFriendsOnly?'No friends on the board yet.':'No sightings logged yet — open a satellite and tap “Log a sighting”.')+'</div>'; return; }
   const medal=['🥇','🥈','🥉'];
-  el.innerHTML=top.map((r,i)=>'<div class="lb-row'+(r.self?' me':'')+'"><span class="lb-rank">'+(medal[i]||('#'+(i+1)))+'</span>'+
-    '<span class="lb-nm">@'+r.username+(r.self?' (you)':'')+'</span><span class="lb-ct">🏅 '+r.badges+'</span></div>').join('');
+  el.innerHTML=top.map((r,i)=>'<div class="lb-row'+(r.self?' me':'')+'" data-uid="'+r.uid+'"><span class="lb-rank">'+(medal[i]||('#'+(i+1)))+'</span>'+
+    '<span class="lb-nm">@'+r.username+(r.self?' (you)':'')+'</span><span class="lb-ct">'+r.score+' pts · 🏅 '+r.badges+'</span></div>').join('');
+  el.querySelectorAll('.lb-row').forEach(row=>row.onclick=()=>{ const u=top.find(x=>x.uid===row.dataset.uid); if(u) openAchievements(u); });
 }
 async function removeFriend(uid, uname){
   const {db, doc, deleteDoc}=window.fb;
@@ -3104,6 +3238,15 @@ function initFriendsUI(){
   const rf=$('fr-refresh');
   if(rf) rf.onclick=async ()=>{ if(!currentUser){ showErr('Sign in to load users.'); return; }
     rf.classList.add('spin'); await loadAllUsers(); rf.classList.remove('spin'); showToast('User list refreshed'); };
+  // sub-tabs
+  const showTab=(leader)=>{ $('friends').classList.toggle('tab-leader', leader);
+    $('frt-friends').classList.toggle('on', !leader); $('frt-leader').classList.toggle('on', leader);
+    if(leader) renderLeaderboard(); };
+  if($('frt-friends')) $('frt-friends').onclick=()=>showTab(false);
+  if($('frt-leader'))  $('frt-leader').onclick=()=>showTab(true);
+  if($('lb-friends-toggle')) $('lb-friends-toggle').onclick=(e)=>{ lbFriendsOnly=!lbFriendsOnly; e.currentTarget.classList.toggle('on', lbFriendsOnly); renderLeaderboard(); };
+  if($('lb-refresh')) $('lb-refresh').onclick=async (e)=>{ if(!currentUser) return; e.currentTarget.textContent='…'; await loadAllUsers(); e.currentTarget.textContent='⟳ Refresh'; renderLeaderboard(); };
+  if($('fr-myach')) $('fr-myach').onclick=openMyAchievements;
   renderMe(); renderFriends(); renderRequests(); renderDirectory(); renderLeaderboard();
 }
 
@@ -3125,7 +3268,7 @@ function startCommunityStats(){
   statsTick=setInterval(fetchCommunityStats, 60000);
 }
 
-initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); initFriendsUI(); initTimeUI(); initAR(); initOnboard(); initLightbox();
+initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); initFriendsUI(); initTimeUI(); initAR(); initOnboard(); initLightbox(); initAchievements();
 </script>
 
 <!-- Module loader: import the 3D libs, expose them as globals, then boot -->
