@@ -627,25 +627,51 @@ function armMusic(){                      // browsers block audio until a user g
 }
 
 /* ---------- TLE fetching ---------- */
+function parseTleText(text, g){
+  if(text.trimStart()[0]==='<' || text.trim().length < 20) throw new Error('bad payload');
+  const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
+  const out = [];
+  for(let i=0;i+2<lines.length;i+=3){
+    const name=lines[i].trim(), l1=lines[i+1], l2=lines[i+2];
+    if(!l1.startsWith('1 ')||!l2.startsWith('2 ')) continue;
+    out.push({ name, l1, l2, id:l1.slice(2,7).trim(), group:g.id });
+    if(g.cap && out.length>=g.cap) break;
+  }
+  return out;
+}
 async function fetchGroup(g){
   const url = 'https://celestrak.org/NORAD/elements/gp.php?' +
     (g.catnr ? 'CATNR='+g.catnr : 'GROUP='+g.id) + '&FORMAT=tle';
   const ctrl = new AbortController();
-  const timer = setTimeout(()=>ctrl.abort(), 12000);   // don't hang forever on a slow feed
+  const timer = setTimeout(()=>ctrl.abort(), 20000);
   try{
     const res = await fetch(url, { cache:'no-store', signal:ctrl.signal });
     if(!res.ok) throw new Error('HTTP '+res.status);
-    const text = await res.text();
-    if(text.includes('<') || text.trim().length < 20) throw new Error('bad payload');
-    const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
-    const out = [];
-    for(let i=0;i+2<lines.length;i+=3){
-      const name=lines[i].trim(), l1=lines[i+1], l2=lines[i+2];
-      if(!l1.startsWith('1 ')||!l2.startsWith('2 ')) continue;
-      out.push({ name, l1, l2, id:l1.slice(2,7).trim(), group:g.id });
-      if(g.cap && out.length>=g.cap) break;
+    // Capped groups (e.g. Starlink, ~7000 sats / ~1.5MB): stream and STOP once we hit the cap,
+    // so we only download ~25KB instead of the whole catalogue (which used to time out → 0 sats).
+    if(g.cap && res.body && res.body.getReader){
+      const reader=res.body.getReader(), dec=new TextDecoder();
+      let buf='', name=null, l1=null, first=true; const out=[];
+      while(true){
+        const {done, value}=await reader.read();
+        if(value) buf += dec.decode(value, {stream:true});
+        if(first && buf.trim()){ if(buf.trimStart()[0]==='<'){ try{await reader.cancel();}catch(e){} throw new Error('bad payload'); } first=false; }
+        let idx;
+        while((idx=buf.indexOf('\n'))>=0){
+          const line=buf.slice(0,idx).replace(/\r$/,''); buf=buf.slice(idx+1);
+          if(!line.trim()) continue;
+          if(line.startsWith('1 ')){ if(name) l1=line; }
+          else if(line.startsWith('2 ')){ if(name && l1){ out.push({name, l1, l2:line, id:l1.slice(2,7).trim(), group:g.id}); name=null; l1=null;
+            if(out.length>=g.cap){ try{ await reader.cancel(); }catch(e){} return out; } } }
+          else { name=line.trim(); l1=null; }
+        }
+        if(done) break;
+      }
+      if(!out.length) throw new Error('empty');
+      return out;
     }
-    return out;
+    // Uncapped (single ISS by CATNR) or no streaming support: read the full text.
+    return parseTleText(await res.text(), g);
   } finally { clearTimeout(timer); }
 }
 
