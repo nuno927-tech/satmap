@@ -564,7 +564,8 @@ const GROUPS = [
   { id:'galileo',  label:'Galileo',   color:'#c58cff', cap:40 },
   { id:'weather',  label:'Weather',   color:'#57e08a', cap:60 },
 ];
-if(IS_MOBILE) GROUPS.forEach(g=>{ if(g.cap) g.cap = Math.max(12, Math.round(g.cap*0.45)); });
+// GPU point rendering handles large counts, so mobile only trims caps slightly now.
+if(IS_MOBILE) GROUPS.forEach(g=>{ if(g.cap) g.cap = Math.max(12, Math.round(g.cap*0.85)); });
 const enabled = {}; GROUPS.forEach(g=>enabled[g.id]=true);
 
 // Fallback ISS TLE so the app always shows *something* if the network fails.
@@ -756,7 +757,8 @@ function buildSatrecs(raw){
     const g = GROUPS.find(x=>x.id===r.group);
     seen.add(r.id);
     list.push({ name:r.name, id:r.id, group:r.group, color:(g?g.color:'#b9c7e6'), satrec:rec,
-      lat:0,lng:0,alt:0,altKm:0,speed:0,elevation:null,azimuth:null,rangeKm:null,el:null });
+      l1:r.l1, l2:r.l2,
+      lat:null,lng:null,alt:0,altKm:0,speed:0,elevation:null,azimuth:null,rangeKm:null,el:null });
   }
   return list;
 }
@@ -808,7 +810,7 @@ async function loadData(){
 /* ---------- Background: download the rest of Starlink in batches ---------- */
 let starlinkFull=false, starlinkLoading=false;
 // Desktop pulls (nearly) the whole constellation; mobile is capped so phones stay smooth.
-const STARLINK_MAX = IS_MOBILE ? 500 : 8000;
+const STARLINK_MAX = IS_MOBILE ? 2500 : 8000;   // GPU points lift the old mobile ceiling
 async function loadMoreStarlink(){
   if(starlinkFull || starlinkLoading || !enabled['starlink']) return;
   // Only pull the big full list occasionally — hammering Celestrak every load gets the IP throttled.
@@ -825,7 +827,10 @@ async function loadMoreStarlink(){
   let buf='', name=null, l1=null, batch=[];
   const flush=async()=>{
     if(!batch.length) return;
-    buildSatrecs(batch).forEach(s=>{ SATS.push(s); cur++; });
+    const added=buildSatrecs(batch);
+    added.forEach(s=>{ SATS.push(s); cur++; });
+    // keep the worker's satrec list in the same append order as SATS
+    if(useWorker && propWorker && added.length) propWorker.postMessage({type:'add', tle: added.map(s=>[s.l1,s.l2])});
     batch=[]; updateLegendCounts();
     await new Promise(r=>setTimeout(r, 90));   // yield so the globe keeps rendering
   };
@@ -901,39 +906,200 @@ function initGlobe(){
 
   window.addEventListener('resize',()=>{ world.width(innerWidth).height(innerHeight); });
   world.width(innerWidth).height(innerHeight);
+
+  initSatPoints();   // GPU point cloud for satellites (falls back to HTML markers if THREE is absent)
 }
 
-/* ---------- Propagation loop ---------- */
-function propagate(){
-  const now = new Date();
-  const gmst = satellite.gstime(now);
-  let overhead = 0;
-  const active = SATS.filter(s=>enabled[s.group]);
-  for(const s of active){
-    let pv; try{ pv = satellite.propagate(s.satrec, now); }catch(e){ continue; }
-    if(!pv || !pv.position){ s.lat=s.lng=null; continue; }
-    const gd = satellite.eciToGeodetic(pv.position, gmst);
-    s.lat = satellite.degreesLat(gd.latitude);
-    s.lng = satellite.degreesLong(gd.longitude);
-    s.altKm = gd.height;
-    s.alt = gd.height / EARTH_R;
-    if(pv.velocity){ const v=pv.velocity; s.speed = Math.sqrt(v.x*v.x+v.y*v.y+v.z*v.z); }
-    if(observer){
-      const ecf = satellite.eciToEcf(pv.position, gmst);
-      const la = satellite.ecfToLookAngles(observer.gd, ecf);
-      s.elevation = la.elevation*180/Math.PI;
-      s.azimuth = la.azimuth*180/Math.PI;
-      s.rangeKm = la.rangeSat;
-      const up = s.elevation > prefs.cutoff;
-      if(up) overhead++;
-      if(s.el) s.el.classList.toggle('up', up);
-    } else if(s.el){ s.el.classList.remove('up'); }
+/* ---------- Propagation + rendering ----------
+   Two upgrades layered here, each with a safe fallback:
+   • GPU point cloud (THREE.Points) renders all satellites on the GPU. If three.js
+     is unavailable, usePoints stays false and we fall back to globe.gl HTML markers.
+   • Web Worker runs SGP4 off the main thread. If the worker can't start, useWorker
+     stays false and we propagate inline on the main thread (original behaviour). */
+let usePoints=false, useWorker=false, satPoints=null, satGeo=null, propWorker=null,
+    workerBusy=false, tickTimer=null, workerWatch=null, workerGen=0;
+const POINT_CAP=12000, pointSatIndex=[], WHITE=[1,1,1];
+function hexRgb(hex){
+  const h=(hex||'#b9c7e6').replace('#',''); const n=parseInt(h.length===3
+    ? h.split('').map(c=>c+c).join('') : h, 16);
+  return [((n>>16)&255)/255, ((n>>8)&255)/255, (n&255)/255];
+}
+
+// --- Worker source: propagates every satrec and returns [lat,lng,alt,el,speed,range] per sat.
+const WORKER_SRC = `
+importScripts('https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js');
+var recs=[];
+function addRecs(tle){ for(var i=0;i<tle.length;i++){ var r=null;
+  try{ r=satellite.twoline2satrec(tle[i][0],tle[i][1]); if(r&&r.error) r=null; }catch(e){ r=null; } recs.push(r); } }
+self.onmessage=function(e){ var m=e.data;
+  if(m.type==='init'){ recs=[]; addRecs(m.tle); }
+  else if(m.type==='add'){ addRecs(m.tle); }
+  else if(m.type==='tick'){
+    var t=new Date(m.t), gmst=satellite.gstime(t), obs=m.obs,
+        gd=obs?{longitude:obs[1]*Math.PI/180, latitude:obs[0]*Math.PI/180, height:obs[2]}:null,
+        n=recs.length, out=new Float32Array(n*6);
+    for(var i=0;i<n;i++){ var r=recs[i], b=i*6;
+      if(!r){ out[b]=NaN; continue; }
+      var pv=null; try{ pv=satellite.propagate(r,t); }catch(err){ pv=null; }
+      if(!pv||!pv.position){ out[b]=NaN; continue; }
+      var geo=satellite.eciToGeodetic(pv.position,gmst);
+      out[b]=satellite.degreesLat(geo.latitude); out[b+1]=satellite.degreesLong(geo.longitude); out[b+2]=geo.height;
+      if(pv.velocity){ var v=pv.velocity; out[b+4]=Math.sqrt(v.x*v.x+v.y*v.y+v.z*v.z); }
+      if(gd){ var ecf=satellite.eciToEcf(pv.position,gmst), la=satellite.ecfToLookAngles(gd,ecf);
+        out[b+3]=la.elevation*180/Math.PI; out[b+5]=la.rangeSat; }
+      else { out[b+3]=-999; out[b+5]=-1; }
+    }
+    self.postMessage(out,[out.buffer]);
   }
-  world.htmlElementsData(active.filter(s=>s.lat!=null && s.lng!=null));
-  $('s-total').textContent = active.length;
+};`;
+
+function createPropWorker(){
+  if(typeof Worker==='undefined') return;
+  try{
+    const url=URL.createObjectURL(new Blob([WORKER_SRC],{type:'text/javascript'}));
+    const w=new Worker(url);
+    w.onmessage=(e)=>{ clearTimeout(workerWatch); applyWorker(e.data); renderFrame(); workerBusy=false; scheduleTick(); };
+    w.onerror=(err)=>{ console.warn('prop worker failed → main-thread propagation', err);
+      useWorker=false; workerBusy=false; if(propWorker){ try{propWorker.terminate();}catch(_){}} propWorker=null;
+      scheduleTick();   // resume the loop on the main thread
+    };
+    propWorker=w; useWorker=true;
+    w.postMessage({type:'init', tle: SATS.map(s=>[s.l1,s.l2])});
+  }catch(e){ console.warn('worker unavailable → main-thread propagation', e); useWorker=false; propWorker=null; }
+}
+
+// Copy a worker result buffer back onto the sat objects (all sats, in SATS order).
+function applyWorker(res){
+  const n=Math.min(SATS.length, Math.floor(res.length/6));
+  for(let i=0;i<n;i++){ const s=SATS[i], b=i*6, lat=res[b];
+    if(Number.isNaN(lat)){ s.lat=null; continue; }
+    s.lat=lat; s.lng=res[b+1]; s.altKm=res[b+2]; s.alt=res[b+2]/EARTH_R;
+    s.elevation=(res[b+3]<=-900?null:res[b+3]); s.speed=res[b+4];
+    s.rangeKm=(res[b+5]>=0?res[b+5]:null);
+  }
+}
+
+// Main-thread SGP4 (fallback when there's no worker, and for the very first frame).
+function computeInline(){
+  const now=new Date(), gmst=satellite.gstime(now);
+  for(const s of SATS){
+    let pv; try{ pv=satellite.propagate(s.satrec, now); }catch(e){ s.lat=null; continue; }
+    if(!pv||!pv.position){ s.lat=null; continue; }
+    const gd=satellite.eciToGeodetic(pv.position, gmst);
+    s.lat=satellite.degreesLat(gd.latitude); s.lng=satellite.degreesLong(gd.longitude);
+    s.altKm=gd.height; s.alt=gd.height/EARTH_R;
+    if(pv.velocity){ const v=pv.velocity; s.speed=Math.sqrt(v.x*v.x+v.y*v.y+v.z*v.z); }
+    if(observer){ const ecf=satellite.eciToEcf(pv.position,gmst), la=satellite.ecfToLookAngles(observer.gd,ecf);
+      s.elevation=la.elevation*180/Math.PI; s.azimuth=la.azimuth*180/Math.PI; s.rangeKm=la.rangeSat; }
+    else s.elevation=null;
+  }
+}
+
+// GPU renderer: pack enabled sats into the point-cloud buffers. Returns overhead count.
+function renderPoints(){
+  const pos=satGeo.attributes.position.array, col=satGeo.attributes.color.array, sz=satGeo.attributes.size.array;
+  let k=0, overhead=0;
+  for(let i=0;i<SATS.length && k<POINT_CAP;i++){
+    const s=SATS[i];
+    if(!enabled[s.group] || s.lat==null) continue;
+    const up = observer && s.elevation!=null && s.elevation>prefs.cutoff;
+    if(up) overhead++;
+    const c=world.getCoords(s.lat, s.lng, s.alt);
+    pos[k*3]=c.x; pos[k*3+1]=c.y; pos[k*3+2]=c.z;
+    const rgb = up ? WHITE : (s._rgb || (s._rgb=hexRgb(s.color)));
+    col[k*3]=rgb[0]; col[k*3+1]=rgb[1]; col[k*3+2]=rgb[2];
+    sz[k] = (s.id==='25544') ? 9 : up ? 6 : (s===selected ? 7.5 : 3.2);
+    pointSatIndex[k]=i; k++;
+  }
+  satGeo.setDrawRange(0,k);
+  satGeo.attributes.position.needsUpdate=true;
+  satGeo.attributes.color.needsUpdate=true;
+  satGeo.attributes.size.needsUpdate=true;
+  return overhead;
+}
+
+// Fallback renderer: globe.gl HTML markers. Returns overhead count.
+function renderHtml(){
+  let overhead=0;
+  const active=SATS.filter(s=>enabled[s.group] && s.lat!=null && s.lng!=null);
+  for(const s of active){
+    const up = observer && s.elevation!=null && s.elevation>prefs.cutoff;
+    if(up) overhead++;
+    if(s.el) s.el.classList.toggle('up', up);
+  }
+  world.htmlElementsData(active);
+  return overhead;
+}
+
+function renderFrame(){
+  const overhead = usePoints ? renderPoints() : renderHtml();
+  let active=0; for(const s of SATS){ if(enabled[s.group]) active++; }
+  $('s-total').textContent = active;
   $('s-over').textContent = observer ? overhead : '—';
   if(selected) renderDetail(selected);
-  renderOverhead(active, overhead);
+  renderOverhead(SATS.filter(s=>enabled[s.group]), overhead);
+}
+
+function propDelay(){
+  let n=0; for(const s of SATS) if(enabled[s.group]) n++;
+  if(usePoints) return n>6000?350 : n>2500?250 : UPDATE_MS;      // GPU keeps up; stay lively
+  return n>3000?1600 : n>1500?1000 : n>700?600 : UPDATE_MS;      // HTML markers: throttle harder
+}
+function scheduleTick(){ clearTimeout(tickTimer); tickTimer=setTimeout(doTick, propDelay()); }
+function doTick(){
+  if(useWorker && propWorker && !workerBusy){
+    workerBusy=true;
+    const gen=++workerGen;
+    propWorker.postMessage({type:'tick', t:Date.now(), obs: observer?[observer.lat, observer.lng, 0.05]:null});
+    // next tick is scheduled when the worker replies (keeps main + worker in lockstep)
+    clearTimeout(workerWatch);
+    workerWatch=setTimeout(()=>{ if(workerBusy && gen===workerGen){
+      console.warn('worker unresponsive → main-thread propagation');
+      useWorker=false; workerBusy=false; if(propWorker){ try{propWorker.terminate();}catch(_){}} propWorker=null;
+      scheduleTick();
+    }}, 4000);
+  } else {
+    computeInline(); renderFrame(); scheduleTick();
+  }
+}
+
+// Build the GPU point cloud and wire click-to-select via raycasting.
+function initSatPoints(){
+  const THREE=window.THREE; if(!THREE || !world) return;
+  try{
+    satGeo=new THREE.BufferGeometry();
+    satGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(POINT_CAP*3),3));
+    satGeo.setAttribute('color',    new THREE.BufferAttribute(new Float32Array(POINT_CAP*3),3));
+    satGeo.setAttribute('size',     new THREE.BufferAttribute(new Float32Array(POINT_CAP),1));
+    satGeo.setDrawRange(0,0);
+    const mat=new THREE.ShaderMaterial({
+      transparent:true, depthWrite:false,
+      vertexShader:'attribute float size; attribute vec3 color; varying vec3 vColor;'+
+        'void main(){ vColor=color; vec4 mv=modelViewMatrix*vec4(position,1.0);'+
+        'gl_PointSize=size*(300.0/max(-mv.z,1.0)); gl_Position=projectionMatrix*mv; }',
+      fragmentShader:'varying vec3 vColor;'+
+        'void main(){ vec2 d=gl_PointCoord-vec2(0.5); float r2=dot(d,d);'+
+        'if(r2>0.25) discard; float a=smoothstep(0.25,0.02,r2); gl_FragColor=vec4(vColor,a); }'
+    });
+    satPoints=new THREE.Points(satGeo, mat); satPoints.frustumCulled=false;
+    world.scene().add(satPoints);
+    usePoints=true;
+    const dom=world.renderer().domElement; let dx=0, dy=0;
+    dom.addEventListener('pointerdown', e=>{ dx=e.clientX; dy=e.clientY; });
+    dom.addEventListener('pointerup', e=>{
+      if(Math.abs(e.clientX-dx)>6 || Math.abs(e.clientY-dy)>6) return;   // a drag, not a tap
+      pickSat(e, THREE, dom);
+    });
+  }catch(e){ console.warn('WebGL point layer failed → HTML markers', e); usePoints=false; satPoints=null; }
+}
+function pickSat(e, THREE, dom){
+  if(!satPoints) return;
+  const rect=dom.getBoundingClientRect();
+  const m=new THREE.Vector2(((e.clientX-rect.left)/rect.width)*2-1, -((e.clientY-rect.top)/rect.height)*2+1);
+  const rc=new THREE.Raycaster(); rc.params.Points.threshold=1.8;
+  rc.setFromCamera(m, world.camera());
+  const hits=rc.intersectObject(satPoints, false);
+  if(hits && hits.length){ const si=pointSatIndex[hits[0].index]; if(si!=null && SATS[si]) selectSat(SATS[si]); }
 }
 
 /* ---------- ISS orbit path ---------- */
@@ -1271,18 +1437,14 @@ async function boot(){
   await loadData();
   updateLegendCounts();
   applyPrefs();
+  computeInline();          // first positions on the main thread…
+  createPropWorker();       // …then hand ongoing propagation to the worker (if available)
   updateIssOrbit();
-  propagate();
+  renderFrame();            // initial draw (GPU points or HTML markers)
   $('loader').classList.add('fade');
   setTimeout(()=>$('loader').remove(),700);
 
-  // Adaptive propagation: slow the update rate as the satellite count grows so the app stays smooth.
-  (function loop(){
-    propagate();
-    let n=0; for(const s of SATS){ if(enabled[s.group]) n++; }
-    const d = n>3000?1600 : n>1500?1000 : n>700?600 : UPDATE_MS;
-    setTimeout(loop, d);
-  })();
+  scheduleTick();           // start the propagation/render loop (worker- or main-thread-driven)
   setInterval(tickClock, 1000); tickClock();
   setInterval(updateIssOrbit, 30000);  // refresh ISS track periodically
   setInterval(scanAlerts, 120000); scanAlerts();  // check for upcoming visible passes to notify
@@ -1902,6 +2064,8 @@ initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); 
     const GlobeMod = await import('https://esm.sh/globe.gl@2.32.0');
     window.satellite = satMod.default ?? satMod;
     window.Globe = GlobeMod.default ?? GlobeMod;
+    try{ window.THREE = await import('https://esm.sh/three@0.160.0'); }   // for the GPU point cloud
+    catch(te){ console.warn('three unavailable — falling back to HTML markers', te); }
     if (typeof window.Globe !== 'function') throw new Error('globe.gl did not export a factory');
     await boot();
 
