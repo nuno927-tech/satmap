@@ -9,6 +9,16 @@
 <link rel="manifest" href="manifest.webmanifest" />
 <meta name="theme-color" content="#05070f" />
 <meta name="description" content="Track the ISS and hundreds of satellites in real time on a 3D globe." />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="SkyWatch" />
+<meta property="og:title" content="SkyWatch — Live Satellite & ISS Tracker" />
+<meta property="og:description" content="Track the ISS and hundreds of satellites live on a 3D globe. Point your phone at the sky to spot them." />
+<meta property="og:url" content="https://nuno927-tech.github.io/satmap/" />
+<meta property="og:image" content="https://nuno927-tech.github.io/satmap/icon-512.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="SkyWatch — Live Satellite & ISS Tracker" />
+<meta name="twitter:description" content="Track the ISS and hundreds of satellites live on a 3D globe." />
+<meta name="twitter:image" content="https://nuno927-tech.github.io/satmap/icon-512.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 <meta name="mobile-web-app-capable" content="yes" />
@@ -259,6 +269,9 @@
     background:rgba(255,211,77,.10);color:#ffd34d;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
   #d-fav:hover{background:rgba(255,211,77,.2)}
   #d-fav.on{background:rgba(255,211,77,.2);border-color:rgba(255,211,77,.55)}
+  #d-share{flex:0 0 auto;padding:9px 12px;border-radius:10px;border:1px solid var(--border);
+    background:rgba(120,160,255,.08);color:var(--text);font-size:13px;cursor:pointer}
+  #d-share:hover{background:rgba(90,209,255,.16);border-color:rgba(90,209,255,.5);color:var(--accent)}
   /* "seen on" date/time picker */
   .d-seenwhen{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:0}
   .d-seenwhen label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
@@ -650,6 +663,15 @@
     </div>
   </div>
   <div class="stg">
+    <div class="lbl">Globe<small>Map texture</small></div>
+    <div class="seg" id="seg-theme">
+      <button data-v="blue">Blue</button>
+      <button data-v="night">Night</button>
+      <button data-v="dark">Dark</button>
+      <button data-v="sat">Sat</button>
+    </div>
+  </div>
+  <div class="stg">
     <div class="lbl">Clock<small>Regular or military time</small></div>
     <div class="seg" id="seg-time">
       <button data-v="12">12h</button>
@@ -709,6 +731,7 @@
     <div class="d-actions" id="d-actions">
       <button id="d-seen">👁 Mark as seen</button>
       <button id="d-fav" title="Add to favorites">☆ Favorite</button>
+      <button id="d-share" title="Share a link to this satellite">🔗</button>
     </div>
     <div id="d-seenwhen" class="d-seenwhen">
       <label for="d-seen-dt">Seen on</label>
@@ -821,6 +844,13 @@ const EARTH_R = 6371;          // km
 const IS_MOBILE = window.matchMedia('(max-width:820px)').matches || window.matchMedia('(pointer:coarse)').matches;
 const UPDATE_MS = IS_MOBILE ? 600 : 200;         // gentler propagation cadence on phones
 const IMG = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/';
+// Selectable globe textures.
+const THEMES = {
+  blue:  { label:'Blue',  img:IMG+'earth-blue-marble.jpg' },
+  night: { label:'Night', img:IMG+'earth-night.jpg' },
+  dark:  { label:'Dark',  img:IMG+'earth-dark.jpg' },
+  sat:   { label:'Sat',   img:IMG+'earth-day.jpg' }
+};
 
 // Satellite groups: Celestrak group id, label, color, optional cap.
 // On mobile we track fewer objects (lighter on DOM/battery).
@@ -857,7 +887,7 @@ let timeOffsetMs=0, timeSpeed=1, timePlaying=false, timeRAF=null, timeLastTs=0;
 function simNow(){ return Date.now()+timeOffsetMs; }
 // User preferences (synced to the signed-in account)
 const prefs = { units:'metric', time:'24', autorotate:true, issPath:true, cutoff:0, music:true,
-  notify:false, notifyGroups:{ iss:true, stations:false, visual:false, rocket:true }, favs:[] };
+  notify:false, notifyGroups:{ iss:true, stations:false, visual:false, rocket:true }, favs:[], theme:'blue' };
 // Favorites (starred sats) + client-side filters (no network).
 let favs = new Set();
 let seenSet = new Set();  // ids of satellites you've marked "seen" (from your profile)
@@ -1150,7 +1180,7 @@ async function loadMoreStarlink(){
 let world;
 function initGlobe(){
   world = Globe()(document.getElementById('globe'))
-    .globeImageUrl(IMG+'earth-blue-marble.jpg')
+    .globeImageUrl((THEMES[prefs.theme]||THEMES.blue).img)
     .bumpImageUrl(IMG+'earth-topology.png')
     .backgroundImageUrl(IMG+'night-sky.png')
     .showAtmosphere(true).atmosphereColor('#5ad1ff').atmosphereAltitude(0.16)
@@ -1184,7 +1214,9 @@ function initGlobe(){
     .pathStroke(2).pathTransitionDuration(0)
     .labelLat('lat').labelLng('lng').labelText(d=>'@'+d.username)
     .labelColor(d=>d.online?'#2ecc71':'#ff5a4d').labelDotRadius(0.5).labelSize(1.0)
-    .labelAltitude(0.013).labelResolution(2);
+    .labelAltitude(0.013).labelResolution(2)
+    .polygonCapColor(()=> 'rgba(4,8,22,0.42)').polygonSideColor(()=> 'rgba(0,0,0,0)')
+    .polygonStrokeColor(()=> false).polygonAltitude(0.004).polygonsTransitionDuration(0);
 
   const controls = world.controls();
   controls.autoRotate = true; controls.autoRotateSpeed = 0.28;
@@ -1433,6 +1465,18 @@ function updateIssOrbit(){
   const term = terminatorPath();   // day/night boundary line
   if(term.length>1) paths.push({ points: term, color:['rgba(130,190,255,.5)','rgba(130,190,255,.5)'] });
   world.pathsData(paths);
+  world.polygonsData([ nightPolygon() ]);   // shade the dark side
+}
+// Filled night hemisphere: 90°-radius cap around the antisolar point (continuous longitudes).
+function nightPolygon(){
+  const s=subsolarPoint(simNow()), latA=-s.lat, lngA=s.lng+Math.PI, ring=[];
+  for(let b=0;b<=360;b+=3){
+    const br=b*D2R;
+    const lat=Math.asin(Math.cos(latA)*Math.cos(br));
+    const lng=lngA+Math.atan2(Math.sin(br)*Math.cos(latA), -Math.sin(latA)*Math.sin(lat));
+    ring.push([lng*R2D, lat*R2D]);
+  }
+  return { geometry:{ type:'Polygon', coordinates:[ ring ] } };
 }
 // Subsolar point + the terminator great circle (90° from the sun's sub-point).
 function subsolarPoint(t){
@@ -1899,6 +1943,15 @@ function renderDetail(s){
   }
   const fav=$('d-fav');
   if(fav){ const on=isFav(s); fav.textContent=on?'★ Favorited':'☆ Favorite'; fav.classList.toggle('on',on); fav.onclick=()=>toggleFav(s); }
+  const sh=$('d-share'); if(sh) sh.onclick=()=>shareSat(s);
+}
+// Share a deep link that opens straight to this satellite.
+async function shareSat(s){
+  const url=appShareUrl()+'#sel=sat:'+encodeURIComponent(s.id);
+  const data={ title:'SkyWatch — '+s.name, text:'Track '+s.name+' live on SkyWatch 🛰️', url };
+  if(navigator.share){ try{ await navigator.share(data); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+  try{ await navigator.clipboard.writeText(url); showToast('🔗 Link copied — opens straight to '+s.name); return; }catch(e){}
+  showErr('Share this link: '+url);
 }
 
 function doSearch(q){
@@ -2270,6 +2323,21 @@ function tryOpenTarget(){
   }
   const s=SATS.find(x=>x.id===t.id);
   if(s){ enabled[s.group]=true; selectSat(s); pendingTarget=null; }
+  else if(!t._tried && SATS.length){ t._tried=true;   // shared sat not loaded → fetch it by NORAD id
+    fetchSatById(t.id).then(sat=>{ if(sat && pendingTarget===t){
+      enabled[sat.group]=true; SATS.push(sat);
+      if(useWorker && propWorker) propWorker.postMessage({type:'add', tle:[[sat.l1,sat.l2]]});
+      updateLegendCounts(); computeInline(); selectSat(sat); pendingTarget=null; } });
+  }
+}
+async function fetchSatById(id){
+  try{
+    const r=await fetch('https://celestrak.org/NORAD/elements/gp.php?CATNR='+encodeURIComponent(id)+'&FORMAT=tle',{cache:'no-store'});
+    if(!r.ok) return null;
+    const L=(await r.text()).trim().split('\n').map(x=>x.replace(/\r$/,''));
+    if(L.length<3 || L[0][0]==='<') return null;
+    return buildSatrecs([{name:L[0].trim(), l1:L[1], l2:L[2], id:String(id), group:'visual'}])[0]||null;
+  }catch(e){ return null; }
 }
 function targetFromHash(){
   const m=(location.hash||'').match(/sel=([^&]+)/); if(!m) return null;
@@ -2404,6 +2472,8 @@ function applyPrefs(){
   document.querySelectorAll('#seg-units button').forEach(b=>b.classList.toggle('sel', b.dataset.v===prefs.units));
   document.querySelectorAll('#seg-time button').forEach(b=>b.classList.toggle('sel', b.dataset.v===prefs.time));
   document.querySelectorAll('#seg-cutoff button').forEach(b=>b.classList.toggle('sel', +b.dataset.v===prefs.cutoff));
+  document.querySelectorAll('#seg-theme button').forEach(b=>b.classList.toggle('sel', b.dataset.v===prefs.theme));
+  applyTheme();
   if($('c-loc')) tickClock();
   $('sw-rotate').classList.toggle('on', prefs.autorotate);
   $('sw-music').classList.toggle('on', prefs.music);
@@ -2418,10 +2488,12 @@ function applyPrefs(){
     if(selected) renderDetail(selected);
   }
 }
+function applyTheme(){ if(typeof world!=='undefined' && world){ const t=THEMES[prefs.theme]||THEMES.blue; world.globeImageUrl(t.img); } }
 function initSettingsUI(){
   document.querySelectorAll('#seg-units button').forEach(b=>b.onclick=()=>{ prefs.units=b.dataset.v; applyPrefs(); saveSettings(); });
   document.querySelectorAll('#seg-time button').forEach(b=>b.onclick=()=>{ prefs.time=b.dataset.v; applyPrefs(); saveSettings(); });
   document.querySelectorAll('#seg-cutoff button').forEach(b=>b.onclick=()=>{ prefs.cutoff=+b.dataset.v; applyPrefs(); saveSettings(); });
+  document.querySelectorAll('#seg-theme button').forEach(b=>b.onclick=()=>{ prefs.theme=b.dataset.v; applyPrefs(); saveSettings(); });
   $('sw-rotate').onclick=()=>{ prefs.autorotate=!prefs.autorotate; applyPrefs(); saveSettings(); };
   $('sw-music').onclick=()=>{ prefs.music=!prefs.music; if(prefs.music) Music.start(); else Music.stop(); applyPrefs(); saveSettings(); };
   $('sw-isspath').onclick=()=>{ prefs.issPath=!prefs.issPath; applyPrefs(); saveSettings(); };
@@ -2520,7 +2592,7 @@ function collectSettings(){
   let zoom=null; try{ zoom=world.pointOfView().altitude; }catch(e){}
   return { groups, lat: observer?observer.lat:null, lng: observer?observer.lng:null, zoom,
     units: prefs.units, time: prefs.time, autorotate: prefs.autorotate, issPath: prefs.issPath, cutoff: prefs.cutoff, music: prefs.music,
-    notify: prefs.notify, notifyGroups: prefs.notifyGroups, favs: prefs.favs,
+    notify: prefs.notify, notifyGroups: prefs.notifyGroups, favs: prefs.favs, theme: prefs.theme,
     updatedAt: Date.now() };
 }
 function saveSettings(){
@@ -2536,6 +2608,7 @@ function applySettings(s){
   applyingRemote=true;
   try{
     if(typeof s.units==='string') prefs.units=s.units;
+    if(typeof s.theme==='string' && THEMES[s.theme]) prefs.theme=s.theme;
     if(s.time==='12'||s.time==='24') prefs.time=s.time;
     if(typeof s.music==='boolean') prefs.music=s.music;
     if(typeof s.autorotate==='boolean') prefs.autorotate=s.autorotate;
