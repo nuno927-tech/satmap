@@ -377,6 +377,35 @@
   .lm-row:last-child{border-bottom:none}
   .lm-n{color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .lm-m{color:var(--muted);font-size:11px;flex:0 0 auto;font-variant-numeric:tabular-nums}
+  /* UAP report form */
+  #uapmodal{position:fixed;inset:0;z-index:108;display:none;align-items:center;justify-content:center;padding:18px;
+    background:rgba(3,6,15,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  #uapmodal.show{display:flex}
+  .uap-card{width:min(440px,100%);max-height:86vh;overflow-y:auto;background:var(--panel-solid);
+    border:1px solid var(--border);border-radius:18px;padding:20px 16px 16px;position:relative;
+    box-shadow:0 24px 60px rgba(0,0,0,.6)}
+  #uap-close{position:absolute;top:12px;right:14px;width:30px;height:30px;display:flex;align-items:center;
+    justify-content:center;border-radius:50%;border:1px solid var(--border);background:rgba(120,160,255,.06);
+    color:var(--muted);cursor:pointer;font-size:14px;z-index:2}
+  .uap-title{font-size:15px;font-weight:700;color:var(--text);padding-right:36px;margin-bottom:2px}
+  #uap-ctx{font-size:11.5px;color:var(--muted);line-height:1.5;margin:8px 0 14px;padding:10px 12px;
+    border-radius:12px;background:rgba(120,160,255,.06);border:1px solid rgba(120,160,255,.1)}
+  .uap-ruled{color:var(--muted);opacity:.8}
+  .uap-lbl{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+  .uap-g{display:flex;flex-wrap:wrap;gap:6px}
+  #uap-notes{width:100%;min-height:74px;resize:vertical;margin-top:6px;padding:10px 12px;border-radius:12px;
+    border:1px solid var(--border);background:rgba(120,160,255,.05);color:var(--text);font:inherit;font-size:12.5px}
+  #uap-notes:focus{outline:none;border-color:rgba(120,160,255,.45)}
+  .uap-share{display:flex;align-items:center;gap:9px;margin:14px 0 4px;font-size:12px;color:var(--muted);cursor:pointer}
+  .uap-share input{width:16px;height:16px;accent-color:#7aa2ff}
+  #uap-save{width:100%;margin-top:12px;padding:13px;border-radius:14px;border:1px solid rgba(120,160,255,.35);
+    background:linear-gradient(180deg,rgba(120,160,255,.24),rgba(120,160,255,.12));color:var(--text);
+    font-weight:700;font-size:13.5px;cursor:pointer}
+  #uap-save:active{transform:scale(.985)}
+  .uap-rep{display:block}
+  .uap-meta{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.45;white-space:normal}
+  .uap-meta.quote{color:var(--text);opacity:.85;font-style:italic}
+  .uap-meta.ruled{opacity:.7}
   /* Profile header */
   #fr-profile{margin:4px 0 12px}
   .fr-prof{display:flex;align-items:center;gap:11px;cursor:pointer;padding:4px 2px;border-radius:10px}
@@ -431,6 +460,45 @@
   #overhead.tab-id #sky-pane-now{display:none}
   #overhead.tab-id #sky-pane-id{display:block}
   .idf-note{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px}
+  /* Sky hub: CE5 tab */
+  #sky-pane-ce5{display:none}
+  #overhead.tab-ce5 #sky-pane-now,#overhead.tab-ce5 #sky-pane-id{display:none}
+  #overhead.tab-ce5 #sky-pane-ce5{display:block}
+  #overhead.tab-ce5 #sky-pane-id{display:none!important}
+  .ce5-cond{margin:12px 0 4px;padding:11px 12px;border-radius:12px;border:1px solid var(--border);
+    background:rgba(120,160,255,.05)}
+  .ce5-c-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:12px;padding:3px 0}
+  .ce5-c-row span{color:var(--muted);font-size:11px}
+  .ce5-c-row b{font-weight:600;color:var(--text);font-size:12px}
+  .ce5-verdict{margin-top:8px;padding-top:8px;border-top:1px solid rgba(120,160,255,.12);
+    font-size:11.5px;line-height:1.45;color:var(--muted)}
+  .ce5-verdict.good{color:#57e08a} .ce5-verdict.fair{color:#ffd34d} .ce5-verdict.poor{color:#ff8a6b}
+  .ce5-clock{text-align:center;font-size:44px;font-weight:200;letter-spacing:2px;color:var(--accent);
+    font-variant-numeric:tabular-nums;margin:18px 0 2px}
+  .ce5-remain{text-align:center;font-size:11px;color:var(--muted);margin-bottom:12px}
+  .ce5-bar{height:4px;border-radius:3px;background:rgba(120,160,255,.14);overflow:hidden}
+  .ce5-bar-fill{height:100%;width:0;background:var(--accent);transition:width 1s linear}
+  .ce5-phase{margin:16px 0 6px;text-align:center;font-size:14px;font-weight:700;color:var(--text)}
+  .ce5-guide{text-align:center;font-size:12.5px;line-height:1.6;color:var(--muted);
+    min-height:58px;padding:0 4px;margin-bottom:16px}
+  .ce5-marks{margin-top:10px;font-size:11px;color:var(--muted);line-height:1.6}
+  .ce5-sum-hd{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
+  .ce5-stats{display:flex;gap:8px;margin:12px 0}
+  .ce5-stat{flex:1;text-align:center;padding:11px 6px;border-radius:12px;border:1px solid var(--border);
+    background:rgba(120,160,255,.05)}
+  .ce5-stat b{display:block;font-size:19px;color:var(--accent);font-variant-numeric:tabular-nums}
+  .ce5-stat span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  /* Red night-vision mode — a multiply veil strips blue/green so dark adaptation holds */
+  #nightveil{position:fixed;inset:0;z-index:195;pointer-events:none;display:none;
+    background:#ff2b12;mix-blend-mode:multiply}
+  body.nightmode #nightveil{display:block}
+  #nightdim{position:fixed;inset:0;z-index:196;pointer-events:none;display:none;background:rgba(0,0,0,.34)}
+  body.nightmode #nightdim{display:block}
+  #nightbadge{display:none;position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:200;
+    align-items:center;gap:7px;padding:6px 13px;border-radius:20px;font-size:11px;font-weight:700;
+    background:rgba(30,0,0,.9);border:1px solid rgba(255,90,70,.55);color:#ff9a86;cursor:pointer;
+    letter-spacing:.4px}
+  body.nightmode #nightbadge{display:flex}
   .idf-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.1px;color:var(--muted);margin:12px 0 6px}
   #idf-when{width:100%;padding:9px 10px;border-radius:10px;border:1px solid var(--border);
     background:var(--panel-solid);color:var(--text);font-size:13px;font-family:inherit;color-scheme:dark}
@@ -885,6 +953,49 @@
   </div>
 </div>
 
+<div id="nightveil"></div>
+<div id="nightdim"></div>
+<div id="nightbadge" title="Exit night mode">🔴 NIGHT MODE · tap to exit</div>
+
+<div id="uapmodal">
+  <div class="uap-card">
+    <div id="uap-close" aria-label="Close">✕</div>
+    <div class="uap-title">Log an unidentified sighting</div>
+    <div id="uap-ctx" class="uap-ctx"></div>
+    <div class="idf-lbl">How long did it last</div>
+    <div class="idf-chips uap-g" data-k="dur">
+      <button data-v="under 5 seconds">&lt;5s</button><button data-v="5–30 seconds">5–30s</button>
+      <button data-v="30 sec–2 min">30s–2m</button><button data-v="2–10 minutes">2–10m</button>
+      <button data-v="over 10 minutes">&gt;10m</button>
+    </div>
+    <div class="idf-lbl">How many</div>
+    <div class="idf-chips uap-g" data-k="count">
+      <button data-v="1">1</button><button data-v="2–4">2–4</button><button data-v="5+">5+</button>
+    </div>
+    <div class="idf-lbl">Shape</div>
+    <div class="idf-chips uap-g" data-k="shape">
+      <button data-v="point / star-like">Point</button><button data-v="sphere">Sphere</button>
+      <button data-v="disc">Disc</button><button data-v="triangle">Triangle</button>
+      <button data-v="cigar">Cigar</button><button data-v="formation">Formation</button><button data-v="other">Other</button>
+    </div>
+    <div class="idf-lbl">Movement</div>
+    <div class="idf-chips uap-g" data-k="motion">
+      <button data-v="steady and straight">Steady</button><button data-v="hovering">Hovering</button>
+      <button data-v="erratic / zigzag">Erratic</button><button data-v="fast dart">Fast dart</button>
+      <button data-v="pulsing / flashing">Pulsing</button><button data-v="faded out">Faded out</button>
+    </div>
+    <div class="idf-lbl">Brightness</div>
+    <div class="idf-chips uap-g" data-k="bright">
+      <button data-v="faint">Faint</button><button data-v="moderate">Moderate</button>
+      <button data-v="bright">Bright</button><button data-v="very bright">Very bright</button>
+    </div>
+    <div class="idf-lbl">Notes</div>
+    <textarea id="uap-notes" rows="3" placeholder="Colour, sound, how it appeared or ended…"></textarea>
+    <label class="uap-share"><input type="checkbox" id="uap-share" /> Also share to the public feed</label>
+    <button id="uap-save" class="idf-go">Save report</button>
+  </div>
+</div>
+
 <div id="listmodal">
   <div class="lm-card">
     <div id="lm-close" aria-label="Close">✕</div>
@@ -984,6 +1095,7 @@
   <div class="fr-tabs">
     <button id="skt-now" class="on">Overhead now</button>
     <button id="skt-id">🔎 Identify</button>
+    <button id="skt-ce5">🧘 CE5</button>
   </div>
   <div id="sky-pane-now"><div id="ohlist"></div></div>
   <div id="sky-pane-id">
@@ -1007,6 +1119,38 @@
     </div>
     <button id="idf-go" class="idf-go">🔎 Identify what was there</button>
     <div id="idf-out"></div>
+    <button id="idf-reports" class="idf-uap" style="display:none">🗒 My UAP reports</button>
+  </div>
+  <div id="sky-pane-ce5">
+    <!-- Pre-session setup -->
+    <div id="ce5-setup">
+      <div class="idf-note">A guided quiet-observation session. SkyWatch keeps time, dims to red so your
+        night vision holds, and afterwards tells you exactly which tracked objects crossed your sky.</div>
+      <div class="ce5-cond" id="ce5-cond"><div class="fr-note">Checking conditions…</div></div>
+      <div class="idf-lbl">Session length</div>
+      <div class="idf-chips" id="ce5-len">
+        <button data-m="15">15 min</button><button data-m="30" class="on">30 min</button>
+        <button data-m="45">45 min</button><button data-m="60">60 min</button>
+      </div>
+      <label class="uap-share"><input type="checkbox" id="ce5-red" checked /> Red night-vision mode during the session</label>
+      <label class="uap-share"><input type="checkbox" id="ce5-cues" checked /> Soft chime between phases</label>
+      <button id="ce5-go" class="idf-go">🧘 Begin session</button>
+      <button id="ce5-invite" class="idf-uap">📣 Invite friends to look up now</button>
+      <button id="ce5-log" class="idf-uap" style="display:none">🗒 Past sessions</button>
+    </div>
+    <!-- Live session -->
+    <div id="ce5-live" style="display:none">
+      <div class="ce5-clock" id="ce5-clock">00:00</div>
+      <div class="ce5-remain" id="ce5-remain">—</div>
+      <div class="ce5-bar"><div class="ce5-bar-fill" id="ce5-bar"></div></div>
+      <div class="ce5-phase" id="ce5-phase">—</div>
+      <div class="ce5-guide" id="ce5-guide">—</div>
+      <button id="ce5-mark" class="idf-go">👁 I see something — mark it</button>
+      <div class="ce5-marks" id="ce5-marks"></div>
+      <button id="ce5-end" class="idf-uap">Finish session</button>
+    </div>
+    <!-- Post-session -->
+    <div id="ce5-done" style="display:none"></div>
   </div>
 </div>
 
@@ -1166,7 +1310,7 @@
 </script>
 
 <script>
-const BUILD = 'v70';           // shown in Settings so you can confirm what's deployed
+const BUILD = 'v72';           // shown in Settings so you can confirm what's deployed
 const EARTH_R = 6371;          // km
 const IS_MOBILE = window.matchMedia('(max-width:820px)').matches || window.matchMedia('(pointer:coarse)').matches;
 const UPDATE_MS = IS_MOBILE ? 600 : 200;         // gentler propagation cadence on phones
@@ -1266,6 +1410,9 @@ const SFX = (function(){
     swipeClose(){ play(()=>blip(720,.19,'triangle',.05,190)); },   // sheet swiped away — falling whoosh
     swipeOpen(){  play(()=>blip(240,.19,'triangle',.05,780)); },   // sheet pulled open — rising whoosh
     success(){ play(()=>{ blip(660,.1,'sine',.06,990); blip(990,.13,'sine',.05,1320,.09); }); },
+    // CE5 session cues — long, soft, meditative (deliberately unlike the UI blips)
+    chime(){   play(()=>{ blip(528,1.6,'sine',.05); blip(792,2.0,'sine',.028,null,.05); }); },
+    gong(){    play(()=>{ blip(198,3.2,'sine',.06); blip(297,2.8,'sine',.03,null,.06); blip(132,3.6,'sine',.035,null,.02); }); },
     force:{ on(){ blip(520,.13,'sine',.07,900); }, off(){ blip(520,.13,'sine',.06,280); } }   // ignore the mute flag
   };
 })();
@@ -3675,13 +3822,16 @@ function initClickSounds(){
 /* ---------- Sky hub: Overhead / Identify ---------- */
 let idfAz=null, idfAlt=null, idfLast=null;
 function initSky(){
-  const now=$('skt-now'), idt=$('skt-id'), ov=$('overhead');
-  const tab=(id)=>{ ov.classList.toggle('tab-id', id==='id');
+  const now=$('skt-now'), idt=$('skt-id'), c5=$('skt-ce5'), ov=$('overhead');
+  const tab=(id)=>{ ov.classList.toggle('tab-id', id==='id'); ov.classList.toggle('tab-ce5', id==='ce5');
     if(now) now.classList.toggle('on', id==='now');
     if(idt) idt.classList.toggle('on', id==='id');
-    if(id==='id'){ const w=$('idf-when'); if(w && !w.value){ w.max=tsToLocalInput(Date.now()); w.value=tsToLocalInput(Date.now()); } } };
+    if(c5) c5.classList.toggle('on', id==='ce5');
+    if(id==='id'){ const w=$('idf-when'); if(w && !w.value){ w.max=tsToLocalInput(Date.now()); w.value=tsToLocalInput(Date.now()); } updateUapCount(); }
+    if(id==='ce5' && !ce5.run) ce5Conditions(); };
   if(now) now.onclick=()=>tab('now');
   if(idt) idt.onclick=()=>tab('id');
+  if(c5) c5.onclick=()=>tab('ce5');
   const chips=(wrap, fn)=>{ const el=$(wrap); if(!el) return;
     el.querySelectorAll('button').forEach(b=>b.onclick=()=>{
       el.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b)); fn(b); }); };
@@ -3692,6 +3842,8 @@ function initSky(){
     q.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b));
     const w=$('idf-when'); if(w) w.value=tsToLocalInput(Date.now()-(+b.dataset.m)*60000); });
   const go=$('idf-go'); if(go) go.onclick=runIdentify;
+  const rep=$('idf-reports'); if(rep) rep.onclick=showUapReports;
+  updateUapCount();
 }
 function runIdentify(){
   const out=$('idf-out'); if(!out) return;
@@ -3714,6 +3866,7 @@ function renderIdentify(res){
         : res.sunEl>-6 ? 'Twilight — only the very brightest objects show.'
         : res.sunEl>-18 ? 'Dark enough to see satellites.' : 'Fully dark.';
   }
+  res.skyText=sky;
   let h='<div class="idf-when-hd">'+when+' · '+esc(sky)+'</div>';
   if(res.launches.length) h+=res.launches.map(l=>
     '<div class="idf-row launch"><div class="idf-top"><span class="idf-n">🚀 '+esc(l.provider+' · '+l.rocket)+'</span>'+
@@ -3733,17 +3886,312 @@ function renderIdentify(res){
   }
   h+='<button id="idf-uap" class="idf-uap">👁 Still unidentified — log it</button>';
   out.innerHTML=h;
-  const b=$('idf-uap'); if(b) b.onclick=()=>logUap(res);
+  const b=$('idf-uap'); if(b) b.onclick=()=>openUapForm(res);
 }
-// Record an unidentified sighting privately, with what we ruled out attached.
-function logUap(res){
-  const dir = res.wantAz==null ? '' : (azCompass(res.wantAz)+(res.wantAlt!=null?(' · alt '+res.wantAlt+'°'):''));
-  const ruled = res.rows.slice(0,3).map(r=>r.label+' ('+idfVerdict(r,res.wantAz)+')');
-  pushSightLog({ id:'uap-'+res.ts, name:'Unidentified object'+(dir?(' · '+dir):''), kind:'uap', ts:res.ts,
-    note: ruled.length ? ('Checked against: '+ruled.join('; ')) : 'Nothing tracked was overhead' });
+/* ---------- CE5 session mode ---------- */
+// Low-precision lunar position (Meeus, abridged) — good to ~0.3° which is plenty for
+// "is the Moon up and how bright is it".
+function moonEci(t){
+  const d=t/86400000+2440587.5-2451545.0;
+  const lam=(218.316+13.176396*d)*D2R, M=(134.963+13.064993*d)*D2R, F=(93.272+13.229350*d)*D2R;
+  const L=lam+6.289*Math.sin(M)*D2R, B=5.128*Math.sin(F)*D2R, R=385001-20905*Math.cos(M);
+  const eps=(23.439-0.0000004*d)*D2R;
+  return { x:R*Math.cos(B)*Math.cos(L),
+           y:R*(Math.cos(B)*Math.sin(L)*Math.cos(eps)-Math.sin(B)*Math.sin(eps)),
+           z:R*(Math.cos(B)*Math.sin(L)*Math.sin(eps)+Math.sin(B)*Math.cos(eps)) };
+}
+function moonInfo(t){
+  const m=moonEci(t), s=sunEci(t);
+  const dot=(m.x*s.x+m.y*s.y+m.z*s.z);
+  const mm=Math.hypot(m.x,m.y,m.z), sm=Math.hypot(s.x,s.y,s.z);
+  const elong=Math.acos(Math.max(-1,Math.min(1,dot/(mm*sm))));
+  const illum=(1-Math.cos(elong))/2;                       // 0 = new, 1 = full
+  let el=null;
+  if(observer){ try{ el=satellite.ecfToLookAngles(observer.gd,
+    satellite.eciToEcf(m, satellite.gstime(new Date(t)))).elevation*R2D; }catch(e){} }
+  // Elongation alone can't tell waxing from waning — sample a day ahead to get the direction.
+  let waxing=true;
+  try{ const m2=moonEci(t+86400000), s2=sunEci(t+86400000);
+    const e2=Math.acos(Math.max(-1,Math.min(1,(m2.x*s2.x+m2.y*s2.y+m2.z*s2.z)/(Math.hypot(m2.x,m2.y,m2.z)*Math.hypot(s2.x,s2.y,s2.z)))));
+    waxing = e2 > elong; }catch(e){}
+  const name = illum>.96 ? 'full' : illum<.04 ? 'new'
+    : illum<.46 ? (waxing?'waxing crescent':'waning crescent')
+    : illum<.54 ? (waxing?'first quarter':'last quarter')
+    : (waxing?'waxing gibbous':'waning gibbous');
+  return { illum, el, name };
+}
+function sunElevAt(t){
+  if(!observer) return null;
+  try{ return satellite.ecfToLookAngles(observer.gd,
+    satellite.eciToEcf(sunEci(t), satellite.gstime(new Date(t)))).elevation*R2D; }catch(e){ return null; }
+}
+let ce5Cloud=null;
+async function ce5Conditions(){
+  const box=$('ce5-cond'); if(!box) return;
+  if(!observer){ box.innerHTML='<div class="fr-note">Set your location to check tonight’s conditions — tap ⌖ on the map.</div>'; return; }
+  const now=Date.now(), sunEl=sunElevAt(now), mo=moonInfo(now);
+  // Next time the sky gets properly dark (sun below -12°), scanning forward in 10-min steps.
+  let darkIn=null;
+  if(sunEl!=null && sunEl>-12){
+    for(let m=10;m<=900;m+=10){ const e=sunElevAt(now+m*60000); if(e!=null && e<=-12){ darkIn=m; break; } }
+  }
+  const skyTxt = sunEl==null ? 'unknown'
+    : sunEl>0 ? 'daylight' : sunEl>-6 ? 'civil twilight' : sunEl>-12 ? 'nautical twilight'
+    : sunEl>-18 ? 'astronomical twilight' : 'full darkness';
+  const moonTxt = mo.el==null ? '—'
+    : (mo.el<0 ? 'below horizon' : Math.round(mo.illum*100)+'% lit, '+Math.round(mo.el)+'° up')
+      + ' · ' + mo.name;
+  let rows='<div class="ce5-c-row"><span>Sky</span><b>'+esc(skyTxt)+' ('+(sunEl==null?'—':Math.round(sunEl)+'°')+')</b></div>'+
+    '<div class="ce5-c-row"><span>Moon</span><b>'+esc(moonTxt)+'</b></div>';
+  if(ce5Cloud!=null) rows+='<div class="ce5-c-row"><span>Cloud cover</span><b>'+ce5Cloud+'%</b></div>';
+  // Overall read
+  let cls='good', msg;
+  const moonBad = mo.el!=null && mo.el>10 && mo.illum>.6;
+  if(sunEl!=null && sunEl>-6){ cls='poor';
+    msg = darkIn!=null ? ('Too bright right now. Proper darkness in about '+(darkIn>=60?(Math.round(darkIn/60*10)/10+' hours'):(darkIn+' minutes'))+'.')
+                       : 'Too bright right now — wait for the sun to set.'; }
+  else if(ce5Cloud!=null && ce5Cloud>70){ cls='poor'; msg='Heavily overcast — you won’t see much through that.'; }
+  else if(moonBad || (ce5Cloud!=null && ce5Cloud>35) || (sunEl!=null && sunEl>-12)){ cls='fair';
+    msg = moonBad ? 'A bright Moon will wash out faint objects — face away from it.'
+        : (ce5Cloud!=null && ce5Cloud>35) ? 'Partly cloudy — you’ll get gaps of clear sky.'
+        : 'Still twilight, but usable. It’ll improve as it darkens.'; }
+  else { msg='Good conditions. Dark sky, little Moon interference.'; }
+  box.innerHTML=rows+'<div class="ce5-verdict '+cls+'">'+esc(msg)+'</div>';
+  // Cloud cover is a nice-to-have; fetch once and re-render if it arrives.
+  if(ce5Cloud==null && !ce5Conditions._tried){
+    ce5Conditions._tried=true;
+    try{
+      const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+observer.lat.toFixed(3)+
+        '&longitude='+observer.lng.toFixed(3)+'&current=cloud_cover');
+      if(r.ok){ const j=await r.json();
+        if(j && j.current && typeof j.current.cloud_cover==='number'){ ce5Cloud=Math.round(j.current.cloud_cover); ce5Conditions(); } }
+    }catch(e){ /* offline or blocked — conditions still work without it */ }
+  }
+}
+// Session structure. Weights are relative, so any total length scales sensibly.
+const CE5_PHASES=[
+  {n:'Settle',   w:1.0, g:'Get comfortable and let your eyes adjust. Don’t look at any screen — this one included. Just take in the whole sky.'},
+  {n:'Breathe',  w:1.0, g:'Slow, even breaths. In for four, out for six. Let the day’s noise drain off. Nothing to do yet.'},
+  {n:'Open awareness', w:1.5, g:'Widen your attention past the sky — the sounds, the air, the ground under you. Soft eyes, no fixed point.'},
+  {n:'Intention', w:1.5, g:'Hold a clear, calm intention of peaceful contact. Some hold an image of your location seen from far above. There’s no wrong way.'},
+  {n:'Observation', w:3.5, g:'Scan slowly. Note anything that moves, flashes, or changes. Use the mark button — SkyWatch will tell you afterwards what was actually there.'},
+  {n:'Close',    w:1.0, g:'Ease back. Thank whatever the night gave you, note how you feel, and stand up slowly.'}
+];
+let ce5={run:false, start:0, end:0, len:30, idx:0, timer:null, marks:[], cues:true, red:true};
+const CE5_LOG_KEY='skywatch_ce5_log';
+function ce5Log(){ try{ return JSON.parse(localStorage.getItem(CE5_LOG_KEY)||'[]'); }catch(e){ return []; } }
+function ce5SaveLog(rec){
+  try{ const l=ce5Log(); l.unshift(rec); localStorage.setItem(CE5_LOG_KEY, JSON.stringify(l.slice(0,50))); }catch(e){}
+  updateCe5Log();
+}
+function updateCe5Log(){
+  const b=$('ce5-log'); if(!b) return;
+  const n=ce5Log().length;
+  b.style.display=n?'':'none';
+  b.textContent='🗒 Past sessions ('+n+')';
+}
+function ce5Bounds(){                                   // phase start offsets in ms
+  const tot=CE5_PHASES.reduce((a,p)=>a+p.w,0), ms=ce5.len*60000;
+  let acc=0; return CE5_PHASES.map(p=>{ const s=acc; acc+=p.w/tot*ms; return {s, e:acc, p}; });
+}
+function nightMode(on){
+  document.body.classList.toggle('nightmode', !!on);
+}
+function startCe5(){
+  if(!observer){ showErr('Set your location first so the session can cross-reference the sky.'); return; }
+  ce5.len = +(($('ce5-len').querySelector('button.on')||{dataset:{m:30}}).dataset.m) || 30;
+  ce5.cues = $('ce5-cues').checked;
+  ce5.red  = $('ce5-red').checked;
+  ce5.run=true; ce5.start=Date.now(); ce5.end=ce5.start+ce5.len*60000; ce5.idx=-1; ce5.marks=[];
+  $('ce5-setup').style.display='none'; $('ce5-done').style.display='none'; $('ce5-live').style.display='';
+  $('ce5-marks').innerHTML='';
+  if(ce5.red) nightMode(true);
+  try{ if(navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').then(w=>{ ce5._wl=w; }).catch(()=>{}); }catch(e){}
+  if(ce5.cues) SFX.gong();
+  ce5Tick();
+  ce5.timer=setInterval(ce5Tick, 1000);
+}
+function ce5Tick(){
+  if(!ce5.run) return;
+  const now=Date.now(), el=now-ce5.start, left=Math.max(0, ce5.end-now);
+  const mm=String(Math.floor(el/60000)).padStart(2,'0'), ss=String(Math.floor(el/1000)%60).padStart(2,'0');
+  $('ce5-clock').textContent=mm+':'+ss;
+  $('ce5-remain').textContent=left<=0 ? 'complete' : (Math.ceil(left/60000)+' min remaining');
+  $('ce5-bar').style.width=Math.min(100, el/(ce5.len*600))+'%';
+  const b=ce5Bounds(); let i=b.findIndex(x=>el>=x.s && el<x.e); if(i<0) i=b.length-1;
+  if(i!==ce5.idx){
+    ce5.idx=i;
+    $('ce5-phase').textContent=(i+1)+'. '+b[i].p.n;
+    $('ce5-guide').textContent=b[i].p.g;
+    if(ce5.cues && el>1000) SFX.chime();
+  }
+  if(left<=0) endCe5();
+}
+function ce5Mark(){
+  if(!ce5.run) return;
+  const ts=Date.now();
+  ce5.marks.push({ts, az:null});
+  SFX.select();
+  const el=$('ce5-marks');
+  el.innerHTML=ce5.marks.map((m,i)=>'• Mark '+(i+1)+' at '+new Date(m.ts).toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'})).join('<br>');
+  showToast('Marked — keep watching, we’ll check it after', true);
+}
+function endCe5(){
+  if(!ce5.run) return;
+  ce5.run=false;
+  clearInterval(ce5.timer); ce5.timer=null;
+  try{ if(ce5._wl){ ce5._wl.release(); ce5._wl=null; } }catch(e){}
+  nightMode(false);
+  if(ce5.cues) SFX.gong();
+  const rec={ start:ce5.start, end:Date.now(), len:ce5.len, marks:ce5.marks.map(m=>m.ts) };
+  ce5SaveLog(rec);
+  $('ce5-live').style.display='none';
+  $('ce5-done').style.display='';
+  $('ce5-done').innerHTML='<div class="fr-note">Cross-referencing your sky…</div>';
+  setTimeout(()=>renderCe5Summary(rec), 40);
+}
+// What actually crossed the sky during the session — sampled every ~90s.
+function ce5Crossref(rec){
+  const seen=new Set(), lit=new Set(); let starlink=0, samples=0;
+  const step=Math.max(60000, Math.round((rec.end-rec.start)/20));
+  for(let t=rec.start; t<=rec.end; t+=step){
+    samples++;
+    const d=new Date(t), gmst=satellite.gstime(d), sun=sunEci(t);
+    for(const s of SATS){
+      let pv; try{ pv=satellite.propagate(s.satrec, d); }catch(e){ continue; }
+      if(!pv||!pv.position) continue;
+      let la; try{ la=satellite.ecfToLookAngles(observer.gd, satellite.eciToEcf(pv.position, gmst)); }catch(e){ continue; }
+      if(la.elevation*R2D < 10) continue;
+      seen.add(s.id);
+      if(satLit(pv.position, sun)){ lit.add(s.id); if(s.group==='starlink') starlink++; }
+    }
+  }
+  return { total:seen.size, lit:lit.size, starlink, samples };
+}
+function renderCe5Summary(rec){
+  const mins=Math.round((rec.end-rec.start)/60000);
+  let x={total:0, lit:0}; try{ x=ce5Crossref(rec); }catch(e){ console.warn('ce5 crossref', e); }
+  let h='<div class="ce5-sum-hd">Session complete</div>'+
+    '<div class="fr-note">'+mins+' minute'+(mins===1?'':'s')+' under the sky · '+
+      new Date(rec.start).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+'</div>'+
+    '<div class="ce5-stats">'+
+      '<div class="ce5-stat"><b>'+mins+'</b><span>minutes</span></div>'+
+      '<div class="ce5-stat"><b>'+x.total+'</b><span>objects up</span></div>'+
+      '<div class="ce5-stat"><b>'+x.lit+'</b><span>sunlit</span></div>'+
+      '<div class="ce5-stat"><b>'+rec.marks.length+'</b><span>marks</span></div>'+
+    '</div>'+
+    '<div class="fr-note">'+(x.lit
+      ? ('About '+x.lit+' tracked object'+(x.lit===1?' was':'s were')+' sunlit and technically visible from where you sat'+
+         (x.starlink>0?' — including Starlink':'')+'. Anything you marked can be checked against them below.')
+      : 'Nothing tracked was sunlit above you during that window — anything you saw was not a satellite in sunlight.')+'</div>';
+  if(rec.marks.length){
+    h+='<div class="idf-lbl">Your marks</div>';
+    rec.marks.forEach((ts,i)=>{ h+='<button class="idf-uap ce5-chk" data-ts="'+ts+'">🔎 Check mark '+(i+1)+
+      ' · '+new Date(ts).toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'})+'</button>'; });
+  }
+  h+='<button class="idf-go" id="ce5-again">🧘 New session</button>';
+  const done=$('ce5-done'); done.innerHTML=h;
+  done.querySelectorAll('.ce5-chk').forEach(b=>b.onclick=()=>{
+    const w=$('idf-when'); if(w) w.value=tsToLocalInput(+b.dataset.ts);
+    $('skt-id').click(); runIdentify();
+  });
+  const ag=$('ce5-again'); if(ag) ag.onclick=()=>{ done.style.display='none'; $('ce5-setup').style.display=''; ce5Conditions(); };
+}
+function showCe5Log(){
+  const rows=ce5Log();
+  if(!rows.length) return openList('Past sessions','<div class="fr-note">No sessions yet.</div>');
+  const tot=rows.reduce((a,r)=>a+r.len,0);
+  openList('CE5 sessions · '+rows.length, '<div class="fr-note">'+Math.round(tot/60*10)/10+' hours under the sky across '+rows.length+' session'+(rows.length===1?'':'s')+'.</div>'+
+    rows.map(r=>'<div class="lm-row"><div class="lm-n">'+fmtSeen(r.start)+'</div>'+
+      '<div class="lm-m">'+r.len+' min'+(r.marks&&r.marks.length?(' · '+r.marks.length+' mark'+(r.marks.length===1?'':'s')):'')+'</div></div>').join(''));
+}
+function initCe5(){
+  const go=$('ce5-go'); if(!go) return;
+  go.onclick=startCe5;
+  $('ce5-end').onclick=endCe5;
+  $('ce5-mark').onclick=ce5Mark;
+  $('ce5-log').onclick=showCe5Log;
+  const nb=$('nightbadge'); if(nb) nb.onclick=()=>nightMode(false);
+  const len=$('ce5-len');
+  if(len) len.querySelectorAll('button').forEach(b=>b.onclick=()=>
+    len.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b)));
+  const inv=$('ce5-invite');
+  if(inv) inv.onclick=async ()=>{
+    if(!friends.length){ showErr('Add a friend first — you can ping them from the Friends tab.'); return; }
+    for(const f of friends){ try{ await pingFriend(f.uid, f.username); }catch(e){} }
+    showToast('📣 Pinged '+friends.length+' friend'+(friends.length===1?'':'s')+' to look up', true);
+  };
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.body.classList.contains('nightmode')) nightMode(false); });
+  updateCe5Log();
+}
+
+/* ---------- UAP report form ---------- */
+let uapCtx=null, uapPick={};
+function openUapForm(res){
+  uapCtx = res || {ts:Date.now(), rows:[], wantAz:null, wantAlt:null};
+  uapPick={};
+  const r=uapCtx, c=$('uap-ctx');
+  const dir = r.wantAz==null ? 'direction not recorded'
+    : (azCompass(r.wantAz)+' '+Math.round(r.wantAz)+'°'+(r.wantAlt!=null?(' · alt '+r.wantAlt+'°'):''));
+  const ruled=(r.rows||[]).slice(0,3).map(x=>x.label+' ('+idfVerdict(x, r.wantAz)+')');
+  c.innerHTML='<b>'+fmtSeen(r.ts)+'</b><br>'+esc(dir)+(r.skyText?('<br>'+esc(r.skyText)):'')+
+    '<br><span class="uap-ruled">'+(ruled.length?('Checked against: '+esc(ruled.join('; '))):'Nothing tracked was overhead')+'</span>';
+  const m=$('uapmodal');
+  m.querySelectorAll('.uap-g button').forEach(b=>b.classList.remove('on'));
+  $('uap-notes').value=''; $('uap-share').checked=false;
+  m.classList.add('show');
+}
+function initUapForm(){
+  const m=$('uapmodal'); if(!m) return;
+  const close=()=>m.classList.remove('show');
+  $('uap-close').onclick=close;
+  m.addEventListener('click', e=>{ if(e.target===m) close(); });
+  m.querySelectorAll('.uap-g').forEach(g=>{
+    const k=g.dataset.k;
+    g.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      const was=b.classList.contains('on');
+      g.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      if(!was){ b.classList.add('on'); uapPick[k]=b.dataset.v; } else delete uapPick[k];   // tap again to clear
+    });
+  });
+  $('uap-save').onclick=saveUapReport;
+}
+function saveUapReport(){
+  const r=uapCtx || {ts:Date.now(), rows:[], wantAz:null, wantAlt:null};
+  const dir = r.wantAz==null ? '' : azCompass(r.wantAz);
+  const ruled=(r.rows||[]).slice(0,3).map(x=>x.label+' ('+idfVerdict(x, r.wantAz)+')');
+  const rec={ id:'uap-'+r.ts, name:'Unidentified'+(dir?(' · '+dir):''), kind:'uap', ts:r.ts,
+    uap:{ dir, alt:r.wantAlt, dur:uapPick.dur||'', count:uapPick.count||'', shape:uapPick.shape||'',
+      motion:uapPick.motion||'', bright:uapPick.bright||'',
+      notes:(($('uap-notes').value)||'').slice(0,400), sky:r.skyText||'', ruled } };
+  pushSightLog(rec);
+  if($('uap-share').checked) postFeed({name:rec.name, id:rec.id, kind:'uap'});
+  $('uapmodal').classList.remove('show');
   SFX.success();
-  showToast('👁 Logged as unidentified — saved to your private log', true);
+  showToast('👁 Report saved to your private log', true);
   if(feedScope==='mine') renderFeed();
+  updateUapCount();
+}
+function uapReports(){ return sightLog.filter(x=>x.kind==='uap').sort((a,b)=>b.ts-a.ts); }
+function updateUapCount(){
+  const b=$('idf-reports'); if(!b) return;
+  const n=uapReports().length;
+  b.style.display = n ? '' : 'none';
+  b.textContent = '🗒 My UAP reports ('+n+')';
+}
+function showUapReports(){
+  const rows=uapReports();
+  if(!rows.length) return openList('UAP reports','<div class="fr-note">No reports yet.</div>');
+  openList('Your UAP reports · '+rows.length, rows.map(x=>{
+    const u=x.uap||{};
+    const bits=[u.dur, u.count&&(u.count+' object'+(u.count==='1'?'':'s')), u.shape, u.motion, u.bright].filter(Boolean).join(' · ');
+    return '<div class="lm-row uap-rep">'+
+      '<div class="lm-n">👁 '+esc(x.name||'Unidentified')+'</div>'+
+      '<div class="uap-meta">'+fmtSeen(x.ts)+(bits?(' · '+esc(bits)):'')+'</div>'+
+      (u.notes?('<div class="uap-meta quote">“'+esc(u.notes)+'”</div>'):'')+
+      (u.sky?('<div class="uap-meta">'+esc(u.sky)+'</div>'):'')+
+      ((u.ruled&&u.ruled.length)?('<div class="uap-meta ruled">Checked against: '+esc(u.ruled.join('; '))+'</div>'):'')+
+      '</div>'; }).join(''));
 }
 function initListModal(){
   const c=$('lm-close'); if(c) c.onclick=()=>$('listmodal').classList.remove('show');
@@ -3785,8 +4233,10 @@ function renderFeed(){
       : 'Sign in to see your sighting history.')+'</div>'; return; }
     const rows=sightLog.slice().sort((a,b)=>b.ts-a.ts).slice(0,200);
     el.innerHTML='<div class="fr-total">'+sightLog.length+' lifetime sighting'+(sightLog.length===1?'':'s')+' · private to you</div>'+
-      rows.map(x=>'<div class="feed-row"><span class="feed-u">You</span> spotted <b>'+esc(x.name||'—')+'</b>'+
-        '<span class="feed-t">'+fmtSeen(x.ts)+(x.how?(' · '+(x.how==='person'?'in person':'overhead')):'')+'</span></div>').join('');
+      rows.map(x=>{ const uap=x.kind==='uap';
+        return '<div class="feed-row"><span class="feed-u">You</span> '+(uap?'logged':'spotted')+' <b>'+
+          (uap?'👁 ':x.kind==='launch'?'🚀 ':'🛰️ ')+esc(x.name||'—')+'</b>'+
+          '<span class="feed-t">'+fmtSeen(x.ts)+(x.how?(' · '+(x.how==='person'?'in person':'overhead')):'')+'</span></div>'; }).join('');
     return;
   }
   if(!currentUser){ el.innerHTML='<div class="fr-note">Sign in to see the feed.</div>'; return; }
@@ -3794,10 +4244,12 @@ function renderFeed(){
   let items=(feedScope==='friends') ? feedItems.filter(x=>fset.has(x.uid)) : feedItems;
   items=items.slice(0,40);
   if(!items.length){ el.innerHTML='<div class="fr-note">'+(feedScope==='friends'?'No sightings from you or your friends yet.':'No sightings posted yet.')+'</div>'; return; }
-  const verb=x=> x.kind==='launch' ? (x.how==='person'?'saw a launch:':'watched a launch:') : 'spotted';
+  const verb=x=> x.kind==='uap' ? 'reported something unidentified:'
+    : x.kind==='launch' ? (x.how==='person'?'saw a launch:':'watched a launch:') : 'spotted';
   el.innerHTML=items.map((x,i)=>'<div class="feed-row" data-i="'+i+'"><span class="feed-u">@'+esc(x.username||'user')+'</span> '+
-    esc(verb(x))+' <b>'+esc(x.name||'an object')+'</b><span class="feed-t">'+timeAgo(x.ts)+'</span></div>').join('');
-  el.querySelectorAll('.feed-row').forEach(r=>r.onclick=()=>{ const x=items[+r.dataset.i]; if(x&&x.id) openTarget({type:x.kind==='launch'?'launch':'sat', id:x.id}); });
+    esc(verb(x))+' <b>'+(x.kind==='uap'?'👁 ':'')+esc(x.name||'an object')+'</b><span class="feed-t">'+timeAgo(x.ts)+'</span></div>').join('');
+  el.querySelectorAll('.feed-row').forEach(r=>r.onclick=()=>{ const x=items[+r.dataset.i];
+    if(x && x.id && x.kind!=='uap') openTarget({type:x.kind==='launch'?'launch':'sat', id:x.id}); });
 }
 
 /* ---------- Live sighting reactions (icons rising from the Feed button) ---------- */
@@ -3808,7 +4260,7 @@ function feedAnchor(){   // whichever Feed button is actually visible (nav bar o
 function flyFeedIcon(kind, n){
   if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const btn=feedAnchor(); if(!btn) return;
-  const r=btn.getBoundingClientRect(), glyph = kind==='launch' ? '🚀' : '🛰️';
+  const r=btn.getBoundingClientRect(), glyph = kind==='launch' ? '🚀' : kind==='uap' ? '👁' : '🛰️';
   const count=Math.max(1, Math.min(n||3, 5));
   for(let i=0;i<count;i++){
     const el=document.createElement('div');
@@ -4160,7 +4612,7 @@ function startCommunityStats(){
   statsTick=setInterval(fetchCommunityStats, 60000);
 }
 
-initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); initFriendsUI(); initAR(); initOnboard(); initLightbox(); initAchievements(); initListModal(); initClickSounds(); initSky();
+initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); initFriendsUI(); initAR(); initOnboard(); initLightbox(); initAchievements(); initListModal(); initClickSounds(); initSky(); initUapForm(); initCe5();
 </script>
 
 <!-- Module loader: import the 3D libs, expose them as globals, then boot -->
