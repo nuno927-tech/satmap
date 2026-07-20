@@ -389,6 +389,14 @@
   .ach-txt span{font-size:11.5px;color:var(--muted)}
   .ach-pts{flex:0 0 auto;font-size:12px;font-weight:700;color:#57e08a}
   .ach-lock{flex:0 0 auto;opacity:.6}
+  #ach-log{display:none;margin-top:18px;border-top:1px solid var(--border);padding-top:12px}
+  .ach-logh{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px}
+  .ach-logh span{text-transform:none;letter-spacing:0}
+  .ach-logrow{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 2px;
+    border-bottom:1px solid rgba(120,160,255,.06);font-size:12.5px}
+  .ach-logrow:last-child{border-bottom:none}
+  .ach-logn{color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ach-logt{color:var(--muted);font-size:11px;flex:0 0 auto;font-variant-numeric:tabular-nums}
   .d-desc{font-size:12px;line-height:1.5;color:var(--text);margin-bottom:8px}
   .d-src{margin-top:8px;font-size:11px;color:var(--muted)}
   .d-src a{color:var(--accent);text-decoration:none}
@@ -764,6 +772,7 @@
     <div id="ach-name">—</div>
     <div id="ach-stats" class="ach-stats"></div>
     <div id="ach-grid" class="ach-grid"></div>
+    <div id="ach-log"></div>
   </div>
 </div>
 
@@ -2590,6 +2599,7 @@ async function boot(){
   initGlobe();
   renderLegend();
   loadFavsLocal();          // restore starred sats (also merged from account on sign-in)
+  loadSightLog();           // restore this device's private sighting history
   initFilters();
   $('loadmsg').textContent='Fetching live orbital elements…';
   await loadData();
@@ -2833,6 +2843,7 @@ function collectSettings(){
   return { groups, lat: observer?observer.lat:null, lng: observer?observer.lng:null, zoom,
     units: prefs.units, time: prefs.time, autorotate: prefs.autorotate, issPath: prefs.issPath, cutoff: prefs.cutoff, music: prefs.music,
     notify: prefs.notify, notifyGroups: prefs.notifyGroups, favs: prefs.favs, theme: prefs.theme, borders: prefs.borders,
+    sightLog: sightLog.slice(-SLOG_MAX),   // private: users/{uid} is owner-only
     updatedAt: Date.now() };
 }
 function saveSettings(){
@@ -2850,6 +2861,7 @@ function applySettings(s){
     if(typeof s.units==='string') prefs.units=s.units;
     if(typeof s.theme==='string' && THEMES[s.theme]) prefs.theme=s.theme;
     if(typeof s.borders==='boolean') prefs.borders=s.borders;
+    mergeSightLog(s.sightLog);   // union device + account sighting history
     if(s.time==='12'||s.time==='24') prefs.time=s.time;
     if(typeof s.music==='boolean') prefs.music=s.music;
     if(typeof s.autorotate==='boolean') prefs.autorotate=s.autorotate;
@@ -3103,6 +3115,28 @@ function statsFromProfile(p){
 }
 function achEarned(st){ return ACH.filter(a=>a.t(st)); }
 function scoreOf(st, earned){ return st.sightings + st.badges*2 + earned.reduce((x,a)=>x+a.p,0); }
+
+/* ---------- Private sighting log (this device + your own account doc) ----------
+   Stored in users/{uid} (owner-only per the security rules) and mirrored to
+   localStorage, so it is never visible to friends or anyone else. */
+let sightLog=[];
+const SLOG_KEY='satmap_sightlog', SLOG_MAX=300;
+function loadSightLog(){ try{ const a=JSON.parse(localStorage.getItem(SLOG_KEY)||'[]'); if(Array.isArray(a)) sightLog=a; }catch(e){} }
+function saveSightLogLocal(){ try{ localStorage.setItem(SLOG_KEY, JSON.stringify(sightLog.slice(-SLOG_MAX))); }catch(e){} }
+function pushSightLog(entry){
+  sightLog.push(entry);
+  if(sightLog.length>SLOG_MAX) sightLog=sightLog.slice(-SLOG_MAX);
+  saveSightLogLocal(); saveSettings();       // saveSettings syncs it to users/{uid}
+}
+function mergeSightLog(remote){
+  if(!Array.isArray(remote)) return;
+  const seen=new Set(sightLog.map(x=>x.id+':'+x.ts));
+  let changed=false;
+  for(const r of remote){ if(!r || !r.ts) continue; const k=r.id+':'+r.ts;
+    if(!seen.has(k)){ seen.add(k); sightLog.push(r); changed=true; } }
+  if(changed){ sightLog.sort((a,b)=>a.ts-b.ts);
+    if(sightLog.length>SLOG_MAX) sightLog=sightLog.slice(-SLOG_MAX); saveSightLogLocal(); }
+}
 async function commitSeen(list, days){
   if(!currentUser||!window.fb||!myProfile) return;
   const {db,doc,setDoc}=window.fb;
@@ -3120,7 +3154,8 @@ async function logSighting(s, ts){
   else { list.push({id:s.id, name:s.name, kind:'sat', group:s.group, oc:orbitClass(s), ts, last:ts, count:1}); n=1; }
   try{ await commitSeen(list, addSightDay(myProfile.sightDays, ts));
     showToast(n===1?('🏅 New badge: '+s.name):('👁 Sighting #'+n+' logged: '+s.name), true);
-    if(n===1) postFeed({name:s.name, id:s.id, kind:'sat'});
+    pushSightLog({id:s.id, name:s.name, kind:'sat', ts});
+    postFeed({name:s.name, id:s.id, kind:'sat', n});     // every sighting posts
   }catch(e){ console.error(e); showErr('Could not save: '+(e.code||e.message||e)); }
 }
 async function logLaunchSighting(l, how){
@@ -3132,12 +3167,14 @@ async function logLaunchSighting(l, how){
   else { list.push({id:l.id, name:l.provider+' · '+l.rocket, kind:'launch', how, ts, last:ts, count:1}); n=1; }
   try{ await commitSeen(list, addSightDay(myProfile.sightDays, ts));
     showToast((n===1?'🏅 New badge: ':'👁 Sighting #'+n+': ')+l.rocket+' ('+(how==='person'?'in person':'overhead')+')', true);
-    if(n===1) postFeed({name:l.provider+' · '+l.rocket, id:l.id, kind:'launch', how});
+    pushSightLog({id:l.id, name:l.provider+' · '+l.rocket, kind:'launch', how, ts});
+    postFeed({name:l.provider+' · '+l.rocket, id:l.id, kind:'launch', how, n});
   }catch(e){ console.error(e); showErr('Could not save: '+(e.code||e.message||e)); }
 }
 async function removeSeen(id, name){
   if(!currentUser||!window.fb||!myProfile) return;
   const list=(Array.isArray(myProfile.seen)?myProfile.seen:[]).filter(e=>e.id!==id);
+  sightLog=sightLog.filter(x=>x.id!==id); saveSightLogLocal();   // drop its entries from your private log too
   try{ await commitSeen(list, myProfile.sightDays||[]); showToast('Removed “'+(name||'item')+'” from your sightings'); }
   catch(e){ showErr('Could not remove: '+(e.code||e.message||e)); return; }
   // also remove any matching post from the public feed
@@ -3153,7 +3190,7 @@ async function removeSeen(id, name){
 function openMyAchievements(){
   const st=statsFromProfile(myProfile||{}), earned=achEarned(st);
   renderAchievements({ username:(myProfile&&myProfile.username)||'you', badges:st.badges, sightings:st.sightings,
-    streak:st.maxStreak, achSet:new Set(earned.map(a=>a.id)), score:scoreOf(st,earned) });
+    streak:st.maxStreak, achSet:new Set(earned.map(a=>a.id)), score:scoreOf(st,earned), log:sightLog });
   $('achieve').classList.add('show');
 }
 function openAchievements(u){
@@ -3172,6 +3209,15 @@ function renderAchievements(s){
     return '<div class="ach-item'+(on?' on':'')+'"><div class="ach-ic">'+a.ic+'</div>'+
       '<div class="ach-txt"><b>'+a.n+'</b><span>'+a.d+'</span></div>'+
       (on?'<span class="ach-pts">+'+a.p+'</span>':'<span class="ach-lock">🔒</span>')+'</div>'; }).join('');
+  // Private sighting log — only rendered when viewing your own page
+  const lg=$('ach-log'); if(!lg) return;
+  if(s.log && s.log.length){
+    const rows=s.log.slice().sort((a,b)=>b.ts-a.ts).slice(0,120);
+    lg.innerHTML='<div class="ach-logh">Your sighting log · '+s.log.length+' <span>(private)</span></div>'+
+      rows.map(x=>'<div class="ach-logrow"><span class="ach-logn">'+esc(x.name||'—')+'</span>'+
+        '<span class="ach-logt">'+fmtSeen(x.ts)+(x.how?(' · '+(x.how==='person'?'in person':'overhead')):'')+'</span></div>').join('');
+    lg.style.display='block';
+  } else { lg.innerHTML=''; lg.style.display='none'; }
 }
 function initAchievements(){
   const c=$('ach-close'); if(c) c.onclick=()=>$('achieve').classList.remove('show');
@@ -3184,7 +3230,9 @@ async function postFeed(entry){
   if(!currentUser||!window.fb||!myProfile||!myProfile.username) return;
   const {db, collection, addDoc}=window.fb;
   try{ await addDoc(collection(db,'feed'), Object.assign({uid:currentUser.uid, username:myProfile.username, ts:Date.now()}, entry)); }
-  catch(e){ console.warn('feed post', e); }
+  catch(e){ console.warn('feed post', e);
+    if(e && e.code==='permission-denied' && !postFeed._warned){ postFeed._warned=true;
+      showErr('Sighting saved, but the feed needs the updated Firestore rules published.'); } }
 }
 async function loadFeed(){
   const el=$('fr-feed'); if(!el) return;
