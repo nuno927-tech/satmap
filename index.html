@@ -807,6 +807,10 @@
     <div class="switch" id="sw-isspath" role="switch"></div>
   </div>
   <div class="stg">
+    <div class="lbl">Country borders<small>Outlines &amp; names</small></div>
+    <div class="switch" id="sw-borders" role="switch"></div>
+  </div>
+  <div class="stg">
     <div class="lbl">Overhead cutoff<small>Min. elevation to list a pass</small></div>
     <div class="seg" id="seg-cutoff">
       <button data-v="0">0°</button>
@@ -1028,7 +1032,7 @@ let timeOffsetMs=0, timeSpeed=1, timePlaying=false, timeRAF=null, timeLastTs=0;
 function simNow(){ return Date.now()+timeOffsetMs; }
 // User preferences (synced to the signed-in account)
 const prefs = { units:'metric', time:'24', autorotate:true, issPath:true, cutoff:0, music:true,
-  notify:false, notifyGroups:{ iss:true, stations:false, visual:false, rocket:true }, favs:[], theme:'blue' };
+  notify:false, notifyGroups:{ iss:true, stations:false, visual:false, rocket:true }, favs:[], theme:'blue', borders:false };
 // Favorites (starred sats) + client-side filters (no network).
 let favs = new Set();
 let seenSet = new Set();  // ids of satellites you've marked "seen" (from your profile)
@@ -1262,59 +1266,85 @@ async function loadData(){
   SATS = buildSatrecs(raw);
 }
 
-/* ---------- Background: download the rest of Starlink in batches ---------- */
+/* ---------- Background: load the rest of Starlink (cache-first, then network) ---------- */
 let starlinkFull=false, starlinkLoading=false;
 // Desktop pulls (nearly) the whole constellation; mobile is capped so phones stay smooth.
 const STARLINK_MAX = IS_MOBILE ? 2500 : 8000;   // GPU points lift the old mobile ceiling
+const SL_CACHE_KEY='satmap_sl_v1', SL_TTL=12*3600*1000, SL_CACHE_MAX=3500;
+
+// Add compact [id,name,l1,l2] rows to the live set (deduped) + the worker.
+function addStarlinkRows(rows){
+  const seen=new Set(SATS.map(s=>s.id)), raw=[];
+  for(const r of rows){ if(r && r[0] && !seen.has(r[0])){ seen.add(r[0]); raw.push({id:r[0], name:r[1], l1:r[2], l2:r[3], group:'starlink'}); } }
+  if(!raw.length) return 0;
+  const added=buildSatrecs(raw); added.forEach(s=>SATS.push(s));
+  if(useWorker && propWorker && added.length) propWorker.postMessage({type:'add', tle:added.map(s=>[s.l1,s.l2])});
+  updateLegendCounts(); renderFrame();
+  return added.length;
+}
+function saveStarlinkCache(rows){
+  const trim=n=>{ try{ localStorage.setItem(SL_CACHE_KEY, JSON.stringify({ts:Date.now(), rows:rows.slice(0,n)})); return true; }catch(e){ return false; } };
+  if(!trim(SL_CACHE_MAX)) trim(Math.floor(SL_CACHE_MAX/2)) || trim(800);   // shrink to fit localStorage quota
+}
 async function loadMoreStarlink(){
   if(starlinkFull || starlinkLoading || !enabled['starlink']) return;
-  // Only pull the big full list occasionally — hammering Celestrak every load gets the IP throttled.
-  try{ const last=+localStorage.getItem('satmap_sl_ts')||0; if(Date.now()-last < 6*3600*1000){ starlinkFull=true; return; } }catch(e){}
-  let cur=SATS.filter(s=>s.group==='starlink').length;
-  if(cur>=STARLINK_MAX){ starlinkFull=true; return; }
+  // 1) Serve the cached constellation if it's fresh — consistent, and no re-hammering Celestrak.
+  try{ const c=JSON.parse(localStorage.getItem(SL_CACHE_KEY)||'null');
+    if(c && Array.isArray(c.rows) && c.rows.length && Date.now()-c.ts < SL_TTL){
+      addStarlinkRows(c.rows); starlinkFull=true; return; } }catch(e){}
+  // 2) Otherwise download it (streamed, capped), with one gentle retry on failure.
   starlinkLoading=true;
+  let ok=await downloadStarlink();
+  if(!ok && enabled['starlink']){ await new Promise(r=>setTimeout(r,4000)); ok=await downloadStarlink(); }
+  starlinkLoading=false;
+}
+async function downloadStarlink(){
+  let cur=SATS.filter(s=>s.group==='starlink').length;
+  if(cur>=STARLINK_MAX){ starlinkFull=true; return true; }
   const seen=new Set(SATS.map(s=>s.id));
   let res;
   try{ res=await fetch('https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle',{cache:'no-store'}); }
-  catch(e){ starlinkLoading=false; return; }
-  if(!res.ok || !res.body || !res.body.getReader){ starlinkLoading=false; return; }
+  catch(e){ return false; }
+  if(!res.ok || !res.body || !res.body.getReader) return false;
   const reader=res.body.getReader(), dec=new TextDecoder();
-  let buf='', name=null, l1=null, batch=[];
+  let buf='', name=null, l1=null, batch=[], collected=[], first=true, bad=false, capped=false;
   const flush=async()=>{
     if(!batch.length) return;
-    const added=buildSatrecs(batch);
-    added.forEach(s=>{ SATS.push(s); cur++; });
-    // keep the worker's satrec list in the same append order as SATS
+    const added=buildSatrecs(batch); added.forEach(s=>{ SATS.push(s); cur++; });
     if(useWorker && propWorker && added.length) propWorker.postMessage({type:'add', tle: added.map(s=>[s.l1,s.l2])});
-    batch=[]; updateLegendCounts();
-    await new Promise(r=>setTimeout(r, 90));   // yield so the globe keeps rendering
+    batch=[]; updateLegendCounts(); renderFrame();
+    await new Promise(r=>setTimeout(r, 90));    // yield so the globe keeps rendering
+  };
+  const parse=async()=>{ let idx;
+    while((idx=buf.indexOf('\n'))>=0){
+      const line=buf.slice(0,idx).replace(/\r$/,''); buf=buf.slice(idx+1);
+      if(!line.trim()) continue;
+      if(first){ first=false; if(line[0]==='<'){ bad=true; return; } }   // an HTML error page, not TLEs
+      if(line.startsWith('1 ')){ if(name) l1=line; }
+      else if(line.startsWith('2 ')){
+        if(name && l1){ const id=l1.slice(2,7).trim();
+          if(!seen.has(id)){ seen.add(id); batch.push({name,l1,l2:line,id,group:'starlink'}); collected.push([id,name,l1,line]); }
+          name=null; l1=null;
+          if(batch.length>=250) await flush();
+          if(cur+batch.length>=STARLINK_MAX){ await flush(); capped=true; return; }
+        }
+      } else { name=line.trim(); l1=null; }
+    }
   };
   try{
     while(true){
       const {done,value}=await reader.read();
       if(value) buf += dec.decode(value,{stream:true});
-      let idx;
-      while((idx=buf.indexOf('\n'))>=0){
-        const line=buf.slice(0,idx).replace(/\r$/,''); buf=buf.slice(idx+1);
-        if(!line.trim()) continue;
-        if(line.startsWith('1 ')){ if(name) l1=line; }
-        else if(line.startsWith('2 ')){
-          if(name && l1){ const id=l1.slice(2,7).trim();
-            if(!seen.has(id)){ seen.add(id); batch.push({name, l1, l2:line, id, group:'starlink'}); }
-            name=null; l1=null;
-            if(batch.length>=250) await flush();
-            if(cur+batch.length>=STARLINK_MAX){ await flush(); try{ await reader.cancel(); }catch(e){} try{localStorage.setItem('satmap_sl_ts',String(Date.now()));}catch(e){} starlinkFull=true; starlinkLoading=false; return; }
-          }
-        }
-        else { name=line.trim(); l1=null; }
-      }
+      if(done && buf && !buf.endsWith('\n')) buf+='\n';   // parse the final line (no trailing newline)
+      await parse();
+      if(bad){ try{ await reader.cancel(); }catch(e){} return false; }
+      if(capped){ try{ await reader.cancel(); }catch(e){} break; }
       if(done) break;
     }
     await flush();
-    try{localStorage.setItem('satmap_sl_ts',String(Date.now()));}catch(e){}
-    starlinkFull=true;
-  }catch(e){ console.warn('starlink batch load', e); }
-  starlinkLoading=false;
+    if(collected.length){ saveStarlinkCache(collected); starlinkFull=true; return true; }
+    return false;   // got nothing usable → allow a retry
+  }catch(e){ console.warn('starlink download', e); return false; }
 }
 
 /* ---------- Globe ---------- */
@@ -1353,11 +1383,15 @@ function initGlobe(){
     .pathPoints('points').pathColor(d=>d.color)
     .pathPointLat('lat').pathPointLng('lng').pathPointAlt('alt')
     .pathStroke(2).pathTransitionDuration(0)
-    .labelLat('lat').labelLng('lng').labelText(d=>'@'+d.username)
-    .labelColor(d=>d.online?'#2ecc71':'#ff5a4d').labelDotRadius(0.5).labelSize(1.0)
+    .labelLat('lat').labelLng('lng')
+    .labelText(d=> d.__country ? d.name : '@'+d.username)
+    .labelColor(d=> d.__country ? 'rgba(190,205,235,0.6)' : (d.online?'#2ecc71':'#ff5a4d'))
+    .labelDotRadius(d=> d.__country ? 0 : 0.5).labelSize(d=> d.__country ? 0.5 : 1.0)
     .labelAltitude(0.013).labelResolution(2)
-    .polygonCapColor(()=> 'rgba(4,8,22,0.42)').polygonSideColor(()=> 'rgba(0,0,0,0)')
-    .polygonStrokeColor(()=> false).polygonAltitude(0.004).polygonsTransitionDuration(0);
+    .polygonCapColor(d=> d.__night ? 'rgba(4,8,22,0.42)' : 'rgba(0,0,0,0)')
+    .polygonSideColor(()=> 'rgba(0,0,0,0)')
+    .polygonStrokeColor(d=> d.__night ? false : 'rgba(150,185,225,0.55)')
+    .polygonAltitude(d=> d.__night ? 0.004 : 0.006).polygonsTransitionDuration(0);
 
   const controls = world.controls();
   controls.autoRotate = true; controls.autoRotateSpeed = 0.28;
@@ -1606,7 +1640,10 @@ function updateIssOrbit(){
   const term = terminatorPath();   // day/night boundary line
   if(term.length>1) paths.push({ points: term, color:['rgba(130,190,255,.5)','rgba(130,190,255,.5)'] });
   world.pathsData(paths);
-  world.polygonsData([ nightPolygon() ]);   // shade the dark side
+  const night=nightPolygon(); night.__night=true;
+  const polys=[night];   // + country borders when enabled
+  if(prefs.borders && countriesGeo && countriesGeo.features) for(const f of countriesGeo.features) polys.push(f);
+  world.polygonsData(polys);
 }
 // Filled night hemisphere: 90°-radius cap around the antisolar point (continuous longitudes).
 function nightPolygon(){
@@ -1623,6 +1660,32 @@ function nightPolygon(){
 function subsolarPoint(t){
   const sun=sunEci(t), gd=satellite.eciToGeodetic({x:sun.x,y:sun.y,z:sun.z}, satellite.gstime(new Date(t)));
   return { lat:satellite.degreesLat(gd.latitude)*D2R, lng:satellite.degreesLong(gd.longitude)*D2R };
+}
+/* ---------- Country borders + names (opt-in) ---------- */
+let countriesGeo=null, countryLabels=[];
+function ringCentroid(r){ let x=0,y=0,n=0; for(const p of r){ x+=p[0]; y+=p[1]; n++; } return n?[x/n,y/n]:null; }
+function ringArea(r){ let a=0; for(let i=0;i<r.length-1;i++){ a+=r[i][0]*r[i+1][1]-r[i+1][0]*r[i][1]; } return Math.abs(a/2); }
+function polyCentroid(g){
+  if(!g) return null;
+  if(g.type==='Polygon') return ringCentroid(g.coordinates[0]);
+  if(g.type==='MultiPolygon'){ let best=null,ba=-1; for(const poly of g.coordinates){ const a=ringArea(poly[0]); if(a>ba){ ba=a; best=poly[0]; } } return best?ringCentroid(best):null; }
+  return null;
+}
+async function loadCountries(){
+  if(countriesGeo) return;
+  try{
+    const r=await fetch('https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_110m_admin_0_countries.geojson');
+    if(!r.ok) return; const j=await r.json();
+    countriesGeo=j;
+    countryLabels=(j.features||[]).map(f=>{ const c=polyCentroid(f.geometry); if(!c) return null;
+      const p=f.properties||{}, nm=(p.NAME||p.name||p.ADMIN||'').toString();
+      return nm ? {lat:c[1], lng:c[0], name:nm, __country:true} : null; }).filter(Boolean);
+  }catch(e){ console.warn('countries load', e); }
+}
+async function applyBorders(){
+  if(prefs.borders && !countriesGeo){ if($('sw-borders')) $('sw-borders').classList.add('loading'); await loadCountries(); if($('sw-borders')) $('sw-borders').classList.remove('loading'); }
+  updateIssOrbit();     // refresh borders on the polygons layer
+  updateFriendPins();   // refresh country names on the labels layer
 }
 function terminatorPath(){
   const s=subsolarPoint(simNow()), pts=[];
@@ -2653,6 +2716,7 @@ function applyPrefs(){
   $('sw-music').classList.toggle('on', prefs.music);
   if(prefs.music){ if(!Music.isRunning()) armMusic(); } else { Music.stop(); }
   $('sw-isspath').classList.toggle('on', prefs.issPath);
+  if($('sw-borders')) $('sw-borders').classList.toggle('on', prefs.borders);
   $('sw-notify').classList.toggle('on', prefs.notify);
   $('notify-groups').classList.toggle('show', prefs.notify);
   ['iss','stations','visual','rocket'].forEach(k=>{ const el=$('nt-'+k); if(el) el.classList.toggle('on', !!(prefs.notifyGroups&&prefs.notifyGroups[k])); });
@@ -2671,6 +2735,7 @@ function initSettingsUI(){
   $('sw-rotate').onclick=()=>{ prefs.autorotate=!prefs.autorotate; applyPrefs(); saveSettings(); };
   $('sw-music').onclick=()=>{ prefs.music=!prefs.music; if(prefs.music) Music.start(); else Music.stop(); applyPrefs(); saveSettings(); };
   $('sw-isspath').onclick=()=>{ prefs.issPath=!prefs.issPath; applyPrefs(); saveSettings(); };
+  if($('sw-borders')) $('sw-borders').onclick=()=>{ prefs.borders=!prefs.borders; applyPrefs(); saveSettings(); applyBorders(); };
   $('sw-notify').onclick=async ()=>{
     if(!prefs.notify){ const ok=await enableNotifications(); if(!ok) return; prefs.notify=true; }
     else prefs.notify=false;
@@ -2767,7 +2832,7 @@ function collectSettings(){
   let zoom=null; try{ zoom=world.pointOfView().altitude; }catch(e){}
   return { groups, lat: observer?observer.lat:null, lng: observer?observer.lng:null, zoom,
     units: prefs.units, time: prefs.time, autorotate: prefs.autorotate, issPath: prefs.issPath, cutoff: prefs.cutoff, music: prefs.music,
-    notify: prefs.notify, notifyGroups: prefs.notifyGroups, favs: prefs.favs, theme: prefs.theme,
+    notify: prefs.notify, notifyGroups: prefs.notifyGroups, favs: prefs.favs, theme: prefs.theme, borders: prefs.borders,
     updatedAt: Date.now() };
 }
 function saveSettings(){
@@ -2784,6 +2849,7 @@ function applySettings(s){
   try{
     if(typeof s.units==='string') prefs.units=s.units;
     if(typeof s.theme==='string' && THEMES[s.theme]) prefs.theme=s.theme;
+    if(typeof s.borders==='boolean') prefs.borders=s.borders;
     if(s.time==='12'||s.time==='24') prefs.time=s.time;
     if(typeof s.music==='boolean') prefs.music=s.music;
     if(typeof s.autorotate==='boolean') prefs.autorotate=s.autorotate;
@@ -2794,6 +2860,7 @@ function applySettings(s){
     if(Array.isArray(s.favs)){ const merged=new Set([...favs, ...s.favs]); favs=merged; prefs.favs=[...merged];
       try{ localStorage.setItem('satmap_favs', JSON.stringify(prefs.favs)); }catch(e){} }
     applyPrefs();
+    if(prefs.borders) applyBorders();   // load + draw country borders if synced on
     if(prefs.notify) scanAlerts();
     if(s.groups){
       GROUPS.forEach(g=>{ if(g.id in s.groups){ enabled[g.id]=!!s.groups[g.id];
@@ -3351,10 +3418,11 @@ function updateFriendPins(){
   if(typeof world==='undefined'||!world) return;
   const now=Date.now();
   // Draw a pin if: a recent status change flashed it, OR you clicked to locate that friend.
-  world.labelsData(friends
+  const pins = friends
     .filter(f=> typeof f.lat==='number' && typeof f.lng==='number' &&
       ((f._showUntil && now < f._showUntil) || pinnedFriends.has(f.uid)))
-    .map(f=>({ lat:f.lat, lng:f.lng, username:f.username, online:(now-(f.lastSeen||0)<150000) })));
+    .map(f=>({ lat:f.lat, lng:f.lng, username:f.username, online:(now-(f.lastSeen||0)<150000) }));
+  world.labelsData(prefs.borders ? pins.concat(countryLabels) : pins);   // + country names when enabled
 }
 // Show a friend's pin on the map and fly to them; the pin stays until the map is moved.
 function locateFriend(uid){
