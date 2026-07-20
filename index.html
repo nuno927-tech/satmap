@@ -334,6 +334,49 @@
   .hero-note{font-size:12px;color:var(--muted);line-height:1.5;padding:7px 10px;margin-bottom:8px;
     background:rgba(120,160,255,.05);border:1px solid var(--border);border-radius:10px}
   .hero-note b{color:var(--text)}
+  .hs-click{cursor:pointer;transition:background .15s,border-color .15s}
+  .hs-click:hover{background:rgba(90,209,255,.14);border-color:rgba(90,209,255,.5)}
+  .hs-click span{color:var(--accent)}
+  /* Rankings: sort chips, your standing, podium */
+  .lb-sorts{display:flex;gap:5px;margin-bottom:10px}
+  .lb-sort{flex:1;border:1px solid var(--border);background:rgba(120,160,255,.06);color:var(--muted);
+    border-radius:9px;padding:7px 3px;font-size:11px;font-weight:600;cursor:pointer}
+  .lb-sort.on{background:rgba(90,209,255,.18);color:var(--accent);border-color:rgba(90,209,255,.5)}
+  .lb-you{text-align:center;font-size:12.5px;color:var(--text);background:rgba(90,209,255,.1);
+    border:1px solid rgba(90,209,255,.35);border-radius:11px;padding:9px;margin-bottom:14px}
+  .lb-you b{color:var(--accent);font-size:16px}
+  .lb-podium{display:grid;grid-template-columns:1fr 1.18fr 1fr;gap:7px;align-items:end;margin-bottom:16px}
+  .pod{text-align:center;border:1px solid var(--border);border-radius:14px;padding:10px 5px;cursor:pointer;
+    background:rgba(120,160,255,.06);transition:transform .15s}
+  .pod:hover{transform:translateY(-2px)}
+  .pod.p1{background:rgba(255,211,77,.13);border-color:rgba(255,211,77,.5);padding:16px 5px 12px}
+  .pod.p2{background:rgba(190,205,235,.09)}
+  .pod.p3{background:rgba(255,140,66,.10)}
+  .pod.me{box-shadow:0 0 0 1px var(--accent),0 0 14px rgba(90,209,255,.28)}
+  .pod-medal{font-size:19px;line-height:1}
+  .pod.p1 .pod-medal{font-size:24px}
+  .pod-av{width:34px;height:34px;margin:6px auto 5px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-size:17px;background:rgba(0,0,0,.28);color:var(--text)}
+  .pod.p1 .pod-av{width:42px;height:42px;font-size:21px}
+  .pod-nm{font-size:11.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pod-v{font-size:10.5px;color:var(--muted);margin-top:2px}
+  .lb-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:12px;background:rgba(120,160,255,.14);flex:0 0 auto}
+  /* Drill-down list modal */
+  #listmodal{position:fixed;inset:0;z-index:106;display:none;align-items:center;justify-content:center;padding:18px;
+    background:rgba(3,6,15,.8);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  #listmodal.show{display:flex}
+  .lm-card{width:min(420px,100%);max-height:82vh;overflow-y:auto;background:var(--panel-solid);
+    border:1px solid var(--border);border-radius:18px;padding:20px 16px;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+  #lm-close{position:absolute;top:12px;right:14px;width:28px;height:28px;display:flex;align-items:center;
+    justify-content:center;border-radius:50%;border:1px solid var(--border);background:rgba(120,160,255,.06);
+    color:var(--muted);cursor:pointer;font-size:14px}
+  #lm-title{font-size:14px;font-weight:700;margin-bottom:12px;padding-right:34px;color:var(--text)}
+  .lm-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:8px 2px;
+    border-bottom:1px solid rgba(120,160,255,.07);font-size:12.5px}
+  .lm-row:last-child{border-bottom:none}
+  .lm-n{color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lm-m{color:var(--muted);font-size:11px;flex:0 0 auto;font-variant-numeric:tabular-nums}
   /* Profile header */
   #fr-profile{margin:4px 0 12px}
   .fr-prof{display:flex;align-items:center;gap:11px;cursor:pointer;padding:4px 2px;border-radius:10px}
@@ -342,8 +385,15 @@
     display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex:0 0 auto}
   .fr-prof-id{flex:1;min-width:0}
   .fr-prof-name{font-size:15px;font-weight:600;color:var(--text)}
-  .fr-prof-sub{font-size:11.5px;color:var(--accent)}
-  #fr-profile .fr-del-un{flex:0 0 auto}
+  /* Profile icon picker (account menu) */
+  .acct-sec{margin:12px 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted)}
+  .icon-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-bottom:6px}
+  .icon-opt{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:17px;line-height:1;
+    border:1px solid var(--border);background:rgba(120,160,255,.05);border-radius:9px;cursor:pointer;padding:0}
+  .icon-opt:hover{background:rgba(90,209,255,.16);border-color:rgba(90,209,255,.5)}
+  .icon-opt.on{background:rgba(90,209,255,.24);border-color:var(--accent);box-shadow:0 0 8px rgba(90,209,255,.4)}
+  #accountmenu .act.danger{color:var(--iss)}
+  #accountmenu .act.danger:hover{border-color:var(--iss)}
   .fr-prof-stats{display:flex;border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-top:10px}
   .fr-prof-stats div{flex:1;text-align:center;padding:8px 4px}
   .fr-prof-stats div+div{border-left:1px solid var(--border)}
@@ -373,6 +423,21 @@
   #snapbtn:hover{background:rgba(90,209,255,.14);border-color:rgba(90,209,255,.5);color:var(--accent)}
   #snapbtn svg{display:block}
   .stg-ver{margin-top:12px;text-align:center;font-size:10.5px;color:var(--muted);letter-spacing:.5px}
+  .stg-sec{margin:18px 0 4px;padding-bottom:5px;border-bottom:1px solid var(--border);
+    font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:var(--accent)}
+  .stg-sec:first-of-type{margin-top:8px}
+  /* Live sighting reactions rising from the Feed button */
+  .feedfly{position:fixed;z-index:96;pointer-events:none;font-size:19px;line-height:1;
+    transform:translate(-50%,-50%);opacity:0;will-change:transform,opacity;
+    filter:drop-shadow(0 0 6px rgba(90,209,255,.75));animation:feedrise 2.1s cubic-bezier(.25,.6,.3,1) forwards}
+  @keyframes feedrise{
+    0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+    18%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}
+    100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)), calc(-50% - 130px)) scale(.85)}
+  }
+  #mb-feed.ping,#feedbtn.ping{color:var(--accent);border-color:rgba(90,209,255,.6);
+    box-shadow:0 0 16px rgba(90,209,255,.45)}
+  @media (prefers-reduced-motion:reduce){ .feedfly{display:none} }
   .fr-lb-ctrl{display:flex;gap:8px;margin-bottom:10px}
   .fr-lb-ctrl button{border:1px solid var(--border);background:rgba(120,160,255,.08);color:var(--text);border-radius:10px;padding:7px 11px;font-size:12px;font-weight:600;cursor:pointer}
   .fr-achbtn{width:100%;margin:8px 0 4px;border:1px solid rgba(255,211,77,.4);background:rgba(255,211,77,.1);color:#ffd34d;border-radius:11px;padding:10px;font-size:12px;font-weight:700;cursor:pointer}
@@ -800,24 +865,48 @@
   </div>
 </div>
 
+<div id="listmodal">
+  <div class="lm-card">
+    <div id="lm-close" aria-label="Close">✕</div>
+    <div id="lm-title">—</div>
+    <div id="lm-body"></div>
+  </div>
+</div>
+
 <div id="settings" class="panel">
   <div class="sheet-handle"></div>
   <div class="x" onclick="closeWindow('settings')" title="Close">✕</div>
   <h2>Settings</h2>
+
+  <div class="stg-sec">Map &amp; globe</div>
   <div class="stg">
-    <div class="lbl">Units<small>Altitude, speed &amp; range</small></div>
-    <div class="seg" id="seg-units">
-      <button data-v="metric">Metric</button>
-      <button data-v="imperial">Imperial</button>
-    </div>
-  </div>
-  <div class="stg">
-    <div class="lbl">Globe<small>Map texture</small></div>
+    <div class="lbl">Globe texture<small>Blue marble, night lights, dark, satellite</small></div>
     <div class="seg" id="seg-theme">
       <button data-v="blue">Blue</button>
       <button data-v="night">Night</button>
       <button data-v="dark">Dark</button>
       <button data-v="sat">Sat</button>
+    </div>
+  </div>
+  <div class="stg">
+    <div class="lbl">Country borders<small>Outlines &amp; names</small></div>
+    <div class="switch" id="sw-borders" role="switch"></div>
+  </div>
+  <div class="stg">
+    <div class="lbl">Show ISS orbit path<small>Red trajectory arc</small></div>
+    <div class="switch" id="sw-isspath" role="switch"></div>
+  </div>
+  <div class="stg">
+    <div class="lbl">Auto-rotate globe<small>Spin gently when idle</small></div>
+    <div class="switch" id="sw-rotate" role="switch"></div>
+  </div>
+
+  <div class="stg-sec">Units &amp; time</div>
+  <div class="stg">
+    <div class="lbl">Units<small>Altitude, speed &amp; range</small></div>
+    <div class="seg" id="seg-units">
+      <button data-v="metric">Metric</button>
+      <button data-v="imperial">Imperial</button>
     </div>
   </div>
   <div class="stg">
@@ -827,22 +916,18 @@
       <button data-v="24">24h</button>
     </div>
   </div>
+
+  <div class="stg-sec">Sound</div>
   <div class="stg">
-    <div class="lbl">Auto-rotate globe<small>Spin gently when idle</small></div>
-    <div class="switch" id="sw-rotate" role="switch"></div>
+    <div class="lbl">Interface sounds<small>Clicks &amp; toggles</small></div>
+    <div class="switch" id="sw-sounds" role="switch"></div>
   </div>
   <div class="stg">
     <div class="lbl">Ambient music<small>Soft celestial background</small></div>
     <div class="switch" id="sw-music" role="switch"></div>
   </div>
-  <div class="stg">
-    <div class="lbl">Show ISS orbit path<small>Red trajectory arc</small></div>
-    <div class="switch" id="sw-isspath" role="switch"></div>
-  </div>
-  <div class="stg">
-    <div class="lbl">Country borders<small>Outlines &amp; names</small></div>
-    <div class="switch" id="sw-borders" role="switch"></div>
-  </div>
+
+  <div class="stg-sec">Passes &amp; alerts</div>
   <div class="stg">
     <div class="lbl">Overhead cutoff<small>Min. elevation to list a pass</small></div>
     <div class="seg" id="seg-cutoff">
@@ -862,6 +947,7 @@
     <label class="ng"><span>Brightest satellites</span><span class="switch sm" id="nt-visual"></span></label>
     <label class="ng"><span>🚀 Rocket launches</span><span class="switch sm" id="nt-rocket"></span></label>
   </div>
+  <div class="stg-sec">App</div>
   <div class="note" id="stg-note"></div>
   <button id="sharebtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.7 15.7 6.3M8.3 13.3l7.4 4.4"/></svg> Share this app</button>
   <button id="tourbtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.7-.9 1.4v.3"/><path d="M12 16.5h.01"/></svg> Take the tour</button>
@@ -1033,7 +1119,7 @@
 </script>
 
 <script>
-const BUILD = 'v59';           // shown in Settings so you can confirm what's deployed
+const BUILD = 'v65';           // shown in Settings so you can confirm what's deployed
 const EARTH_R = 6371;          // km
 const IS_MOBILE = window.matchMedia('(max-width:820px)').matches || window.matchMedia('(pointer:coarse)').matches;
 const UPDATE_MS = IS_MOBILE ? 600 : 200;         // gentler propagation cadence on phones
@@ -1081,7 +1167,7 @@ let timeOffsetMs=0, timeSpeed=1, timePlaying=false, timeRAF=null, timeLastTs=0;
 function simNow(){ return Date.now()+timeOffsetMs; }
 // User preferences (synced to the signed-in account)
 const prefs = { units:'metric', time:'24', autorotate:true, issPath:true, cutoff:0, music:true,
-  notify:false, notifyGroups:{ iss:true, stations:false, visual:false, rocket:true }, favs:[], theme:'blue', borders:false };
+  notify:false, notifyGroups:{ iss:true, stations:false, visual:false, rocket:true }, favs:[], theme:'blue', borders:false, sounds:true };
 // Favorites (starred sats) + client-side filters (no network).
 let favs = new Set();
 let seenSet = new Set();  // ids of satellites you've marked "seen" (from your profile)
@@ -1100,6 +1186,40 @@ function showToast(msg, ok){
   t.textContent=msg; t.className='show'+(ok?' ok':'');
   clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'), 3600);
 }
+
+/* ---------- Interface sounds (tiny synthesized blips) ---------- */
+const SFX = (function(){
+  let ctx=null;
+  function ac(){
+    if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } }
+    if(ctx.state==='suspended'){ try{ ctx.resume(); }catch(e){} }
+    return ctx;
+  }
+  function blip(freq, dur, type, vol, slideTo, delay){
+    const c=ac(); if(!c) return;
+    const t0=c.currentTime+(delay||0);
+    const o=c.createOscillator(), g=c.createGain();
+    o.type=type||'sine';
+    o.frequency.setValueAtTime(freq, t0);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0+dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol||0.05, t0+0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(t0); o.stop(t0+dur+0.03);
+  }
+  const play=fn=>{ if(prefs.sounds) fn(); };
+  return {
+    on(){      play(()=>blip(520,.13,'sine',.07,900)); },        // setting enabled — rising
+    off(){     play(()=>blip(520,.13,'sine',.06,280)); },        // setting disabled — falling
+    nav(){     play(()=>blip(300,.075,'triangle',.055)); },      // nav / panel buttons — soft thunk
+    tap(){     play(()=>blip(760,.045,'triangle',.032)); },      // generic controls — light tick
+    select(){  play(()=>blip(880,.09,'sine',.05,1250)); },       // picking an object on the map
+    success(){ play(()=>{ blip(660,.1,'sine',.06,990); blip(990,.13,'sine',.05,1320,.09); }); },
+    force:{ on(){ blip(520,.13,'sine',.07,900); }, off(){ blip(520,.13,'sine',.06,280); } }   // ignore the mute flag
+  };
+})();
+function sfxToggle(on){ on ? SFX.on() : SFX.off(); }
 
 /* ---------- Ambient "celestial" music (Web Audio, synthesized live) ---------- */
 const Music = (function(){
@@ -1589,8 +1709,10 @@ function renderFrame(){
   if(usePoints){ overhead=renderPoints(); }              // sats on the GPU
   else { const r=renderHtml(); overhead=r.overhead; satHtml=r.list; }   // sats as HTML markers
   // Launch-pad pins + the selected-satellite highlight ride the HTML-elements layer.
-  // launches can't be "seen"/"favorited", so hide their pins while those filters are on
-  const extra = (enabled['rocket'] && !favOnly && !seenOnly) ? launchPins.filter(p=>p.lat!=null) : [];
+  // Launch pads aren't orbiting objects, so any satellite-specific filter hides them
+  // (orbit band, favorites, or seen).
+  const pinsOk = enabled['rocket'] && !favOnly && !seenOnly && altFilter==='all';
+  const extra = pinsOk ? launchPins.filter(p=>p.lat!=null) : [];
   if(selected && selected.lat!=null){
     selMarker.lat=selected.lat; selMarker.lng=selected.lng; selMarker.alt=selected.alt; extra.push(selMarker);
   }
@@ -2014,6 +2136,7 @@ function expandDetail(){ const d=$('detail'); if(d) d.classList.remove('collapse
 function collapseDetail(){ const d=$('detail'); if(d){ d.classList.add('collapsed');
   const lbl=$('d-more-lbl'); if(lbl) lbl.textContent = isMobile() ? 'Swipe up for details' : 'Click for details'; } }
 function selectSat(s){
+  SFX.select();
   selected=s; selectedLaunch=null;
   $('detail').classList.remove('launch'); collapseDetail();   // open showing just name + action buttons
   const act=$('d-actions'); if(act) act.style.display='';
@@ -2224,21 +2347,23 @@ function doSearch(q){
 
 /* ---------- Filters + autocomplete ---------- */
 function initFilters(){
+  // Filters apply to the map, so close the sheet and hand the user straight back to it.
+  const backToMap=()=>{ if(isMobile()) closeSheets(); };
   document.querySelectorAll('#fseg-alt button').forEach(b=>b.onclick=()=>{
     altFilter=b.dataset.v;
     document.querySelectorAll('#fseg-alt button').forEach(x=>x.classList.toggle('sel', x===b));
-    renderFrame();
+    renderFrame(); backToMap();
   });
   const ft=$('fav-toggle');
   if(ft) ft.onclick=()=>{ favOnly=!favOnly; ft.classList.toggle('on', favOnly);
     if(favOnly && favs.size===0) showToast('No favorites yet — open a satellite and tap ☆ Favorite.');
-    renderFrame(); };
+    renderFrame(); backToMap(); };
   const st=$('seen-toggle');
   if(st) st.onclick=()=>{ seenOnly=!seenOnly; st.classList.toggle('on', seenOnly);
     if(seenOnly && seenSet.size===0) showToast(currentUser
       ? 'Nothing marked seen yet — open a satellite and tap 👁 Mark as seen.'
       : 'Sign in and mark satellites as “seen” to use this filter.');
-    renderFrame(); };
+    renderFrame(); backToMap(); };
   const inp=$('search');
   if(inp){
     inp.addEventListener('input', ()=>renderAutocomplete(inp.value));
@@ -2774,6 +2899,7 @@ function applyPrefs(){
   if(prefs.music){ if(!Music.isRunning()) armMusic(); } else { Music.stop(); }
   $('sw-isspath').classList.toggle('on', prefs.issPath);
   if($('sw-borders')) $('sw-borders').classList.toggle('on', prefs.borders);
+  if($('sw-sounds')) $('sw-sounds').classList.toggle('on', prefs.sounds);
   $('sw-notify').classList.toggle('on', prefs.notify);
   $('notify-groups').classList.toggle('show', prefs.notify);
   ['iss','stations','visual','rocket'].forEach(k=>{ const el=$('nt-'+k); if(el) el.classList.toggle('on', !!(prefs.notifyGroups&&prefs.notifyGroups[k])); });
@@ -2789,18 +2915,25 @@ function initSettingsUI(){
   document.querySelectorAll('#seg-time button').forEach(b=>b.onclick=()=>{ prefs.time=b.dataset.v; applyPrefs(); saveSettings(); });
   document.querySelectorAll('#seg-cutoff button').forEach(b=>b.onclick=()=>{ prefs.cutoff=+b.dataset.v; applyPrefs(); saveSettings(); });
   document.querySelectorAll('#seg-theme button').forEach(b=>b.onclick=()=>{ prefs.theme=b.dataset.v; applyPrefs(); saveSettings(); });
-  $('sw-rotate').onclick=()=>{ prefs.autorotate=!prefs.autorotate; applyPrefs(); saveSettings(); };
-  $('sw-music').onclick=()=>{ prefs.music=!prefs.music; if(prefs.music) Music.start(); else Music.stop(); applyPrefs(); saveSettings(); };
-  $('sw-isspath').onclick=()=>{ prefs.issPath=!prefs.issPath; applyPrefs(); saveSettings(); };
-  if($('sw-borders')) $('sw-borders').onclick=()=>{ prefs.borders=!prefs.borders; applyPrefs(); saveSettings(); applyBorders(); };
+  $('sw-rotate').onclick=()=>{ prefs.autorotate=!prefs.autorotate; sfxToggle(prefs.autorotate); applyPrefs(); saveSettings(); };
+  $('sw-music').onclick=()=>{ prefs.music=!prefs.music; sfxToggle(prefs.music); if(prefs.music) Music.start(); else Music.stop(); applyPrefs(); saveSettings(); };
+  $('sw-isspath').onclick=()=>{ prefs.issPath=!prefs.issPath; sfxToggle(prefs.issPath); applyPrefs(); saveSettings(); };
+  if($('sw-borders')) $('sw-borders').onclick=()=>{ prefs.borders=!prefs.borders; sfxToggle(prefs.borders); applyPrefs(); saveSettings(); applyBorders(); };
+  // Sound switch plays its own confirmation either way (bypassing the mute flag when turning off).
+  if($('sw-sounds')) $('sw-sounds').onclick=()=>{
+    if(prefs.sounds){ SFX.force.off(); prefs.sounds=false; } else { prefs.sounds=true; SFX.force.on(); }
+    applyPrefs(); saveSettings();
+  };
   $('sw-notify').onclick=async ()=>{
     if(!prefs.notify){ const ok=await enableNotifications(); if(!ok) return; prefs.notify=true; }
     else prefs.notify=false;
+    sfxToggle(prefs.notify);
     applyPrefs(); saveSettings(); if(prefs.notify) scanAlerts();
   };
   ['iss','stations','visual','rocket'].forEach(k=>{
     const sw=$('nt-'+k); if(!sw) return;
-    (sw.closest('.ng')||sw).onclick=()=>{ prefs.notifyGroups[k]=!prefs.notifyGroups[k]; applyPrefs(); saveSettings();
+    (sw.closest('.ng')||sw).onclick=()=>{ prefs.notifyGroups[k]=!prefs.notifyGroups[k]; sfxToggle(prefs.notifyGroups[k]);
+      applyPrefs(); saveSettings();
       if(k==='rocket') scanLaunchAlerts(); else scanAlerts(); };
   });
   $('settingsbtn').onclick=(e)=>{ e.stopPropagation(); $('accountmenu').classList.remove('open'); toggleSheet('settings'); };
@@ -2891,7 +3024,7 @@ function collectSettings(){
   let zoom=null; try{ zoom=world.pointOfView().altitude; }catch(e){}
   return { groups, lat: observer?observer.lat:null, lng: observer?observer.lng:null, zoom,
     units: prefs.units, time: prefs.time, autorotate: prefs.autorotate, issPath: prefs.issPath, cutoff: prefs.cutoff, music: prefs.music,
-    notify: prefs.notify, notifyGroups: prefs.notifyGroups, favs: prefs.favs, theme: prefs.theme, borders: prefs.borders,
+    notify: prefs.notify, notifyGroups: prefs.notifyGroups, favs: prefs.favs, theme: prefs.theme, borders: prefs.borders, sounds: prefs.sounds,
     sightLog: sightLog.slice(-SLOG_MAX),   // private: users/{uid} is owner-only
     updatedAt: Date.now() };
 }
@@ -2910,6 +3043,7 @@ function applySettings(s){
     if(typeof s.units==='string') prefs.units=s.units;
     if(typeof s.theme==='string' && THEMES[s.theme]) prefs.theme=s.theme;
     if(typeof s.borders==='boolean') prefs.borders=s.borders;
+    if(typeof s.sounds==='boolean') prefs.sounds=s.sounds;
     mergeSightLog(s.sightLog);   // union device + account sighting history
     if(s.time==='12'||s.time==='24') prefs.time=s.time;
     if(typeof s.music==='boolean') prefs.music=s.music;
@@ -2939,6 +3073,24 @@ function applySettings(s){
   } finally { applyingRemote=false; }
 }
 
+// Themed profile icons the user can pick from (account menu).
+const PROFILE_ICONS = ['🛰️','🚀','🪐','🌍','🌎','🌏','🌕','🌙','🌛','⭐','🌟','✨','💫','☄️','🌠',
+  '🔭','📡','🛸','👨‍🚀','👩‍🚀','🌌','☀️','🌞','🌈','⚡','🧭','🎯','🏆','🔥','🦾'];
+// The glyph shown in an avatar: the chosen icon, else the first letter of the username.
+function avatarGlyph(p, uname){
+  if(p && p.icon) return p.icon;
+  const n=(uname||(p&&p.username)||'?');
+  return (n[0]||'?').toUpperCase();
+}
+async function saveProfileIcon(icon){
+  if(!currentUser||!window.fb||!myProfile){ return; }
+  const {db, doc, setDoc}=window.fb;
+  try{
+    await setDoc(doc(db,'profiles',currentUser.uid), {icon}, {merge:true});
+    if(myProfile.unameLower){ try{ await setDoc(doc(db,'usernames',myProfile.unameLower), {icon}, {merge:true}); }catch(e){} }
+    showToast(icon+' Profile icon updated', true);
+  }catch(e){ console.error(e); showErr('Could not save icon: '+(e.code||e.message||e)); }
+}
 function updateAccountUI(user){
   const btn=$('account'), menu=$('accountmenu');
   const note=$('stg-note'); if(note) note.textContent = user
@@ -2953,12 +3105,19 @@ function updateAccountUI(user){
         <div><div class="nm">${user.displayName||'Signed in'}</div><div class="em">${user.email||''}</div></div>
       </div>
       <div class="acct-uname">${(myProfile&&myProfile.username)?('@'+myProfile.username+' · 🏅 '+(myProfile.badges||0)+' badges'):'<span class="lnk" id="acct-setuname">+ choose a username</span>'}</div>
+      ${(myProfile&&myProfile.username)?`
+      <div class="acct-sec">Profile icon</div>
+      <div class="icon-grid" id="icon-grid">${PROFILE_ICONS.map(ic=>
+        `<button class="icon-opt${(myProfile.icon||'')===ic?' on':''}" data-ic="${ic}">${ic}</button>`).join('')}</div>`:''}
       <button class="act" id="acct-friends">👥 Friends</button>
       <button class="act" id="signout">Sign out</button>
+      ${(myProfile&&myProfile.username)?'<button class="act danger" id="acct-deluname">Delete username</button>':''}
       <div class="note bot">✓ Your location & settings sync to your account across devices.</div>`;
     const so=$('signout'); if(so) so.onclick=()=>{ signOutUser(); menu.classList.remove('open'); };
     const af=$('acct-friends'); if(af) af.onclick=()=>{ menu.classList.remove('open'); openSheet('friends'); };
     const su=$('acct-setuname'); if(su) su.onclick=()=>{ menu.classList.remove('open'); openSheet('friends'); };
+    const du=$('acct-deluname'); if(du) du.onclick=()=>{ menu.classList.remove('open'); deleteUsername(); };
+    menu.querySelectorAll('.icon-opt').forEach(b=>b.onclick=()=>saveProfileIcon(b.dataset.ic));
   } else {
     btn.innerHTML = USER_ICON;
     menu.innerHTML = `
@@ -3026,7 +3185,9 @@ function startSocial(user){
   const {db, doc, collection, onSnapshot}=window.fb;
   if(unsubMyProfile) unsubMyProfile();
   unsubMyProfile = onSnapshot(doc(db,'profiles',user.uid), s=>{
-    myProfile = s.exists()? s.data() : null; rebuildSeenSet(); renderMe(); updateAccountUI(currentUser); renderLeaderboard(); renderHero();
+    myProfile = s.exists()? s.data() : null; rebuildSeenSet(); backfillSightLog();
+    renderMe(); updateAccountUI(currentUser); renderLeaderboard(); renderHero();
+    if(feedScope==='mine') renderFeed();
     if(selectedLaunch) renderLaunchDetail(selectedLaunch);
   }, err=>console.warn('profile sub',err));
   if(unsubFriends) unsubFriends();
@@ -3041,7 +3202,7 @@ function startSocial(user){
         friendProfileUnsubs[fid]=onSnapshot(doc(db,'profiles',fid), ps=>{
           if(ps.exists()){ const p=ps.data();
             f.username=p.username||f.username; f.displayName=p.displayName||f.displayName; f.photoURL=p.photoURL||f.photoURL;
-            f.lat=(typeof p.lat==='number')?p.lat:null; f.lng=(typeof p.lng==='number')?p.lng:null; f.lastSeen=p.lastSeen||0; f.badges=p.badges||0; }
+            f.lat=(typeof p.lat==='number')?p.lat:null; f.lng=(typeof p.lng==='number')?p.lng:null; f.lastSeen=p.lastSeen||0; f.badges=p.badges||0; f.icon=p.icon||''; }
           renderFriends(); evalFriendStatus();
         }, err=>{});
       } else { f.username=base.username||f.username; }
@@ -3059,7 +3220,7 @@ function startSocial(user){
     renderRequests();
   }, err=>console.warn('requests sub',err));
   loadAllUsers();
-  startPresence(); shareLocation(); startPings(user.uid);
+  startPresence(); shareLocation(); startPings(user.uid); startFeedWatch();
   if(friendsTick) clearInterval(friendsTick);
   friendsTick=setInterval(evalFriendStatus, 6000);   // catch offline (time-based) transitions
   renderMe();
@@ -3069,6 +3230,7 @@ function stopSocial(){
   if(unsubFriends){ unsubFriends(); unsubFriends=null; }
   if(unsubRequests){ unsubRequests(); unsubRequests=null; }
   if(unsubPings){ unsubPings(); unsubPings=null; }
+  if(unsubFeedWatch){ unsubFeedWatch(); unsubFeedWatch=null; }
   Object.values(friendProfileUnsubs).forEach(u=>{ try{u();}catch(e){} }); friendProfileUnsubs={};
   friends=[]; myProfile=null; incomingReqs=[]; allUsers=[]; sentRequests=new Set(); pinnedFriends.clear();
   rebuildSeenSet();   // clears the seen set on sign-out
@@ -3177,6 +3339,20 @@ function pushSightLog(entry){
   if(sightLog.length>SLOG_MAX) sightLog=sightLog.slice(-SLOG_MAX);
   saveSightLogLocal(); saveSettings();       // saveSettings syncs it to users/{uid}
 }
+// Rebuild log entries from sightings recorded before the log existed.
+// Each seen entry keeps its first (ts) and most recent (last) timestamp, so we can recover those.
+function backfillSightLog(){
+  if(!myProfile || !Array.isArray(myProfile.seen)) return;
+  const have=new Set(sightLog.map(x=>x.id+':'+x.ts));
+  let changed=false;
+  const add=(e,ts)=>{ const k=e.id+':'+ts; if(!ts || have.has(k)) return;
+    have.add(k); sightLog.push({id:e.id, name:e.name, kind:e.kind||'sat', how:e.how, ts}); changed=true; };
+  for(const e of myProfile.seen){ if(!e || !e.id) continue;
+    const first=e.ts||e.last; add(e, first); if(e.last && e.last!==first) add(e, e.last); }
+  if(changed){ sightLog.sort((a,b)=>a.ts-b.ts);
+    if(sightLog.length>SLOG_MAX) sightLog=sightLog.slice(-SLOG_MAX);
+    saveSightLogLocal(); saveSettings(); }
+}
 function mergeSightLog(remote){
   if(!Array.isArray(remote)) return;
   const seen=new Set(sightLog.map(x=>x.id+':'+x.ts));
@@ -3202,6 +3378,7 @@ async function logSighting(s, ts){
   if(i>=0){ list[i].count=(list[i].count||1)+1; list[i].last=Math.max(list[i].last||list[i].ts||0, ts); n=list[i].count; }
   else { list.push({id:s.id, name:s.name, kind:'sat', group:s.group, oc:orbitClass(s), ts, last:ts, count:1}); n=1; }
   try{ await commitSeen(list, addSightDay(myProfile.sightDays, ts));
+    SFX.success();
     showToast(n===1?('🏅 New badge: '+s.name):('👁 Sighting #'+n+' logged: '+s.name), true);
     pushSightLog({id:s.id, name:s.name, kind:'sat', ts});
     postFeed({name:s.name, id:s.id, kind:'sat', n});     // every sighting posts
@@ -3274,7 +3451,7 @@ function renderHero(){
   if(!currentUser){ el.innerHTML='<div class="fr-note">Sign in (account icon, top-right) to start your journey.</div>'; return; }
   const st=statsFromProfile(myProfile||{}), earned=achEarned(st), score=scoreOf(st,earned);
   const earnedSet=new Set(earned.map(a=>a.id));
-  const uname=(myProfile&&myProfile.username)||'you', ini=(uname[0]||'?').toUpperCase();
+  const uname=(myProfile&&myProfile.username)||'you', ini=avatarGlyph(myProfile, uname);
   let since='';
   try{ const t=currentUser.metadata && currentUser.metadata.creationTime;
     if(t) since=new Date(t).toLocaleDateString([], {month:'long', year:'numeric'}); }catch(e){}
@@ -3287,8 +3464,8 @@ function renderHero(){
       (since?'<div class="hero-since">Member since '+since+'</div>':'')+
       '<div class="hero-score">'+score+' <span>points</span></div></div>'+
     '<div class="hero-stats">'+
-      '<div><b>'+st.badges+'</b><span>objects</span></div>'+
-      '<div><b>'+st.sightings+'</b><span>sightings</span></div>'+
+      '<div class="hs-click" id="hs-objects"><b>'+st.badges+'</b><span>objects ›</span></div>'+
+      '<div class="hs-click" id="hs-sightings"><b>'+st.sightings+'</b><span>sightings ›</span></div>'+
       '<div><b>'+st.maxStreak+'</b><span>best streak</span></div>'+
       '<div><b>'+earned.length+'/'+ACH.length+'</b><span>awards</span></div>'+
     '</div>'+
@@ -3299,9 +3476,45 @@ function renderHero(){
     '<div class="ach-grid">'+ACH.map(a=>{ const on=earnedSet.has(a.id);
       return '<div class="ach-item'+(on?' on':'')+'"><div class="ach-ic">'+a.ic+'</div>'+
         '<div class="ach-txt"><b>'+a.n+'</b><span>'+a.d+'</span></div>'+
-        (on?'<span class="ach-pts">+'+a.p+'</span>':'<span class="ach-lock">🔒</span>')+'</div>'; }).join('')+'</div>'+
-    '<button id="bd-log" class="fr-addbtn">🗒 View my full sighting log</button>';
-  const lg=$('bd-log'); if(lg) lg.onclick=openMyAchievements;
+        (on?'<span class="ach-pts">+'+a.p+'</span>':'<span class="ach-lock">🔒</span>')+'</div>'; }).join('')+'</div>';
+  const ob=$('hs-objects'); if(ob) ob.onclick=showObjectsList;
+  const sg=$('hs-sightings'); if(sg) sg.onclick=showSightingsList;
+}
+/* ---------- Drill-down lists (objects / sightings) ---------- */
+function openList(title, html){
+  $('lm-title').textContent=title; $('lm-body').innerHTML=html; $('listmodal').classList.add('show');
+}
+function showObjectsList(){
+  const seen=(myProfile && Array.isArray(myProfile.seen)) ? myProfile.seen.slice() : [];
+  if(!seen.length) return openList('Objects seen', '<div class="fr-note">Nothing logged yet.</div>');
+  seen.sort((a,b)=>(b.count||1)-(a.count||1) || ((b.last||b.ts||0)-(a.last||a.ts||0)));
+  openList('Objects seen · '+seen.length, seen.map(e=>
+    '<div class="lm-row"><span class="lm-n">'+(e.kind==='launch'?'🚀 ':'🛰️ ')+esc(e.name||'—')+'</span>'+
+    '<span class="lm-m">'+(e.count||1)+'× · last '+fmtSeen(e.last||e.ts)+'</span></div>').join(''));
+}
+function showSightingsList(){
+  backfillSightLog();
+  if(!sightLog.length) return openList('Sightings', '<div class="fr-note">Nothing logged yet.</div>');
+  const rows=sightLog.slice().sort((a,b)=>b.ts-a.ts);
+  openList('Sightings · '+rows.length, rows.map(x=>
+    '<div class="lm-row"><span class="lm-n">'+(x.kind==='launch'?'🚀 ':'🛰️ ')+esc(x.name||'—')+'</span>'+
+    '<span class="lm-m">'+fmtSeen(x.ts)+(x.how?(' · '+(x.how==='person'?'in person':'overhead')):'')+'</span></div>').join(''));
+}
+// One delegated listener gives every control a click sound. Switches are skipped —
+// their own handlers play the on/off tone so the pitch matches the resulting state.
+function initClickSounds(){
+  document.addEventListener('pointerdown', e=>{
+    if(!prefs.sounds) return;
+    const t=e.target;
+    if(t.closest('.switch')) return;                                   // handled per-switch
+    if(t.closest('#mbar button, #topbar button, .fr-tabs button, .ob-btns button')){ SFX.nav(); return; }
+    if(t.closest('button, .lg, .ac-item, .ll-card, .lb-row, .pod, .icon-opt, .feed-row, .oh, .lm-row, .ach-item, .fr-item, .d-photo'))
+      SFX.tap();
+  }, true);
+}
+function initListModal(){
+  const c=$('lm-close'); if(c) c.onclick=()=>$('listmodal').classList.remove('show');
+  const m=$('listmodal'); if(m) m.addEventListener('click', e=>{ if(e.target===m) m.classList.remove('show'); });
 }
 function initAchievements(){
   const c=$('ach-close'); if(c) c.onclick=()=>$('achieve').classList.remove('show');
@@ -3333,7 +3546,10 @@ function timeAgo(ts){ const s=Math.max(1,Math.round((Date.now()-ts)/1000));
 function renderFeed(){
   const el=$('fr-feed'); if(!el) return;
   if(feedScope==='mine'){          // your private lifetime log (device + your own account doc)
-    if(!sightLog.length){ el.innerHTML='<div class="fr-note">No sightings logged yet — open an object and tap “Log a sighting”.</div>'; return; }
+    backfillSightLog();            // pull in sightings recorded before the log existed
+    if(!sightLog.length){ el.innerHTML='<div class="fr-note">'+(currentUser
+      ? 'No sightings logged yet — open an object and tap “Log a sighting”.'
+      : 'Sign in to see your sighting history.')+'</div>'; return; }
     const rows=sightLog.slice().sort((a,b)=>b.ts-a.ts).slice(0,200);
     el.innerHTML='<div class="fr-total">'+sightLog.length+' lifetime sighting'+(sightLog.length===1?'':'s')+' · private to you</div>'+
       rows.map(x=>'<div class="feed-row"><span class="feed-u">You</span> spotted <b>'+esc(x.name||'—')+'</b>'+
@@ -3349,6 +3565,46 @@ function renderFeed(){
   el.innerHTML=items.map((x,i)=>'<div class="feed-row" data-i="'+i+'"><span class="feed-u">@'+esc(x.username||'user')+'</span> '+
     esc(verb(x))+' <b>'+esc(x.name||'an object')+'</b><span class="feed-t">'+timeAgo(x.ts)+'</span></div>').join('');
   el.querySelectorAll('.feed-row').forEach(r=>r.onclick=()=>{ const x=items[+r.dataset.i]; if(x&&x.id) openTarget({type:x.kind==='launch'?'launch':'sat', id:x.id}); });
+}
+
+/* ---------- Live sighting reactions (icons rising from the Feed button) ---------- */
+let unsubFeedWatch=null, feedWatchStart=0;
+function feedAnchor(){   // whichever Feed button is actually visible (nav bar on mobile, topbar on desktop)
+  return [$('mb-feed'), $('feedbtn')].find(b=>b && b.offsetParent!==null) || null;
+}
+function flyFeedIcon(kind, n){
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const btn=feedAnchor(); if(!btn) return;
+  const r=btn.getBoundingClientRect(), glyph = kind==='launch' ? '🚀' : '🛰️';
+  const count=Math.max(1, Math.min(n||3, 5));
+  for(let i=0;i<count;i++){
+    const el=document.createElement('div');
+    el.className='feedfly'; el.textContent=glyph;
+    el.style.left=(r.left + r.width/2)+'px';
+    el.style.top=(r.top + r.height/2)+'px';
+    el.style.setProperty('--dx', (Math.random()*70-35).toFixed(0)+'px');
+    el.style.animationDelay=(i*130 + Math.random()*90).toFixed(0)+'ms';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 2600);
+  }
+  btn.classList.add('ping'); setTimeout(()=>btn.classList.remove('ping'), 600);
+}
+function startFeedWatch(){
+  if(!window.fb || !window.fb.orderBy) return;
+  const {db, collection, query, orderBy, limit, onSnapshot}=window.fb;
+  if(unsubFeedWatch) unsubFeedWatch();
+  feedWatchStart=Date.now();
+  unsubFeedWatch=onSnapshot(query(collection(db,'feed'), orderBy('ts','desc'), limit(15)), snap=>{
+    snap.docChanges().forEach(ch=>{
+      if(ch.type!=='added') return;
+      const d=ch.doc.data();
+      if(!d || !d.ts || d.ts<=feedWatchStart) return;      // skip the initial backlog
+      flyFeedIcon(d.kind);
+      if(!feedItems.some(x=>x.ts===d.ts && x.uid===d.uid)){
+        feedItems.unshift(d); if(feedScope!=='mine') renderFeed();
+      }
+    });
+  }, err=>console.warn('feed watch', err));
 }
 
 /* ---------- Ping a friend to look up ---------- */
@@ -3486,22 +3742,51 @@ function showReqPop(r){
   clearTimeout(pop._tm); pop._tm=setTimeout(()=>pop.classList.remove('show'), 12000);
 }
 function hideReqPop(){ const pop=$('reqpop'); if(pop) pop.classList.remove('show'); }
-let lbFriendsOnly=false;
+let lbFriendsOnly=false, lbSort='score';
+const LB_SORTS={ score:'Points', badges:'Objects', sightings:'Sightings', streak:'Streak' };
 function renderLeaderboard(){
   const el=$('fr-leader'); if(!el) return;
-  if(!currentUser){ el.innerHTML='<div class="fr-note">Sign in to see the leaderboard.</div>'; return; }
+  if(!currentUser){ el.innerHTML='<div class="fr-note">Sign in to enter the rankings.</div>'; return; }
   const friendIds=new Set(friends.map(f=>f.uid));
   let rows=allUsers.filter(u=>!lbFriendsOnly || friendIds.has(u.uid))
-    .map(u=>({username:u.username, badges:u.badges||0, score:u.score||0, uid:u.uid, ach:u.ach||[], sightings:u.sightings||0, streak:u.streak||0}));
+    .map(u=>({username:u.username, icon:u.icon||'', badges:u.badges||0, score:u.score||0,
+      sightings:u.sightings||0, streak:u.streak||0, uid:u.uid, ach:u.ach||[]}));
   if(myProfile && myProfile.username){ const st=statsFromProfile(myProfile), e=achEarned(st);
-    rows.push({username:myProfile.username, badges:st.badges, score:scoreOf(st,e), uid:currentUser.uid, ach:e.map(a=>a.id), sightings:st.sightings, streak:st.maxStreak, self:true}); }
-  rows.sort((a,b)=>(b.score||0)-(a.score||0) || (b.badges||0)-(a.badges||0));
-  const top=rows.filter(r=>r.score>0 || r.badges>0).slice(0,50);
-  if(!top.length){ el.innerHTML='<div class="fr-note">'+(lbFriendsOnly?'No friends on the board yet.':'No sightings logged yet — open a satellite and tap “Log a sighting”.')+'</div>'; return; }
-  const medal=['🥇','🥈','🥉'];
-  el.innerHTML=top.map((r,i)=>'<div class="lb-row'+(r.self?' me':'')+'" data-uid="'+r.uid+'"><span class="lb-rank">'+(medal[i]||('#'+(i+1)))+'</span>'+
-    '<span class="lb-nm">@'+r.username+(r.self?' (you)':'')+'</span><span class="lb-ct">'+r.score+' pts · 🏅 '+r.badges+'</span></div>').join('');
-  el.querySelectorAll('.lb-row').forEach(row=>row.onclick=()=>{ const u=top.find(x=>x.uid===row.dataset.uid); if(u) openAchievements(u); });
+    rows.push({username:myProfile.username, icon:myProfile.icon||'', badges:st.badges, score:scoreOf(st,e),
+      sightings:st.sightings, streak:st.maxStreak, uid:currentUser.uid, ach:e.map(a=>a.id), self:true}); }
+  const k=lbSort;
+  rows = rows.filter(r=>r.score>0 || r.badges>0).sort((a,b)=>(b[k]||0)-(a[k]||0) || (b.score||0)-(a.score||0));
+  const sorts='<div class="lb-sorts">'+Object.keys(LB_SORTS).map(s=>
+    '<button class="lb-sort'+(s===k?' on':'')+'" data-k="'+s+'">'+LB_SORTS[s]+'</button>').join('')+'</div>';
+  if(!rows.length){ el.innerHTML=sorts+'<div class="fr-note">'+(lbFriendsOnly
+    ? 'None of your friends are on the board yet.'
+    : 'Nobody has logged a sighting yet — be the first to claim the top spot.')+'</div>'; wireLb(el, rows); return; }
+  const val=r=> k==='score'?(r.score+' pts') : k==='badges'?(r.badges+' objects')
+              : k==='sightings'?(r.sightings+' sightings') : (r.streak+'-day streak');
+  const av=r=> r.icon || ((r.username||'?')[0]||'?').toUpperCase();
+  const myIdx=rows.findIndex(r=>r.self);
+  let h=sorts;
+  if(myIdx>=0) h+='<div class="lb-you">'+(myIdx===0?'👑 You are <b>#1</b>':'You are <b>#'+(myIdx+1)+'</b>')+
+    ' of '+rows.length+' · '+val(rows[myIdx])+'</div>';
+  const top=rows.slice(0,3), order=[1,0,2].filter(i=>top[i]);
+  h+='<div class="lb-podium">'+order.map(i=>{ const r=top[i], place=i+1;
+      return '<div class="pod p'+place+(r.self?' me':'')+'" data-uid="'+r.uid+'">'+
+        '<div class="pod-medal">'+(place===1?'🥇':place===2?'🥈':'🥉')+'</div>'+
+        '<div class="pod-av">'+av(r)+'</div>'+
+        '<div class="pod-nm">@'+esc(r.username)+'</div>'+
+        '<div class="pod-v">'+val(r)+'</div></div>'; }).join('')+'</div>';
+  const rest=rows.slice(3,60);
+  if(rest.length) h+='<div class="fr-sub">The field</div>'+rest.map((r,i)=>
+    '<div class="lb-row'+(r.self?' me':'')+'" data-uid="'+r.uid+'"><span class="lb-rank">#'+(i+4)+'</span>'+
+    '<span class="lb-av">'+av(r)+'</span>'+
+    '<span class="lb-nm">@'+esc(r.username)+(r.self?' (you)':'')+'</span>'+
+    '<span class="lb-ct">'+val(r)+'</span></div>').join('');
+  el.innerHTML=h; wireLb(el, rows);
+}
+function wireLb(el, rows){
+  el.querySelectorAll('.lb-sort').forEach(b=>b.onclick=()=>{ lbSort=b.dataset.k; renderLeaderboard(); });
+  el.querySelectorAll('[data-uid]').forEach(n=>n.onclick=()=>{
+    const u=rows.find(x=>x.uid===n.dataset.uid); if(u) openAchievements(u); });
 }
 async function removeFriend(uid, uname){
   const {db, doc, deleteDoc}=window.fb;
@@ -3513,21 +3798,17 @@ function renderMe(){
   const el=$('fr-profile'); if(!el) return;
   if(!currentUser){ el.innerHTML='<div class="fr-note">Sign in (account icon, top-right) to use friends.</div>'; return; }
   if(myProfile && myProfile.username){
-    const st=statsFromProfile(myProfile), score=scoreOf(st, achEarned(st)), ini=(myProfile.username[0]||'?').toUpperCase();
+    const st=statsFromProfile(myProfile), score=scoreOf(st, achEarned(st));
     el.innerHTML=
-      '<div class="fr-prof" id="fr-prof-open">'+
-        '<div class="fr-avatar">'+ini+'</div>'+
-        '<div class="fr-prof-id"><div class="fr-prof-name">@'+myProfile.username+'</div>'+
-          '<div class="fr-prof-sub">View achievements ›</div></div>'+
-        '<span class="fr-del-un" id="del-uname">delete</span>'+
+      '<div class="fr-prof">'+
+        '<div class="fr-avatar">'+avatarGlyph(myProfile)+'</div>'+
+        '<div class="fr-prof-id"><div class="fr-prof-name">@'+myProfile.username+'</div></div>'+
       '</div>'+
       '<div class="fr-prof-stats">'+
         '<div><b>'+st.badges+'</b><span>badges</span></div>'+
         '<div><b>'+st.maxStreak+'</b><span>streak</span></div>'+
         '<div><b>'+score+'</b><span>score</span></div>'+
       '</div>';
-    const op=$('fr-prof-open'); if(op) op.onclick=(e)=>{ if(e.target.id!=='del-uname') openMyAchievements(); };
-    const d=$('del-uname'); if(d) d.onclick=(e)=>{ e.stopPropagation(); deleteUsername(); };
   } else {
     el.innerHTML='<div class="fr-note">Pick a username so friends can find you:</div>'+
       '<div class="fr-search"><input id="uname-in" placeholder="username" maxlength="20" autocomplete="off"/><button id="uname-save">Save</button></div>';
@@ -3544,7 +3825,7 @@ function renderFriends(){
     const on=(now-(f.lastSeen||0)<150000);
     const has=(typeof f.lat==='number'&&typeof f.lng==='number');
     return '<div class="fr-item"><span class="fr-status '+(on?'on':'off')+'"></span>'+
-      '<div class="fr-nm">@'+f.username+(has?'':' <small>· no location</small>')+'</div>'+
+      '<div class="fr-nm">'+(f.icon?(f.icon+' '):'')+'@'+f.username+(has?'':' <small>· no location</small>')+'</div>'+
       '<span class="fr-badge" title="Badges collected">🏅 '+(f.badges||0)+'</span>'+
       '<button class="fr-ping" data-uid="'+f.uid+'" data-un="'+f.username+'" title="Ping to look up">👋</button>'+
       (has?'<button class="fr-locate" data-uid="'+f.uid+'" title="Show on map">📍</button>':'')+
@@ -3645,7 +3926,7 @@ function startCommunityStats(){
   statsTick=setInterval(fetchCommunityStats, 60000);
 }
 
-initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); initFriendsUI(); initTimeUI(); initAR(); initOnboard(); initLightbox(); initAchievements();
+initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); initFriendsUI(); initTimeUI(); initAR(); initOnboard(); initLightbox(); initAchievements(); initListModal(); initClickSounds();
 </script>
 
 <!-- Module loader: import the 3D libs, expose them as globals, then boot -->
