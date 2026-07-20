@@ -1,5 +1,5 @@
 /* SkyWatch service worker — app-shell caching + offline fallback */
-const VERSION = 'skywatch-v57';
+const VERSION = 'skywatch-v58';
 const SHELL = [
   './',
   './index.html',
@@ -59,10 +59,13 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Same-origin navigations: network-first, fall back to cached shell when offline.
+  // Same-origin navigations: always revalidate against the server (so a new deploy shows
+  // immediately instead of waiting on the HTTP cache), falling back to the cached shell offline.
   if (req.mode === 'navigate') {
     e.respondWith(
-      fetch(req).catch(() => caches.match('./index.html'))
+      fetch(req, { cache: 'no-cache' })
+        .catch(() => fetch(req))
+        .catch(() => caches.match('./index.html'))
     );
     return;
   }
