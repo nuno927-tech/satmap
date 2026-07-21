@@ -145,15 +145,34 @@
     transform:scaleY(2.94);display:flex;align-items:center;justify-content:center;
     font-size:24px;line-height:1;filter:drop-shadow(0 0 10px rgba(90,209,255,.8))}
   @keyframes ld-orbit{to{transform:rotate(360deg)}}
-  #ld-word{position:relative;margin:0;font-size:clamp(38px,11vw,68px);font-weight:800;
-    letter-spacing:-1px;color:#eaf3ff;white-space:nowrap;
-    text-shadow:0 0 26px rgba(90,209,255,.45),0 0 60px rgba(90,209,255,.18)}
-  #ld-word .w{color:var(--accent)}
+  /* Neon tube lettering: a near-white core wrapped in tightening halos of the
+     tube colour, plus a dark drop so it sits on the sky rather than floating. */
+  #ld-word{position:relative;margin:0;font-size:clamp(38px,11.5vw,72px);font-weight:900;
+    letter-spacing:1.5px;white-space:nowrap;color:#f2f8ff;
+    text-shadow:
+      0 0 2px #ffffff,
+      0 0 8px rgba(214,238,255,.95),
+      0 0 18px rgba(120,200,255,.7),
+      0 0 38px rgba(90,209,255,.45),
+      0 0 72px rgba(90,209,255,.25),
+      0 4px 14px rgba(0,0,0,.75)}
+  #ld-word .sky{color:#f4faff}
+  #ld-word .w{color:#dff4ff;
+    text-shadow:
+      0 0 2px #ffffff,
+      0 0 9px rgba(180,235,255,1),
+      0 0 20px rgba(90,209,255,.95),
+      0 0 42px rgba(90,209,255,.7),
+      0 0 80px rgba(90,209,255,.4),
+      0 4px 14px rgba(0,0,0,.75)}
   /* The 'a' is the target — it breathes a little brighter so the eye lands on it */
-  #ld-a{position:relative;display:inline-block;color:var(--accent);
+  #ld-a{position:relative;display:inline-block;
     animation:ld-a 3.2s ease-in-out infinite}
-  @keyframes ld-a{0%,100%{text-shadow:0 0 22px rgba(90,209,255,.55),0 0 48px rgba(90,209,255,.2)}
-    50%{text-shadow:0 0 30px rgba(90,209,255,.85),0 0 66px rgba(90,209,255,.35)}}
+  @keyframes ld-a{
+    0%,100%{text-shadow:0 0 2px #fff,0 0 9px rgba(180,235,255,1),0 0 20px rgba(90,209,255,.95),
+      0 0 42px rgba(90,209,255,.7),0 0 80px rgba(90,209,255,.4),0 4px 14px rgba(0,0,0,.75)}
+    50%{text-shadow:0 0 3px #fff,0 0 14px rgba(200,242,255,1),0 0 30px rgba(90,209,255,1),
+      0 0 60px rgba(90,209,255,.85),0 0 108px rgba(90,209,255,.55),0 4px 14px rgba(0,0,0,.75)}}
   #loadmsg{position:relative;z-index:1;margin:26px 0 0;color:var(--muted);font-size:13.5px;
     letter-spacing:.6px;text-align:center;min-height:20px;
     transition:opacity .28s ease}
@@ -1492,7 +1511,8 @@
   .ul-arrow{display:block;font-size:22px;line-height:1;color:rgb(var(--ul-c));
     text-shadow:0 0 14px rgba(var(--ul-c),.85),0 0 30px rgba(var(--ul-c),.4);
     animation:ul-bob 1.15s ease-in-out infinite}
-  .ul-ic.ul-figure{background:rgba(var(--ul-c),.14)}
+  .ul-ic.ul-figure{background:rgba(var(--ul-c),.14);overflow:hidden}
+  .ul-ic img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
   .ul-pts.ul-side{display:flex;align-items:center;justify-content:center;width:44px;height:44px;
     border-radius:50%;background:rgba(var(--ul-c),.14);
     box-shadow:0 0 0 1px rgba(var(--ul-c),.4),0 0 18px rgba(var(--ul-c),.32)}
@@ -2090,7 +2110,7 @@
       <div id="ld-ring"></div>
       <div id="ld-spin"><div id="ld-sat">🛰️</div></div>
     </div>
-    <h1 id="ld-word">Sky<span class="w">W</span><span id="ld-a">a</span>tch</h1>
+    <h1 id="ld-word"><span class="sky">Sky</span><span class="w">W<span id="ld-a">a</span>tch</span></h1>
   </div>
   <p id="loadmsg">Starting up…</p>
   <div id="ld-steps"><i></i><i></i><i></i><i></i></div>
@@ -2118,7 +2138,7 @@
 </script>
 
 <script>
-const BUILD = 'v110';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v112';           // shown in Settings and on the loader so you can confirm what's deployed
 // Stamp the loader immediately — it's the first thing on screen and the fastest way
 // to tell whether a deploy actually landed.
 (function(){ const v=document.getElementById('ld-ver'); if(v) v.textContent='SkyWatch '+BUILD; })();
@@ -4821,7 +4841,7 @@ function initAuth(){
     if(unsubSettings){ unsubSettings(); unsubSettings=null; }
     if(user){
       firstSyncPending=true;
-      showToast('✓ Signed in as ' + (user.displayName || user.email), true);
+      showSignInCard(user);
       wasSignedIn=true;
       const {db, doc, onSnapshot}=window.fb;
       unsubSettings = onSnapshot(doc(db,'users',user.uid),
@@ -5272,6 +5292,22 @@ function celebrateUnlock(a, done){
 }
 // A friend wants you outside, now. Violet — the Friends colour.
 const LOOKUP_ARROWS = '<span class="ul-arrow">&#9650;</span>';
+// Welcome card on sign-in. Cyan, no shake — this is a greeting, not an alert.
+function showSignInCard(user){
+  const name=(myProfile&&myProfile.username) ? ('@'+myProfile.username)
+           : (user.displayName || (user.email||'').split('@')[0] || 'Signed in');
+  const icon = user.photoURL
+    ? '<img src="'+esc(user.photoURL)+'" referrerpolicy="no-referrer" alt="">'
+    : ((myProfile&&myProfile.icon) || '\uD83D\uDEF0\uFE0F');
+  showPremiumCard({
+    hue:'90,209,255', icon, figure:!!user.photoURL,
+    kicker:'Welcome back', name,
+    desc:'Your sightings and settings are synced', ms:4600,
+    onTap:openBoard
+  });
+  SFX.success();
+  Haptics.success();
+}
 function showPingSentCard(name, extra){
   showPremiumCard({
     hue:'197,140,255', icon:LOOKUP_ARROWS, figure:true, right:LOOKUP_ARROWS,
