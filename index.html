@@ -1988,7 +1988,7 @@
 </script>
 
 <script>
-const BUILD = 'v100';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v101';           // shown in Settings and on the loader so you can confirm what's deployed
 // Stamp the loader immediately — it's the first thing on screen and the fastest way
 // to tell whether a deploy actually landed.
 (function(){ const v=document.getElementById('ld-ver'); if(v) v.textContent='SkyWatch '+BUILD; })();
@@ -2101,6 +2101,37 @@ const SFX = (function(){
   };
 })();
 function sfxToggle(on){ on ? SFX.on() : SFX.off(); }
+
+/* ---------- Haptics ----------
+   Patterns are [buzz, pause, buzz, …] in ms. Kept short and distinct so the app
+   can be read by feel: a tick for taps, a rising triplet for your own sighting,
+   a soft double-tap when someone else logs one. */
+const HAPTIC_OK = typeof navigator!=='undefined' && typeof navigator.vibrate==='function';
+const Haptics = (function(){
+  let last=0;
+  function fire(pattern, minGap){
+    if(!prefs.vibrate || !HAPTIC_OK) return;
+    const now=Date.now();
+    if(now-last < (minGap||40)) return;          // don't stack buzzes on rapid taps
+    last=now;
+    try{ navigator.vibrate(pattern); }catch(e){}
+  }
+  return {
+    tap()      { fire(8); },                                    // generic control
+    nav()      { fire(14); },                                   // panel / nav change
+    toggle(on) { fire(on ? [12,40,22] : 12); },                 // on feels like it "latches"
+    select()   { fire([10,30,10]); },                           // picking an object
+    swipe()    { fire(10); },
+    success()  { fire([16,50,16,50,30]); },
+    error()    { fire([30,60,30]); },
+    // Your own sighting: a little rising fanfare — three quick pulses into a long one.
+    sighting() { fire([14,40,18,40,24,60,90], 0); },
+    // Someone else logged one: a gentler double-tap, clearly not yours.
+    reaction() { fire([12,70,12], 0); },
+    ping()     { fire([20,60,20,60,20], 0); },                  // a friend pinged you
+    force(p)   { if(HAPTIC_OK){ try{ navigator.vibrate(p); }catch(e){} } }
+  };
+})();
 
 /* ---------- Ambient "celestial" music (Web Audio, synthesized live) ---------- */
 const Music = (function(){
@@ -2670,12 +2701,27 @@ function initSatPoints(){
     satGeo.setDrawRange(0,0);
     const mat=new THREE.ShaderMaterial({
       transparent:true, depthWrite:false,
-      vertexShader:'attribute float size; attribute vec3 color; varying vec3 vColor;'+
+      uniforms:{ uPR:{ value: Math.min(window.devicePixelRatio||1, 3) } },
+      // Depth attenuation is clamped: without a ceiling a 3px dot becomes a ~90px
+      // blob as the camera closes in. Rendering at device resolution (uPR) keeps the
+      // edge on the physical pixel grid instead of a smeared CSS pixel.
+      vertexShader:
+        'uniform float uPR; attribute float size; attribute vec3 color;'+
+        'varying vec3 vColor; varying float vSize;'+
         'void main(){ vColor=color; vec4 mv=modelViewMatrix*vec4(position,1.0);'+
-        'gl_PointSize=size*(300.0/max(-mv.z,1.0)); gl_Position=projectionMatrix*mv; }',
-      fragmentShader:'varying vec3 vColor;'+
-        'void main(){ vec2 d=gl_PointCoord-vec2(0.5); float r2=dot(d,d);'+
-        'if(r2>0.25) discard; float a=smoothstep(0.25,0.02,r2); gl_FragColor=vec4(vColor,a); }'
+        'float s=size*(300.0/max(-mv.z,1.0));'+
+        's=clamp(s, size*0.85, size*2.0);'+
+        'vSize=s*uPR; gl_PointSize=vSize;'+
+        'gl_Position=projectionMatrix*mv; }',
+      // One-pixel antialiased edge whatever the point size: in gl_PointCoord space a
+      // single pixel is 1/vSize, so the falloff stays hairline-thin at every zoom.
+      fragmentShader:
+        'varying vec3 vColor; varying float vSize;'+
+        'void main(){ vec2 d=gl_PointCoord-vec2(0.5); float r=length(d);'+
+        'float aa=clamp(1.0/max(vSize,1.0), 0.03, 0.28);'+
+        'float a=1.0-smoothstep(0.5-aa, 0.5, r);'+
+        'if(a<=0.0) discard;'+
+        'gl_FragColor=vec4(vColor,a); }'
     });
     satPoints=new THREE.Points(satGeo, mat); satPoints.frustumCulled=false;
     world.scene().add(satPoints);
