@@ -51,7 +51,6 @@
   #brand h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.5px}
   #brand h1 span{color:var(--accent);text-shadow:var(--glow)}
   #brand .tag{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
-  #clocks{margin-left:auto;display:flex;gap:22px;pointer-events:auto}
   /* Compass — device heading, so you can orient yourself against a pass bearing */
   #compass{pointer-events:auto;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;
     gap:1px;margin-left:auto;padding:0;border:none;background:transparent;cursor:pointer;
@@ -68,13 +67,10 @@
     filter:drop-shadow(0 0 6px rgba(var(--neon-c),.6))}
   #compass.off{opacity:.5}
   #compass.off #cmp-rose{transform:none}
-  #clocks{margin-left:0}
   @media (max-width:820px){
     #compass svg{width:26px;height:26px}
     #compass #cmp-lbl{font-size:10px}
   }
-  .clock b{display:block;font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
-  .clock span{font-size:16px}
   #stat{display:flex;gap:18px;pointer-events:auto}
   .stat b{display:block;font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
   .stat span{font-size:16px;color:var(--accent)}
@@ -1009,7 +1005,6 @@
     #brand h1{font-size:16px} #brand .tag{display:none}
     #stat{gap:10px} .stat span{font-size:14px} .stat b{font-size:9px} .stat.ov{display:none}
     .on-ct{font-size:11px}
-    #clocks{gap:12px} .clock span{font-size:13px} .clock b{font-size:9px}
 
     /* Backdrop behind open sheets */
     #backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:55;
@@ -1565,6 +1560,33 @@
     #unlock.show .ul-glow,#unlock.show .ul-ic{animation:none}
     .ul-burst{display:none}
   }
+  /* --- Developer panel --- */
+  #devmodal{position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;padding:18px;
+    background:rgba(3,6,15,.86);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  #devmodal.show{display:flex}
+  .dev-card{--neon-c:87,224,138;width:min(460px,100%)}
+  #dev-close{position:absolute;top:12px;right:14px;width:30px;height:30px;display:flex;align-items:center;
+    justify-content:center;border-radius:50%;border:1px solid var(--border);background:rgba(120,160,255,.06);
+    color:var(--muted);cursor:pointer;font-size:14px;z-index:2}
+  .dev-sec{margin:16px 0 6px;padding-bottom:5px;border-bottom:1px solid var(--border);
+    font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:rgb(var(--neon-c))}
+  .dev-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:5px 0;
+    font-size:12px;border-bottom:1px solid rgba(120,160,255,.06)}
+  .dev-row:last-child{border-bottom:none}
+  .dev-k{color:var(--muted);flex:0 0 auto}
+  .dev-v{color:var(--text);text-align:right;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    font-size:11.5px;word-break:break-all;min-width:0}
+  .dev-v.ok{color:#57e08a} .dev-v.warn{color:#ffd34d} .dev-v.bad{color:var(--iss)}
+  .dev-err{border:1px solid rgba(255,90,77,.3);background:rgba(255,90,77,.07);border-radius:10px;
+    padding:8px 10px;margin-bottom:6px}
+  .dev-err b{display:block;font-size:11.5px;color:#ff9a86;font-weight:600;word-break:break-word}
+  .dev-err span{display:block;font-size:10px;color:var(--muted);margin-top:3px;
+    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  .dev-empty{font-size:12px;color:var(--muted);padding:6px 0}
+  .dev-bar{height:4px;border-radius:3px;background:rgba(120,160,255,.14);overflow:hidden;margin-top:3px}
+  .dev-bar i{display:block;height:100%;background:rgb(var(--neon-c))}
+  #stg-ver{cursor:pointer;-webkit-user-select:none;user-select:none}
+  #stg-ver.dev-on{color:#57e08a;text-shadow:0 0 10px rgba(87,224,138,.6)}
   .stg-off{opacity:.45}
   .stg-off .switch{pointer-events:none}
   /* Notification group rows read as controls, not plain text */
@@ -1613,8 +1635,8 @@
     background:linear-gradient(90deg,transparent,rgba(var(--neon-c),.22),transparent);pointer-events:none}
   #brand h1{text-shadow:0 2px 12px rgba(0,0,0,.95)}
   #brand h1 span{text-shadow:0 0 20px rgba(var(--neon-c),.7),0 2px 10px rgba(0,0,0,.9)}
-  .stat span,.clock span{text-shadow:0 0 14px rgba(var(--neon-c),.45),0 2px 8px rgba(0,0,0,.9)}
-  .stat b,.clock b{text-shadow:0 1px 6px rgba(0,0,0,.9)}
+  .stat span{text-shadow:0 0 14px rgba(var(--neon-c),.45),0 2px 8px rgba(0,0,0,.9)}
+  .stat b{text-shadow:0 1px 6px rgba(0,0,0,.9)}
 
   /* --- Static bottom bar; menus slide up behind it --- */
   @media (max-width:820px){
@@ -1674,9 +1696,6 @@
     </svg>
     <span id="cmp-lbl">--</span>
   </button>
-  <div id="clocks" class="mono">
-    <div class="clock"><b>Local</b><span id="c-loc">—</span></div>
-  </div>
   <button id="feedbtn" title="Sighting feed" aria-label="Sighting feed">
     <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5a9.5 9.5 0 0 1 14 0"/><path d="M8 15.5a5 5 0 0 1 8 0"/><circle cx="12" cy="19" r="1.1" fill="currentColor" stroke="none"/></svg>
   </button>
@@ -1767,6 +1786,16 @@
       <div class="ul-desc" id="ul-desc">—</div>
     </div>
     <div class="ul-pts" id="ul-pts">+0</div>
+  </div>
+</div>
+
+<div id="devmodal">
+  <div class="uap-card dev-card">
+    <div id="dev-close" aria-label="Close">✕</div>
+    <div class="uap-title">🛠 Developer</div>
+    <div id="dev-body"></div>
+    <button id="dev-nuke" class="usr-btn danger">💣 Clear caches &amp; hard reload</button>
+    <button id="dev-off" class="idf-uap">Turn off developer mode</button>
   </div>
 </div>
 
@@ -2172,7 +2201,34 @@
 </script>
 
 <script>
-const BUILD = 'v119';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v121';           // shown in Settings and on the loader so you can confirm what's deployed
+
+/* ---------- Crash log ----------
+   Installed before anything else so it catches boot failures too. A silent
+   ReferenceError once took out the whole social layer; this makes that visible. */
+const devErrors=[];
+function devLogError(kind, msg, extra){
+  devErrors.unshift({ kind, msg:String(msg||'').slice(0,300), extra:String(extra||'').slice(0,200), at:Date.now() });
+  if(devErrors.length>60) devErrors.length=60;
+  const b=document.getElementById('dev-badge');
+  if(b) b.textContent=devErrors.length;
+}
+window.addEventListener('error', e=>{
+  devLogError('error', (e && e.message) || 'script error',
+    e && e.filename ? (String(e.filename).split('/').pop()+':'+e.lineno+':'+e.colno) : '');
+});
+window.addEventListener('unhandledrejection', e=>{
+  const r=e && e.reason;
+  devLogError('promise', (r && (r.message||r.code)) || r || 'unhandled rejection', (r && r.stack||'').split('\n')[1]||'');
+});
+// Console errors are worth catching too — most of the app warns rather than throws.
+(function(){
+  const ce=console.error;
+  console.error=function(){ try{ devLogError('console', [].slice.call(arguments).join(' ')); }catch(_){}
+    return ce.apply(console, arguments); };
+})();
+// Lightweight perf counters, only meaningful while the dev panel is open.
+const devPerf={ tickMs:0, tickAt:0, frames:0, fps:0, fpsAt:0, worker:0 };
 // Stamp the loader immediately — it's the first thing on screen and the fastest way
 // to tell whether a deploy actually landed.
 (function(){ const v=document.getElementById('ld-ver'); if(v) v.textContent='SkyWatch '+BUILD; })();
@@ -2746,7 +2802,10 @@ function createPropWorker(){
     const w=new Worker(url);
     w.onmessage=(e)=>{ clearTimeout(workerWatch);
       if(propPaused){ workerBusy=false; return; }        // tab went away mid-flight
-      applyWorker(e.data); renderFrame(); workerBusy=false; scheduleTick(); };
+      const t0=performance.now();
+      applyWorker(e.data); renderFrame();
+      devPerf.tickMs=performance.now()-t0; devPerf.tickAt=Date.now(); devPerf.worker++;
+      workerBusy=false; scheduleTick(); };
     w.onerror=(err)=>{ console.warn('prop worker failed → main-thread propagation', err);
       useWorker=false; workerBusy=false; if(propWorker){ try{propWorker.terminate();}catch(_){}} propWorker=null;
       scheduleTick();   // resume the loop on the main thread
@@ -2887,7 +2946,10 @@ function doTick(){
       scheduleTick();
     }}, 4000);
   } else {
-    computeInline(); renderFrame(); scheduleTick();
+    const t0=performance.now();
+    computeInline(); renderFrame();
+    devPerf.tickMs=performance.now()-t0; devPerf.tickAt=Date.now();
+    scheduleTick();
   }
 }
 
@@ -3899,7 +3961,6 @@ function renderAutocomplete(q){
 
 /* ---------- Clocks ---------- */
 function tickClock(){
-  $('c-loc').textContent=new Date().toLocaleTimeString([], {hour12: prefs.time==='12'});
   updateLaunchCountdowns();   // live T-minus on the selected launch + the list
 }
 
@@ -4655,7 +4716,7 @@ function applyPrefs(){
   document.querySelectorAll('#seg-cutoff button').forEach(b=>b.classList.toggle('sel', +b.dataset.v===prefs.cutoff));
   document.querySelectorAll('#seg-theme button').forEach(b=>b.classList.toggle('sel', b.dataset.v===prefs.theme));
   applyTheme();
-  if($('c-loc')) tickClock();
+  tickClock();
   $('sw-rotate').classList.toggle('on', prefs.autorotate);
   $('sw-music').classList.toggle('on', prefs.music);
   if(prefs.music){ if(!Music.isRunning()) armMusic(); } else { Music.stop(); }
@@ -4745,6 +4806,151 @@ async function shareApp(){
   }
   try{ await navigator.clipboard.writeText(url); showToast('🔗 Link copied — share it with friends!'); return; }catch(e){}
   showErr('Share this link: '+url);
+}
+
+/* ============================================================
+   Developer mode — tap the build number ten times.
+   Read-only diagnostics plus one destructive button, all local.
+   ============================================================ */
+const DEV_KEY='skywatch_dev';
+let devOn=false, devTaps=0, devTapAt=0, devTimer=null, devFpsRAF=null;
+function devEnabled(){ try{ return localStorage.getItem(DEV_KEY)==='1'; }catch(e){ return false; } }
+function setDev(on){
+  devOn=on;
+  try{ on ? localStorage.setItem(DEV_KEY,'1') : localStorage.removeItem(DEV_KEY); }catch(e){}
+  const v=$('stg-ver'); if(v) v.classList.toggle('dev-on', on);
+}
+function initDevMode(){
+  devOn=devEnabled();
+  const v=$('stg-ver'); if(!v) return;
+  v.classList.toggle('dev-on', devOn);
+  v.onclick=()=>{
+    if(devOn){ openDevPanel(); return; }
+    const now=Date.now();
+    if(now-devTapAt>1200) devTaps=0;      // taps have to be deliberate
+    devTapAt=now; devTaps++;
+    if(devTaps>=7 && devTaps<10) showToast((10-devTaps)+' more…');
+    if(devTaps>=10){
+      devTaps=0; setDev(true);
+      showPremiumCard({
+        hue:'87,224,138', icon:'🛠', kicker:'Developer mode',
+        name:'You have the keys now',
+        desc:'Try not to break anything. I only recently stopped breaking things myself.',
+        ms:7000, onTap:openDevPanel
+      });
+      SFX.fanfare(); Haptics.unlock(); fireConfetti();
+    }
+  };
+  const c=$('dev-close'); if(c) c.onclick=closeDevPanel;
+  const m=$('devmodal');
+  if(m) m.addEventListener('click', e=>{ if(e.target===m) closeDevPanel(); });
+  const off=$('dev-off');
+  if(off) off.onclick=()=>{ setDev(false); closeDevPanel(); showToast('Developer mode off'); };
+  const nuke=$('dev-nuke'); if(nuke) nuke.onclick=devNuke;
+}
+function openDevPanel(){
+  const m=$('devmodal'); if(!m) return;
+  m.classList.add('show');
+  renderDev();
+  clearInterval(devTimer); devTimer=setInterval(renderDev, 1000);
+  devPerf.frames=0; devPerf.fpsAt=performance.now();
+  const loop=()=>{ devPerf.frames++;
+    const dt=performance.now()-devPerf.fpsAt;
+    if(dt>=1000){ devPerf.fps=Math.round(devPerf.frames*1000/dt); devPerf.frames=0; devPerf.fpsAt=performance.now(); }
+    devFpsRAF=requestAnimationFrame(loop); };
+  cancelAnimationFrame(devFpsRAF); devFpsRAF=requestAnimationFrame(loop);
+}
+function closeDevPanel(){
+  const m=$('devmodal'); if(m) m.classList.remove('show');
+  clearInterval(devTimer); devTimer=null;
+  cancelAnimationFrame(devFpsRAF); devFpsRAF=null;
+}
+function devBytes(n){ return n<1024 ? n+' B' : n<1048576 ? (n/1024).toFixed(1)+' KB' : (n/1048576).toFixed(2)+' MB'; }
+function devRow(k, v, cls){ return '<div class="dev-row"><span class="dev-k">'+k+'</span>'+
+  '<span class="dev-v'+(cls?(' '+cls):'')+'">'+v+'</span></div>'; }
+async function renderDev(){
+  const el=$('dev-body'); if(!el) return;
+  /* --- service worker --- */
+  let swState='not registered', swCache='—';
+  try{
+    const reg=await navigator.serviceWorker.getRegistration();
+    if(reg){
+      swState = reg.waiting ? 'update waiting' : reg.installing ? 'installing' : reg.active ? 'active' : 'unknown';
+      const keys=await caches.keys();
+      swCache=keys.join(', ')||'none';
+    }
+  }catch(e){}
+  /* --- storage --- */
+  let total=0; const rows=[];
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i), v=localStorage.getItem(k)||'';
+      const b=(k.length+v.length)*2;                 // UTF-16 in practice
+      total+=b; rows.push([k,b]);
+    }
+  }catch(e){}
+  rows.sort((a,b)=>b[1]-a[1]);
+  const QUOTA=5*1024*1024;
+  /* --- push --- */
+  let pushSub=null; try{ pushSub=await pushSubscription(); }catch(e){}
+  const perm=('Notification' in window) ? Notification.permission : 'unsupported';
+  /* --- compose --- */
+  el.innerHTML=
+    '<div class="dev-sec">Build</div>'+
+    devRow('App build', BUILD, 'ok')+
+    devRow('Service worker', swState, swState==='active'?'ok':swState==='update waiting'?'warn':'bad')+
+    devRow('Caches', swCache)+
+    devRow('Standalone', isStandalone()?'yes':'no')+
+    devRow('User agent', navigator.userAgent.slice(0,60)+'…')+
+
+    '<div class="dev-sec">Render path</div>'+
+    devRow('Satellites', usePoints?'GPU point cloud':'HTML markers', usePoints?'ok':'warn')+
+    devRow('Propagation', useWorker?'Web Worker':'main thread', useWorker?'ok':'warn')+
+    devRow('THREE', (window.THREE&&window.THREE.REVISION)?('r'+window.THREE.REVISION):'absent',
+      window.THREE?'ok':'bad')+
+    devRow('Paused (tab hidden)', propPaused?'yes':'no', propPaused?'warn':'ok')+
+
+    '<div class="dev-sec">Performance</div>'+
+    devRow('FPS', devPerf.fps||'—', devPerf.fps>=45?'ok':devPerf.fps>=25?'warn':'bad')+
+    devRow('Last tick', devPerf.tickMs?devPerf.tickMs.toFixed(1)+' ms':'—',
+      devPerf.tickMs<16?'ok':devPerf.tickMs<50?'warn':'bad')+
+    devRow('Tick interval', propDelay()+' ms')+
+    devRow('Worker frames', devPerf.worker)+
+    devRow('Tracked', SATS.length.toLocaleString())+
+    devRow('Drawn', (satGeo&&isFinite(satGeo.drawRange.count))?satGeo.drawRange.count:'—')+
+    devRow('Launches', (LAUNCHES||[]).length)+
+
+    '<div class="dev-sec">Compass</div>'+
+    devRow('Supported', (typeof DeviceOrientationEvent!=='undefined')?'yes':'no')+
+    devRow('Receiving', cmpOn?'yes':'no', cmpOn?'ok':'warn')+
+    devRow('Raw heading', cmpHeading==null?'—':cmpHeading.toFixed(1)+'°')+
+    devRow('Smoothed', cmpSmooth==null?'—':(azCompass(cmpSmooth)+' '+Math.round(cmpSmooth)+'°'))+
+
+    '<div class="dev-sec">Push</div>'+
+    devRow('Permission', perm, perm==='granted'?'ok':perm==='denied'?'bad':'warn')+
+    devRow('Supported', pushSupported()?'yes':'no')+
+    devRow('Server key', VAPID_PUBLIC_KEY?'configured':'missing', VAPID_PUBLIC_KEY?'ok':'warn')+
+    devRow('Subscription', pushSub?'active':'none', pushSub?'ok':'warn')+
+    devRow('Endpoint', pushSub?(pushSub.endpoint.slice(0,42)+'…'):'—')+
+    devRow('Scheduled alerts', prefs.push?'see Firestore':'off')+
+
+    '<div class="dev-sec">Storage · '+devBytes(total)+' of ~'+devBytes(QUOTA)+'</div>'+
+    '<div class="dev-bar"><i style="width:'+Math.min(100,Math.round(total/QUOTA*100))+'%"></i></div>'+
+    rows.slice(0,8).map(r=>devRow(r[0].replace(/^skywatch_|^satmap_/,''), devBytes(r[1]))).join('')+
+
+    '<div class="dev-sec">Errors · '+devErrors.length+'</div>'+
+    (devErrors.length
+      ? devErrors.slice(0,12).map(e=>'<div class="dev-err"><b>'+esc(e.msg)+'</b>'+
+          '<span>'+e.kind+(e.extra?(' · '+esc(e.extra)):'')+' · '+
+          new Date(e.at).toLocaleTimeString()+'</span></div>').join('')
+      : '<div class="dev-empty">Nothing has thrown. Suspicious, but good.</div>');
+}
+async function devNuke(){
+  if(!confirm('Clear every cache, unregister the service worker and reload?\n\nYour account data is untouched — this only clears what this device stored.')) return;
+  try{ const keys=await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k))); }catch(e){}
+  try{ const regs=await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map(r=>r.unregister())); }catch(e){}
+  location.reload(true);
 }
 
 /* ---------- Tip jar ----------
@@ -7007,7 +7213,7 @@ function startCommunityStats(){
   statsTick=setInterval(fetchCommunityStats, 60000);
 }
 
-initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); initFriendsUI(); initAR(); initOnboard(); initLightbox(); initAchievements(); initListModal(); initClickSounds(); initSky(); initUapForm(); initCe5(); initUserPanel(); initLocPicker(); initVisibilityPause(); initTip(); initAchReplay(); initCompass();
+initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); initFriendsUI(); initAR(); initOnboard(); initLightbox(); initAchievements(); initListModal(); initClickSounds(); initSky(); initUapForm(); initCe5(); initUserPanel(); initLocPicker(); initVisibilityPause(); initTip(); initAchReplay(); initCompass(); initDevMode();
 </script>
 
 <!-- Module loader: import the 3D libs, expose them as globals, then boot -->
