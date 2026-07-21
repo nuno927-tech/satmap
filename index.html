@@ -304,11 +304,9 @@
   .seg button.sel{background:var(--accent);color:#04121f}
   #notify-groups{display:none;padding:2px 0 6px;border-bottom:1px solid rgba(120,160,255,.08)}
   #notify-groups.show{display:block}
-  .ng-h{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:8px 0 4px}
-  .ng{display:flex;align-items:center;justify-content:space-between;padding:8px 2px;font-size:13px;cursor:pointer}
-  .switch.sm{width:38px;height:22px}
-  .switch.sm::after{width:16px;height:16px;top:3px;left:3px}
-  .switch.sm.on::after{transform:translateX(16px)}
+  /* Sub-heading inside a section — same scale as .stg-sec, no border of its own. */
+  .ng-h{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;
+    color:var(--muted);margin:14px 0 2px}
 
   @media (max-width:820px){
     #settingsbtn,#feedbtn,#boardbtn{display:none}
@@ -820,6 +818,15 @@
   }
   #mb-feed.ping,#feedbtn.ping{color:var(--accent);border-color:rgba(90,209,255,.6);
     box-shadow:0 0 16px rgba(90,209,255,.45)}
+  .feedfly.slow{font-size:22px;animation:feedrise-slow 3.8s cubic-bezier(.2,.55,.25,1) forwards;
+    filter:drop-shadow(0 0 9px rgba(197,140,255,.8))}
+  @keyframes feedrise-slow{
+    0%{opacity:0;transform:translate(-50%,-50%) scale(.35)}
+    12%{opacity:1;transform:translate(-50%,-50%) scale(1.2)}
+    22%{transform:translate(-50%,-50%) scale(1)}
+    72%{opacity:.9}
+    100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)), calc(-50% - 190px)) scale(.8)}
+  }
   @media (prefers-reduced-motion:reduce){ .feedfly{display:none} }
   .fr-lb-ctrl{display:flex;gap:8px;margin-bottom:10px}
   .fr-lb-ctrl button{flex:1;min-height:44px;border:1px solid var(--border);background:rgba(120,160,255,.08);
@@ -1670,7 +1677,15 @@
     border:1px solid rgba(87,224,138,.28);font-size:12.5px;line-height:1.5;color:#c8f5da}
   .fbm-reply b{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;
     color:#57e08a;margin-bottom:3px}
-  .fbm-meta{font-size:10px;color:var(--muted);margin-top:7px}
+  .fbm-meta{font-size:10px;color:var(--muted)}
+  .fbm-filter{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0 10px}
+  .fbm-filter button{font-size:11.5px;min-height:38px;padding:6px 4px}
+  #adm-filter{grid-template-columns:repeat(4,1fr)}
+  #adm-filter button{font-size:11px}
+  .fbm-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px}
+  .fbm-del{background:transparent;border:none;color:var(--iss);font-size:11px;font-weight:600;
+    cursor:pointer;padding:3px 6px;border-radius:7px}
+  .fbm-del:hover{background:rgba(255,90,77,.12)}
   /* Feedback modal */
   #fbmodal{position:fixed;inset:0;z-index:112;display:none;align-items:center;justify-content:center;padding:18px;
     background:rgba(3,6,15,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
@@ -1720,11 +1735,7 @@
   .stg-off{opacity:.45}
   .stg-off .switch{pointer-events:none}
   /* Notification group rows read as controls, not plain text */
-  #notify-groups{border-bottom:none;padding:4px 0 2px}
-  .ng{min-height:44px;padding:9px 12px;margin-bottom:6px;border-radius:12px;
-    border:1px solid var(--border);background:rgba(120,160,255,.04);
-    box-shadow:0 2px 8px rgba(0,0,0,.25);transition:box-shadow .16s,background .16s}
-  .ng:hover{background:rgba(var(--neon-c),.09);box-shadow:var(--neon-rest)}
+  #notify-groups{border-bottom:none;padding:0 0 2px}
   .fseg button.sel{background:rgba(var(--neon-c),.2);color:rgb(var(--neon-c))}
   .stg-sec,.fr-sub,.hero-name,.fr-prof-name,.hero-score,.ach-stats b,.fr-prof-stats b,
   .hero-stats b,.feed-u,.lb-ct,#ach-name{color:rgb(var(--neon-c))}
@@ -2060,7 +2071,7 @@
     <div class="switch" id="sw-shareloc" role="switch"></div>
   </div>
   <div class="stg" id="stg-precise">
-    <div class="lbl">Exact location<small>Off shares an approximate area (~11 km)</small></div>
+    <div class="lbl">Exact location<small id="precise-sub">Off shares an approximate area</small></div>
     <div class="switch" id="sw-precise" role="switch"></div>
   </div>
   <div class="stg">
@@ -2112,10 +2123,22 @@
   </div>
   <div id="notify-groups">
     <div class="ng-h">Alert me for</div>
-    <label class="ng"><span>🛰 ISS</span><span class="switch sm" id="nt-iss"></span></label>
-    <label class="ng"><span>Other stations</span><span class="switch sm" id="nt-stations"></span></label>
-    <label class="ng"><span>Brightest satellites</span><span class="switch sm" id="nt-visual"></span></label>
-    <label class="ng"><span>🚀 Rocket launches</span><span class="switch sm" id="nt-rocket"></span></label>
+    <div class="stg">
+      <div class="lbl">🛰 ISS<small>The brightest and easiest to spot</small></div>
+      <div class="switch" id="nt-iss" role="switch"></div>
+    </div>
+    <div class="stg">
+      <div class="lbl">Other stations<small>Tiangong and crewed modules</small></div>
+      <div class="switch" id="nt-stations" role="switch"></div>
+    </div>
+    <div class="stg">
+      <div class="lbl">Brightest satellites<small>The naked-eye catalogue</small></div>
+      <div class="switch" id="nt-visual" role="switch"></div>
+    </div>
+    <div class="stg">
+      <div class="lbl">🚀 Rocket launches<small>Countdown milestones and liftoff</small></div>
+      <div class="switch" id="nt-rocket" role="switch"></div>
+    </div>
   </div>
   <div class="stg-sec">App</div>
   <div class="note" id="stg-note"></div>
@@ -2448,7 +2471,7 @@
 </script>
 
 <script>
-const BUILD = 'v137';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v141';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -5058,6 +5081,10 @@ function applyPrefs(){
   for(const id in SW){ const el=$(id); if(el) el.classList.toggle('on', !!prefs[SW[id]]); }
   // Precision only means anything while you're sharing at all.
   const pr=$('stg-precise'); if(pr) pr.classList.toggle('stg-off', !prefs.shareLoc);
+  // 0.1° of latitude is about 11.1 km — quote it in whichever units are selected.
+  const ps=$('precise-sub');
+  if(ps) ps.textContent='Off shares an approximate area (~'+
+    (prefs.units==='imperial' ? '7 miles' : '11 km')+')';
   const qr=$('stg-quiet-range'); if(qr) qr.classList.toggle('stg-off', !prefs.quiet);
   document.querySelectorAll('#seg-alertel button').forEach(b=>b.classList.toggle('sel', +b.dataset.v===prefs.alertMinEl));
   document.querySelectorAll('#seg-quiet button').forEach(b=>
@@ -5140,7 +5167,7 @@ function initSettingsUI(){
   };
   ['iss','stations','visual','rocket'].forEach(k=>{
     const sw=$('nt-'+k); if(!sw) return;
-    (sw.closest('.ng')||sw).onclick=()=>{ prefs.notifyGroups[k]=!prefs.notifyGroups[k]; sfxToggle(prefs.notifyGroups[k]);
+    (sw.closest('.stg')||sw).onclick=()=>{ prefs.notifyGroups[k]=!prefs.notifyGroups[k]; sfxToggle(prefs.notifyGroups[k]);
       applyPrefs(); saveSettings();
       if(k==='rocket') scanLaunchAlerts(); else scanAlerts(); };
   });
@@ -5503,23 +5530,46 @@ function startMyFeedback(){
   }, err=>console.warn('my feedback', err));
 }
 function stopMyFeedback(){ if(unsubMyFeedback){ unsubMyFeedback(); unsubMyFeedback=null; } myFeedback=[]; renderMyFeedback(); }
+let fbFilter='open';
 function renderMyFeedback(){
   const el=$('fb-mine'); if(!el) return;
   if(!myFeedback.length){ el.innerHTML=''; return; }
-  const open=myFeedback.filter(f=>(f.status||'new')!=='done').length;
-  el.innerHTML='<div class="fr-total">'+myFeedback.length+' report'+(myFeedback.length===1?'':'s')+
-      (open?(' · '+open+' open'):' · all answered')+'</div>'+
-    myFeedback.slice(0,20).map(f=>{
-      const st=f.status||'new';
-      const label={new:'Sent', read:'Seen', done:'Closed'}[st]||st;
-      return '<div class="fbm '+st+'">'+
-        '<div class="fbm-top"><b>'+(f.kind==='bug'?'🐞 Bug':'💡 Idea')+'</b>'+
-          '<span class="fbm-st">'+label+'</span></div>'+
-        '<div class="fbm-msg">'+esc(f.msg||'')+'</div>'+
-        (f.reply?('<div class="fbm-reply"><b>↩ Developer</b>'+esc(f.reply)+'</div>'):'')+
-        '<div class="fbm-meta">'+fmtSeen(f.ts||0)+'</div>'+
-      '</div>';
-    }).join('');
+  const openN=myFeedback.filter(f=>(f.status||'new')!=='done').length;
+  const doneN=myFeedback.length-openN;
+  const shown=myFeedback.filter(f=>{
+    const done=(f.status||'new')==='done';
+    return fbFilter==='all' ? true : fbFilter==='done' ? done : !done;
+  });
+  el.innerHTML=
+    '<div class="idf-chips fbm-filter" id="fbm-filter">'+
+      [['open','Open · '+openN],['done','Closed · '+doneN],['all','All · '+myFeedback.length]]
+        .map(([v,l])=>'<button data-v="'+v+'"'+(fbFilter===v?' class="on"':'')+'>'+l+'</button>').join('')+
+    '</div>'+
+    (!shown.length ? '<div class="dev-empty">Nothing '+(fbFilter==='done'?'closed':fbFilter==='open'?'open':'here')+'.</div>'
+      : shown.slice(0,30).map((f,i)=>{
+        const st=f.status||'new';
+        const label={new:'Sent', read:'Seen', done:'Closed'}[st]||st;
+        return '<div class="fbm '+st+'">'+
+          '<div class="fbm-top"><b>'+(f.kind==='bug'?'🐞 Bug':'💡 Idea')+'</b>'+
+            '<span class="fbm-st">'+label+'</span></div>'+
+          '<div class="fbm-msg">'+esc(f.msg||'')+'</div>'+
+          (f.reply?('<div class="fbm-reply"><b>↩ Developer</b>'+esc(f.reply)+'</div>'):'')+
+          '<div class="fbm-foot"><span class="fbm-meta">'+fmtSeen(f.ts||0)+'</span>'+
+            '<button class="fbm-del" data-id="'+esc(f._id)+'">Delete</button></div>'+
+        '</div>';
+      }).join(''));
+  const fl=$('fbm-filter');
+  if(fl) fl.querySelectorAll('button').forEach(b=>b.onclick=()=>{ fbFilter=b.dataset.v; renderMyFeedback(); });
+  el.querySelectorAll('.fbm-del').forEach(b=>b.onclick=()=>deleteMyFeedback(b.dataset.id));
+}
+async function deleteMyFeedback(id){
+  if(!id || !currentUser || !window.fb) return;
+  if(!confirm('Delete this report?\n\nIf the developer has already replied, that reply goes too.')) return;
+  try{
+    const {db, doc, deleteDoc}=window.fb;
+    await deleteDoc(doc(db,'feedback',id));
+    showToast('Report deleted');            // the live subscription refreshes the list
+  }catch(e){ showErr('Could not delete: '+(e.code||e.message||e)); }
 }
 
 /* ---------- Admin: live inbox alerts ----------
@@ -5581,7 +5631,7 @@ async function loadConfig(){
 /* ============================================================
    Admin console
    ============================================================ */
-let admView='inbox', admFeedback=[], admLookup=null, admStats=null, admFlags={}, admins=[];
+let admView='inbox', admFilter='open', admFeedback=[], admLookup=null, admStats=null, admFlags={}, admins=[];
 function admSec(t){ return '<div class="dev-sec">'+t+'</div>'; }
 function admBtn(id,label,cls){ return '<button class="adm-btn'+(cls?(' '+cls):'')+'" data-a="'+id+'">'+label+'</button>'; }
 function renderAdmin(){
@@ -5615,9 +5665,18 @@ async function admRenderInbox(pane){
   try{ admFeedback=await admLoadFeedback(); }
   catch(e){ pane.innerHTML='<div class="fr-note">Couldn’t load feedback: '+esc(e.code||e.message)+'</div>'; return; }
   if(!admFeedback.length){ pane.innerHTML='<div class="dev-empty">No reports yet.</div>'; return; }
-  const nNew=admFeedback.filter(f=>(f.status||'new')==='new').length;
-  pane.innerHTML='<div class="fr-total">'+admFeedback.length+' reports · '+nNew+' new</div>'+
-    admFeedback.map((f,i)=>{
+  const cnt=k=>admFeedback.filter(f=>(f.status||'new')===k).length;
+  const list=admFeedback.map((f,i)=>({f,i}))
+    .filter(({f})=>{ const st=f.status||'new';
+      return admFilter==='all' ? true : admFilter==='open' ? st!=='done' : st===admFilter; });
+  pane.innerHTML='<div class="fr-total">'+admFeedback.length+' reports · '+cnt('new')+' new</div>'+
+    '<div class="idf-chips fbm-filter" id="adm-filter">'+
+      [['open','Open · '+(admFeedback.length-cnt('done'))],['new','New · '+cnt('new')],
+       ['done','Closed · '+cnt('done')],['all','All · '+admFeedback.length]]
+        .map(([v,l])=>'<button data-v="'+v+'"'+(admFilter===v?' class="on"':'')+'>'+l+'</button>').join('')+
+    '</div>'+
+    (!list.length ? '<div class="dev-empty">Nothing in this view.</div>' : '')+
+    list.map(({f,i})=>{
       const st=f.status||'new', d=f.diag||{};
       return '<div class="adm-card '+st+'">'+
         '<div class="adm-top"><b>'+(f.kind==='bug'?'🐞 Bug':'💡 Idea')+' · @'+esc(f.username||'anon')+'</b>'+
@@ -5636,6 +5695,8 @@ async function admRenderInbox(pane){
         '<div class="adm-meta">'+fmtSeen(f.ts||0)+'</div>'+
       '</div>';
     }).join('');
+  const fl=$('adm-filter');
+  if(fl) fl.querySelectorAll('button').forEach(b=>b.onclick=()=>{ admFilter=b.dataset.v; renderAdmin(); });
   admWire(pane);
 }
 /* ---- 3 + 4 + 5 + 6 + 7 + 12 + 13: user lookup and the actions on a user ---- */
@@ -7537,6 +7598,7 @@ function ce5Mark(){
   const ts=Date.now();
   ce5.marks.push({ts, az:null});
   SFX.select(); Haptics.select();
+  flyFeedIcon('ce5');                      // same language as a logged sighting
   const el=$('ce5-marks');
   el.innerHTML=ce5.marks.map((m,i)=>'• Mark '+(i+1)+' at '+new Date(m.ts).toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'})).join('<br>');
   showToast('Marked — keep watching, we’ll check it after', true);
@@ -7679,6 +7741,7 @@ function saveUapReport(){
       notes:(($('uap-notes').value)||'').slice(0,400), sky:r.skyText||'', ruled } };
   pushSightLog(rec);
   bumpStat('uap');
+  flyFeedIcon('uap');
   if($('uap-share').checked) postFeed({name:rec.name, id:rec.id, kind:'uap'});
   $('uapmodal').classList.remove('show');
   SFX.success(); Haptics.sighting();
@@ -7835,19 +7898,23 @@ function feedAnchor(){   // whichever Feed button is actually visible (nav bar o
 function flyFeedIcon(kind, n){
   if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const btn=feedAnchor(); if(!btn) return;
-  const r=btn.getBoundingClientRect(), glyph = kind==='launch' ? '🚀' : kind==='uap' ? '👁' : '🛰️';
-  const count=Math.max(1, Math.min(n||3, 5));
+  const glyph = kind==='launch' ? '🚀' : kind==='ce5' ? '🛸' : kind==='uap' ? '👁' : '🛰️';
+  // A CE5 mark or an unidentified report deserves a longer beat than a routine sighting.
+  const slow = (kind==='ce5' || kind==='uap');
+  const r=btn.getBoundingClientRect();
+  const count=Math.max(1, Math.min(n || (slow?2:3), 5));
+  const life=slow?4600:2600;
   for(let i=0;i<count;i++){
     const el=document.createElement('div');
-    el.className='feedfly'; el.textContent=glyph;
+    el.className='feedfly'+(slow?' slow':''); el.textContent=glyph;
     el.style.left=(r.left + r.width/2)+'px';
     el.style.top=(r.top + r.height/2)+'px';
     el.style.setProperty('--dx', (Math.random()*70-35).toFixed(0)+'px');
-    el.style.animationDelay=(i*130 + Math.random()*90).toFixed(0)+'ms';
+    el.style.animationDelay=((slow?i*320:i*130) + Math.random()*90).toFixed(0)+'ms';
     document.body.appendChild(el);
-    setTimeout(()=>el.remove(), 2600);
+    setTimeout(()=>el.remove(), life);
   }
-  btn.classList.add('ping'); setTimeout(()=>btn.classList.remove('ping'), 600);
+  btn.classList.add('ping'); setTimeout(()=>btn.classList.remove('ping'), slow?1100:600);
 }
 function startFeedWatch(){
   if(!window.fb || !window.fb.orderBy) return;
