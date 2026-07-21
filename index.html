@@ -1304,6 +1304,10 @@
   /* --- Hero identity (achievements tab) --- */
   .hero-av{box-shadow:0 0 0 1px rgba(var(--neon-c),.45),0 0 28px rgba(var(--neon-c),.35);
     text-shadow:0 0 16px rgba(var(--neon-c),.6)}
+  /* Any avatar can hold a photo instead of a glyph — keep it circular and filled */
+  .hero-av,.fr-avatar,.usr-av{overflow:hidden}   /* .fr-av stays visible — it carries the status dot */
+  .hero-av img,.fr-avatar img,.usr-av img,.fr-av img{width:100%;height:100%;object-fit:cover;
+    border-radius:50%;display:block}
   .hero-name{color:var(--accent);text-shadow:0 0 20px rgba(var(--neon-c),.5),0 0 46px rgba(var(--neon-c),.2)}
   .hero-score{text-shadow:0 0 24px rgba(var(--neon-c),.55)}
   .fr-prof-name,.usr-nm{text-shadow:0 0 16px rgba(var(--neon-c),.4)}
@@ -1984,7 +1988,7 @@
 </script>
 
 <script>
-const BUILD = 'v98';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v100';           // shown in Settings and on the loader so you can confirm what's deployed
 // Stamp the loader immediately — it's the first thing on screen and the fastest way
 // to tell whether a deploy actually landed.
 (function(){ const v=document.getElementById('ld-ver'); if(v) v.textContent='SkyWatch '+BUILD; })();
@@ -2676,23 +2680,52 @@ function initSatPoints(){
     satPoints=new THREE.Points(satGeo, mat); satPoints.frustumCulled=false;
     world.scene().add(satPoints);
     usePoints=true;
-    const dom=world.renderer().domElement; let dx=0, dy=0;
-    dom.addEventListener('pointerdown', e=>{ dx=e.clientX; dy=e.clientY; });
-    dom.addEventListener('pointerup', e=>{
-      if(Math.abs(e.clientX-dx)>6 || Math.abs(e.clientY-dy)>6) return;   // a drag, not a tap
-      pickSat(e, THREE, dom);
+    const dom=world.renderer().domElement;
+    // Listen on the container as well as the canvas: globe.gl layers an HTML-elements
+    // overlay above the canvas, so a tap can land there and never reach the canvas.
+    const targets=[dom, $('globe')].filter(Boolean);
+    let dx=0, dy=0, moved=false;
+    targets.forEach(t=>{
+      t.addEventListener('pointerdown', e=>{ dx=e.clientX; dy=e.clientY; moved=false; });
+      t.addEventListener('pointermove', e=>{
+        if(Math.abs(e.clientX-dx)>6 || Math.abs(e.clientY-dy)>6) moved=true;
+      });
+      t.addEventListener('pointerup', e=>{
+        if(moved) return;                                    // a drag, not a tap
+        if(e.target.closest && e.target.closest('.sat,.launchpin,.sel-wrap')) return;  // marker has its own handler
+        pickSat(e, THREE, dom);
+      });
     });
   }catch(e){ console.warn('WebGL point layer failed → HTML markers', e); usePoints=false; satPoints=null; }
 }
+// Screen-space picking. A raycaster threshold is in world units, so it shrinks
+// relative to the drawn point as you zoom in — which is exactly when you're trying
+// to tap something. Projecting to pixels keeps the target the same size at any zoom.
 function pickSat(e, THREE, dom){
-  if(!satPoints) return;
+  if(!satPoints || !satGeo) return;
   const rect=dom.getBoundingClientRect();
-  const m=new THREE.Vector2(((e.clientX-rect.left)/rect.width)*2-1, -((e.clientY-rect.top)/rect.height)*2+1);
-  const rc=new THREE.Raycaster(); rc.params.Points.threshold=1.8;
-  rc.setFromCamera(m, world.camera());
-  const hits=rc.intersectObject(satPoints, false);
-  if(hits && hits.length){ const si=pointSatIndex[hits[0].index]; if(si!=null && SATS[si]) selectSat(SATS[si]); }
-  else if(selected || selectedLaunch){ clearSelection(); }   // tapped empty space → dismiss the highlight
+  const px=e.clientX-rect.left, py=e.clientY-rect.top;
+  const cam=world.camera(), pos=satGeo.attributes.position.array;
+  const dr=satGeo.drawRange.count;
+  const n=(dr==null || !isFinite(dr)) ? pointSatIndex.length : dr;
+  const v=new THREE.Vector3();
+  const eye=cam.position.clone().normalize();      // near hemisphere test
+  let bestI=-1, bestD=Infinity;
+  const HIT=22;                                    // generous but still precise enough to separate points
+  for(let k=0;k<n;k++){
+    const x=pos[k*3], y=pos[k*3+1], z=pos[k*3+2];
+    if(x*eye.x + y*eye.y + z*eye.z <= 0) continue; // behind the Earth — don't pick through the globe
+    v.set(x,y,z).project(cam);
+    if(v.z>1) continue;                            // behind the camera
+    const sx=(v.x*0.5+0.5)*rect.width, sy=(-v.y*0.5+0.5)*rect.height;
+    const d=Math.hypot(sx-px, sy-py);
+    if(d<bestD){ bestD=d; bestI=k; }
+  }
+  if(bestI>=0 && bestD<=HIT){
+    const si=pointSatIndex[bestI];
+    if(si!=null && SATS[si]){ selectSat(SATS[si]); return; }
+  }
+  if(selected || selectedLaunch) clearSelection();   // tapped empty space → dismiss the highlight
 }
 
 /* ---------- Orbit paths (ISS + whatever is selected) ---------- */
@@ -4412,6 +4445,13 @@ function avatarGlyph(p, uname){
   const n=(uname||(p&&p.username)||'?');
   return (n[0]||'?').toUpperCase();
 }
+// A chosen profile icon always wins — it's the one they picked deliberately.
+// Fall back to their Google photo, then to their initial.
+function avatarHTML(p, uname){
+  if(p && p.icon) return esc(p.icon);
+  if(p && p.photoURL) return '<img src="'+esc(p.photoURL)+'" referrerpolicy="no-referrer" alt="">';
+  return esc(avatarGlyph(p, uname));
+}
 async function saveProfileIcon(icon){
   if(!currentUser||!window.fb||!myProfile){ return; }
   const {db, doc, setDoc}=window.fb;
@@ -4862,7 +4902,7 @@ function renderHero(){
   if(!currentUser){ el.innerHTML='<div class="fr-note">Sign in (account icon, top-right) to start your journey.</div>'; return; }
   const st=statsFromProfile(myProfile||{}), earned=achEarned(st), score=scoreOf(st,earned);
   const earnedSet=new Set(earned.map(a=>a.id));
-  const uname=(myProfile&&myProfile.username)||'you', ini=avatarGlyph(myProfile, uname);
+  const uname=(myProfile&&myProfile.username)||'you', ini=avatarHTML(myProfile, uname);
   let since='';
   try{ const t=currentUser.metadata && currentUser.metadata.creationTime;
     if(t) since=new Date(t).toLocaleDateString([], {month:'long', year:'numeric'}); }catch(e){}
@@ -5923,7 +5963,7 @@ function renderMe(){
     const st=statsFromProfile(myProfile), score=scoreOf(st, achEarned(st));
     el.innerHTML=
       '<div class="fr-prof">'+
-        '<div class="fr-avatar">'+avatarGlyph(myProfile)+'</div>'+
+        '<div class="fr-avatar">'+avatarHTML(myProfile, myProfile&&myProfile.username)+'</div>'+
         '<div class="fr-prof-id"><div class="fr-prof-name">@'+myProfile.username+'</div></div>'+
       '</div>'+
       '<div class="fr-prof-stats">'+
@@ -5945,9 +5985,7 @@ function renderFriends(){
   el.innerHTML=friends.slice().sort((a,b)=>(b.lastSeen||0)-(a.lastSeen||0)).map(f=>{
     const on=(now-(f.lastSeen||0)<150000);
     const has=(typeof f.lat==='number'&&typeof f.lng==='number');
-    const av = f.photoURL
-      ? '<img src="'+esc(f.photoURL)+'" referrerpolicy="no-referrer" alt="">'
-      : esc(avatarGlyph(f, f.username));
+    const av = avatarHTML(f, f.username);
     return '<div class="fr-item" data-open="'+f.uid+'">'+
       '<span class="fr-av'+(on?' on':'')+'">'+av+'<span class="fr-status '+(on?'on':'off')+'"></span></span>'+
       '<div class="fr-nm">@'+esc(f.username)+(has?'':' <small>· no location</small>')+
@@ -5986,8 +6024,8 @@ function renderFriendProfile(p, f){
   const st=statsFromProfile(prof), earned=achEarned(st), score=scoreOf(st, earned);
   const earnedSet=new Set(earned.map(a=>a.id));
   const seen=Array.isArray(prof.seen)?prof.seen:[];
-  const av = f.photoURL ? '<img src="'+esc(f.photoURL)+'" referrerpolicy="no-referrer" alt="">'
-                        : esc(avatarGlyph(prof, uname));
+  // Prefer their chosen icon; the profile doc carries it, the friends list is the fallback.
+  const av = avatarHTML({icon: prof.icon || f.icon, photoURL: prof.photoURL || f.photoURL}, uname);
   const online=(Date.now()-(f.lastSeen||prof.lastSeen||0))<150000;
   let since='';
   if(seen.length){
