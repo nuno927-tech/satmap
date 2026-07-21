@@ -145,15 +145,24 @@
     transform:scaleY(2.94);display:flex;align-items:center;justify-content:center;
     font-size:24px;line-height:1;filter:drop-shadow(0 0 10px rgba(90,209,255,.8))}
   @keyframes ld-orbit{to{transform:rotate(360deg)}}
-  #ld-word{position:relative;margin:0;font-size:clamp(38px,11vw,68px);font-weight:800;
-    letter-spacing:-1px;color:#eaf3ff;white-space:nowrap;
-    text-shadow:0 0 26px rgba(90,209,255,.45),0 0 60px rgba(90,209,255,.18)}
-  #ld-word .w{color:var(--accent)}
+  /* Neon tube lettering: a white-hot core inside widening halos of the tube colour,
+     plus a dark drop so the sign sits against the sky instead of floating on it. */
+  #ld-word{position:relative;margin:0;font-size:clamp(38px,11vw,70px);font-weight:900;
+    letter-spacing:.5px;white-space:nowrap;color:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  #ld-word .sky{color:#ffffff;
+    text-shadow:0 0 1px #fff, 0 0 10px rgba(255,255,255,.9), 0 0 22px rgba(200,230,255,.55),
+      0 0 46px rgba(150,205,255,.3), 0 3px 12px rgba(0,0,0,.8)}
+  #ld-word .wm{color:#7fe7ff;
+    text-shadow:0 0 1px #eafaff, 0 0 10px rgba(160,235,255,.95), 0 0 24px rgba(90,209,255,.9),
+      0 0 48px rgba(90,209,255,.6), 0 0 90px rgba(60,180,255,.35), 0 3px 12px rgba(0,0,0,.8)}
   /* The 'a' is the target — it breathes a little brighter so the eye lands on it */
-  #ld-a{position:relative;display:inline-block;color:var(--accent);
-    animation:ld-a 3.2s ease-in-out infinite}
-  @keyframes ld-a{0%,100%{text-shadow:0 0 22px rgba(90,209,255,.55),0 0 48px rgba(90,209,255,.2)}
-    50%{text-shadow:0 0 30px rgba(90,209,255,.85),0 0 66px rgba(90,209,255,.35)}}
+  #ld-a{position:relative;display:inline-block;animation:ld-a 3.2s ease-in-out infinite}
+  @keyframes ld-a{
+    0%,100%{text-shadow:0 0 1px #eafaff, 0 0 10px rgba(160,235,255,.95), 0 0 24px rgba(90,209,255,.9),
+      0 0 48px rgba(90,209,255,.6), 0 0 90px rgba(60,180,255,.35), 0 3px 12px rgba(0,0,0,.8)}
+    50%{text-shadow:0 0 2px #fff, 0 0 14px rgba(200,245,255,1), 0 0 34px rgba(90,209,255,1),
+      0 0 68px rgba(90,209,255,.8), 0 0 120px rgba(60,180,255,.5), 0 3px 12px rgba(0,0,0,.8)}}
   #loadmsg{position:relative;z-index:1;margin:26px 0 0;color:var(--muted);font-size:13.5px;
     letter-spacing:.6px;text-align:center;min-height:20px;
     transition:opacity .28s ease}
@@ -2091,7 +2100,7 @@
       <div id="ld-ring"></div>
       <div id="ld-spin"><div id="ld-sat">🛰️</div></div>
     </div>
-    <h1 id="ld-word">Sky<span class="w">W</span><span id="ld-a">a</span>tch</h1>
+    <h1 id="ld-word"><span class="sky">Sky</span><span class="wm">W<span id="ld-a">a</span>tch</span></h1>
   </div>
   <p id="loadmsg">Starting up…</p>
   <div id="ld-steps"><i></i><i></i><i></i><i></i></div>
@@ -2119,7 +2128,7 @@
 </script>
 
 <script>
-const BUILD = 'v114';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v116';           // shown in Settings and on the loader so you can confirm what's deployed
 // Stamp the loader immediately — it's the first thing on screen and the fastest way
 // to tell whether a deploy actually landed.
 (function(){ const v=document.getElementById('ld-ver'); if(v) v.textContent='SkyWatch '+BUILD; })();
@@ -3128,25 +3137,45 @@ async function enableNotifications(){
   if(p!=='granted'){ showErr('Notifications are blocked — enable them for this site in your browser settings.'); return false; }
   return true;
 }
+/* ---------- Alert dispatch ----------
+   If you're looking at the app, a system notification is redundant and easy to miss —
+   show the premium card instead. If you're not, fall back to the OS. */
+function appIsVisible(){
+  return typeof document!=='undefined' && !document.hidden &&
+    (typeof document.hasFocus!=='function' || document.hasFocus());
+}
+// card: {hue, icon, kicker, name, desc, onTap}   notif: {title, opts}
+function dispatchAlert(card, notif){
+  if(appIsVisible()){
+    showPremiumCard(Object.assign({ms:7000}, card));
+    SFX.lookup();
+    Haptics.ping();
+  } else {
+    showNotif(notif.title, notif.opts);
+  }
+}
 function firePassNotification(sat, p){
   const mins=Math.max(1,Math.round((p.start-Date.now())/60000));
   const durMin=Math.max(1,Math.round((p.end-p.start)/60000));
-  const title='🛰 '+sat.name+' visible pass';
-  const opts={ body:`In ~${mins} min · look ${azCompass(p.startAz)}, rising to ${Math.round(p.peakEl)}° · visible ~${durMin} min`,
-    tag:'satmap-'+sat.id+'-'+Math.round(p.start/60000), icon:'icon-192.png', badge:'icon-192.png', renotify:false,
-    data:{type:'sat', id:sat.id} };
-  try{
-    if(navigator.serviceWorker && navigator.serviceWorker.ready)
-      navigator.serviceWorker.ready.then(r=>r.showNotification(title,opts)).catch(()=>{ new Notification(title,opts); });
-    else new Notification(title,opts);
-  }catch(e){ try{ new Notification(title,opts); }catch(_){} }
+  const where=azCompass(p.startAz)+', rising to '+Math.round(p.peakEl)+'°';
+  dispatchAlert(
+    { hue:'90,209,255', icon:'🛰️', kicker:'Visible pass · '+mins+' min',
+      name:sat.name, desc:'Look '+where+' · visible ~'+durMin+' min',
+      onTap:()=>openTarget({type:'sat', id:sat.id}) },
+    { title:'🛰 '+sat.name+' visible pass',
+      opts:{ body:'In ~'+mins+' min · look '+where+' · visible ~'+durMin+' min',
+        tag:'satmap-'+sat.id+'-'+Math.round(p.start/60000), icon:'icon-192.png',
+        badge:'icon-192.png', renotify:false, data:{type:'sat', id:sat.id} } }
+  );
 }
 function alertObjects(){
   const g=prefs.notifyGroups||{};
   return SATS.filter(s=>g[s.group]).slice(0,60);   // cap for performance
 }
 function scanAlerts(){
-  if(!prefs.notify || !observer || !('Notification' in window) || Notification.permission!=='granted') return;
+  // Permission is only needed for the system path — an in-app card needs nothing.
+  if(!prefs.notify || !observer) return;
+  if(!appIsVisible() && (!('Notification' in window) || Notification.permission!=='granted')) return;
   const objs=alertObjects(); if(!objs.length) return;
   const now=Date.now(), end=now+ALERT_LEAD_MS+15*60000;   // look far enough ahead to see the whole pass
   let i=0;
@@ -3869,7 +3898,7 @@ function showNotif(title, opts){
 }
 function scanLaunchAlerts(){
   if(!prefs.notify || !(prefs.notifyGroups && prefs.notifyGroups.rocket)) return;
-  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  if(!appIsVisible() && (!('Notification' in window) || Notification.permission!=='granted')) return;
   const now=Date.now();
   const msg={ day:'launches within 24 hours', '1h':'launches within the hour', liftoff:'is lifting off now' };
   for(const l of LAUNCHES){
@@ -3877,9 +3906,15 @@ function scanLaunchAlerts(){
     const band=launchBand(l.net.getTime()-now); if(!band) continue;
     const key=l.id+':'+band; if(launchNotified.has(key)) continue;
     launchNotified.add(key);
-    showNotif('🚀 '+l.provider+' — '+l.rocket, {
-      body: l.mission+' '+msg[band]+(l.padName?(' · '+l.padName):''),
-      tag:'launch-'+l.id+'-'+band, icon:'icon-192.png', badge:'icon-192.png', data:{type:'launch', id:l.id} });
+    const body=l.mission+' '+msg[band]+(l.padName?(' · '+l.padName):'');
+    dispatchAlert(
+      { hue:'255,107,53', icon:'🚀',
+        kicker: band==='liftoff' ? 'Lifting off now' : band==='1h' ? 'Launch within the hour' : 'Launch in 24 hours',
+        name:l.provider+' · '+l.rocket, desc:body,
+        onTap:()=>openTarget({type:'launch', id:l.id}) },
+      { title:'🚀 '+l.provider+' — '+l.rocket,
+        opts:{ body, tag:'launch-'+l.id+'-'+band, icon:'icon-192.png',
+          badge:'icon-192.png', data:{type:'launch', id:l.id} } });
   }
   try{ localStorage.setItem('satmap_launch_notified', JSON.stringify([...launchNotified].slice(-500))); }catch(e){}
 }
@@ -6229,8 +6264,9 @@ function startPings(uid){
   unsubPings=onSnapshot(collection(db,'profiles',uid,'pings'), snap=>{
     snap.docChanges().forEach(ch=>{ if(ch.type!=='added') return; const p=ch.doc.data();
       if(Date.now()-(p.ts||0) > 3600000){ try{ deleteDoc(doc(db,'profiles',uid,'pings',ch.doc.id)); }catch(e){} return; }  // stale
-      showPingCard(p.fromName, p.text);
-      try{ if('Notification' in window && Notification.permission==='granted') showNotif('👋 @'+(p.fromName||'friend'), {body:p.text||'Look up! 🛰️', tag:'ping-'+ch.doc.id, icon:'icon-192.png'}); }catch(e){}
+      if(appIsVisible()) showPingCard(p.fromName, p.text);
+      else { try{ if('Notification' in window && Notification.permission==='granted')
+        showNotif('👋 @'+(p.fromName||'friend'), {body:p.text||'Look up! 🛰️', tag:'ping-'+ch.doc.id, icon:'icon-192.png'}); }catch(e){} }
       try{ deleteDoc(doc(db,'profiles',uid,'pings',ch.doc.id)); }catch(e){}
     });
   }, err=>console.warn('pings', err));
