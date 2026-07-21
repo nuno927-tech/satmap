@@ -676,6 +676,26 @@
   .nt-rank.past .nt-grade{opacity:.6}
   .nt-num{font-size:12px;font-variant-numeric:tabular-nums}
   @media (prefers-reduced-motion:reduce){ .nt-rank.now{animation:none} }
+  /* CE5 explainer */
+  #ce5-info{display:none;margin:10px 0 4px;padding:14px 15px;border-radius:14px;
+    border:1px solid var(--border);background:rgba(120,160,255,.05);
+    box-shadow:0 2px 10px rgba(0,0,0,.3)}
+  #ce5-info.show{display:block}
+  #ce5-info p{margin:0 0 10px;font-size:12.5px;line-height:1.6;color:var(--muted)}
+  #ce5-info p:last-child{margin-bottom:0}
+  #ce5-info b{color:var(--text);font-weight:600}
+  .ce5-h{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+    color:rgb(var(--neon-c));margin:14px 0 7px;padding-bottom:4px;
+    border-bottom:1px solid rgba(var(--neon-c),.18)}
+  .ce5-h:first-child{margin-top:0}
+  .ce5-proto{margin:0;padding-left:0;list-style:none;counter-reset:ce5}
+  .ce5-proto li{position:relative;counter-increment:ce5;margin-bottom:11px;padding-left:30px;
+    font-size:12.5px;line-height:1.6;color:var(--muted)}
+  .ce5-proto li::before{content:counter(ce5);position:absolute;left:0;top:1px;
+    width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;color:rgb(var(--neon-c));
+    background:rgba(var(--neon-c),.14);box-shadow:0 0 0 1px rgba(var(--neon-c),.3)}
+  .ce5-proto li:last-child{margin-bottom:0}
   /* Sky hub: CE5 tab */
   #sky-pane-ce5{display:none}
   #overhead.tab-ce5 #sky-pane-now,#overhead.tab-ce5 #sky-pane-id,
@@ -1400,7 +1420,6 @@
   .frpin.me .frpin-body{border-color:rgba(90,209,255,.95);
     box-shadow:0 0 14px rgba(90,209,255,.6),0 3px 8px rgba(0,0,0,.6)}
   .frpin.me .frpin-tail{border-top-color:rgba(90,209,255,.95)}
-  .frpin.me .frpin-name{color:#7fe7ff;border-color:rgba(90,209,255,.4)}
   .frpin-body img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
   .frpin.on .frpin-tail{border-top-color:rgba(87,224,138,.95)}
   .frpin-name{position:absolute;left:50%;top:-58px;transform:translateX(-50%);white-space:nowrap;
@@ -1997,6 +2016,10 @@
     <div class="switch" id="sw-rotate" role="switch"></div>
   </div>
 
+  <div class="stg">
+    <div class="lbl">Red night mode<small>Protects your dark adaptation outdoors</small></div>
+    <div class="switch" id="sw-night" role="switch"></div>
+  </div>
   <div class="stg-sec">Units &amp; time</div>
   <div class="stg">
     <div class="lbl">Units<small>Altitude, speed &amp; range</small></div>
@@ -2027,6 +2050,27 @@
     <div class="switch" id="sw-music" role="switch"></div>
   </div>
 
+  <div class="stg-sec">Privacy</div>
+  <div class="stg">
+    <div class="lbl">Share sightings to the feed<small>Off logs them privately &mdash; awards still count</small></div>
+    <div class="switch" id="sw-sharefeed" role="switch"></div>
+  </div>
+  <div class="stg">
+    <div class="lbl">Share my location with friends<small>Lets friends see you on the map</small></div>
+    <div class="switch" id="sw-shareloc" role="switch"></div>
+  </div>
+  <div class="stg" id="stg-precise">
+    <div class="lbl">Exact location<small>Off shares an approximate area (~11 km)</small></div>
+    <div class="switch" id="sw-precise" role="switch"></div>
+  </div>
+  <div class="stg">
+    <div class="lbl">List me in Community<small>Others can find and add you</small></div>
+    <div class="switch" id="sw-listed" role="switch"></div>
+  </div>
+  <div class="stg">
+    <div class="lbl">Show me on the leaderboard<small>Your awards stay either way</small></div>
+    <div class="switch" id="sw-ranked" role="switch"></div>
+  </div>
   <div class="stg-sec">Passes &amp; alerts</div>
   <div class="stg">
     <div class="lbl">Overhead cutoff<small>Min. elevation to list a pass</small></div>
@@ -2039,6 +2083,28 @@
   <div class="stg">
     <div class="lbl">Alerts<small>Visible night passes &amp; rocket launches</small></div>
     <div class="switch" id="sw-notify" role="switch"></div>
+  </div>
+  <div class="stg">
+    <div class="lbl">Only alert me for<small>Minimum peak elevation</small></div>
+    <div class="seg" id="seg-alertel">
+      <button data-v="0">Any</button>
+      <button data-v="30">30°</button>
+      <button data-v="50">50°</button>
+      <button data-v="70">70°</button>
+    </div>
+  </div>
+  <div class="stg">
+    <div class="lbl">Quiet hours<small>No alerts overnight</small></div>
+    <div class="switch" id="sw-quiet" role="switch"></div>
+  </div>
+  <div class="stg" id="stg-quiet-range">
+    <div class="lbl">Silent between<small id="quiet-lbl">1am &ndash; 6am</small></div>
+    <div class="seg" id="seg-quiet">
+      <button data-v="22-6">10p&ndash;6a</button>
+      <button data-v="0-6">12a&ndash;6a</button>
+      <button data-v="1-6">1a&ndash;6a</button>
+      <button data-v="1-8">1a&ndash;8a</button>
+    </div>
   </div>
   <div class="stg" id="stg-push">
     <div class="lbl">Background alerts<small id="push-sub">Arrive with the app closed &mdash; and on your watch</small></div>
@@ -2056,6 +2122,13 @@
   <button id="sharebtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.7 15.7 6.3M8.3 13.3l7.4 4.4"/></svg> Share this app</button>
   <button id="tourbtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.7-.9 1.4v.3"/><path d="M12 16.5h.01"/></svg> Take the tour</button>
   <button id="snapbtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg> Share a snapshot</button>
+  <div class="stg-sec">Your data</div>
+  <div class="stg">
+    <div class="lbl">Data saver<small>Skip the Starlink download on cellular</small></div>
+    <div class="switch" id="sw-datasaver" role="switch"></div>
+  </div>
+  <button id="exportbtn" class="idf-uap">📦 Export my data</button>
+  <button id="clearcachebtn" class="idf-uap">🧹 Clear cached data</button>
   <div class="stg-sec">Feedback</div>
   <div class="tip-note">Something broken, or an idea? This reaches the developer directly.</div>
   <button id="fbbtn" class="idf-uap">✉️ Report a bug or request a feature</button>
@@ -2130,6 +2203,49 @@
     <div id="ce5-setup">
       <div class="idf-note">A guided quiet-observation session. SkyWatch keeps time, dims to red so your
         night vision holds, and afterwards tells you exactly which tracked objects crossed your sky.</div>
+      <button id="ce5-what" class="idf-uap" aria-expanded="false">📖 What is CE5? &amp; the protocols</button>
+      <div id="ce5-info" class="ce5-info">
+        <div class="ce5-h">What CE5 means</div>
+        <p><b>CE5</b> stands for <b>Close Encounter of the Fifth Kind</b> — a category proposed in the
+          1990s for encounters initiated by humans rather than simply witnessed. It extends Hynek's
+          original scale, where CE1 is a sighting at close range, CE2 leaves physical traces and CE3
+          involves visible occupants.</p>
+        <p>The practice was popularised by Dr Steven Greer's CE5 Initiative. Its premise is that
+          consciousness can be used to signal intent, and that groups meditating together with a shared
+          focus may invite contact. Practitioners gather at dark sites, follow a sequence of
+          relaxation and visualisation steps, and watch.</p>
+        <div class="ce5-h">The protocols</div>
+        <ol class="ce5-proto">
+          <li><b>Prepare the site.</b> Somewhere dark and open, away from streetlights, with a clear
+            horizon. Bring something to lie back on — most of the session is spent looking up.</li>
+          <li><b>Settle and relax.</b> Ten minutes or so letting the body quieten. Slow breathing,
+            no screens, no conversation. Dark adaptation takes about 20 minutes, so this doubles as
+            preparation for actually seeing faint things.</li>
+          <li><b>Open awareness.</b> A meditative state described as calm and receptive rather than
+            searching — attention widened to the whole sky and surroundings instead of fixed on one point.</li>
+          <li><b>Coherent thought sequencing.</b> The core of the method: visualise your location as
+            if seen from far above — the field, the town, the coastline, the curve of the Earth — then
+            hold that image as a beacon marking where you are.</li>
+          <li><b>Extend an invitation.</b> A clear, calm intention of peaceful contact. Groups often
+            do this together, sometimes aloud.</li>
+          <li><b>Watch and listen.</b> Sustained observation, typically 20–40 minutes. Some
+            practitioners add tools — a torch signalled skyward, recorded tones, or a laser pointer,
+            though pointing lasers at aircraft is dangerous and illegal in most countries.</li>
+          <li><b>Record everything.</b> Note times, directions and what you saw, at the moment it
+            happens rather than afterwards.</li>
+          <li><b>Close deliberately.</b> Mark the end, stand slowly, and compare notes if in a group.</li>
+        </ol>
+        <div class="ce5-h">Where SkyWatch fits</div>
+        <p>This app takes no position on whether the method works. What it does is remove the largest
+          source of false positives: it records the exact times you marked something, then propagates
+          every tracked object to those moments and tells you which were overhead and sunlit.</p>
+        <p>Most things people see moving in a dark sky are satellites, high aircraft, or Starlink
+          trains — and knowing that with certainty is what makes the remainder interesting. If nothing
+          tracked was above you when you looked, that's worth recording too.</p>
+        <div class="ce5-h">Practical safety</div>
+        <p>Tell someone where you're going, watch the temperature on long sessions, don't trespass,
+          and never aim a laser at anything that might be an aircraft.</p>
+      </div>
       <div class="ce5-cond" id="ce5-cond"><div class="fr-note">Checking conditions…</div></div>
       <div class="idf-lbl">Session length</div>
       <div class="idf-chips" id="ce5-len">
@@ -2332,7 +2448,7 @@
 </script>
 
 <script>
-const BUILD = 'v134';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v137';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -2412,7 +2528,13 @@ const selMarker = {lat:null, lng:null, alt:0, _sel:true};   // pulsing highlight
 function simNow(){ return Date.now(); }
 // User preferences (synced to the signed-in account)
 const prefs = { units:'metric', time:'24', autorotate:true, issPath:true, cutoff:0, music:true,
-  notify:false, notifyGroups:{ iss:true, stations:false, visual:false, rocket:true }, favs:[], theme:'blue', borders:false, sounds:true, vibrate:true, push:false };
+  notify:false, notifyGroups:{ iss:true, stations:false, visual:false, rocket:true }, favs:[], theme:'blue', borders:false, sounds:true, vibrate:true, push:false,
+  // Privacy — every one of these defaults to the least surprising option.
+  shareFeed:true, shareLoc:true, locPrecise:true, listed:true, ranked:true,
+  // Alerts
+  alertMinEl:0, quietFrom:1, quietTo:6, quiet:false,
+  // Display + data
+  nightMode:false, dataSaver:false };
 // Favorites (starred sats) + client-side filters (no network).
 let favs = new Set();
 let seenSet = new Set();  // ids of satellites you've marked "seen" (from your profile)
@@ -2866,8 +2988,7 @@ function initGlobe(){
         el.className='frpin me';
         d._el=el;
         el.innerHTML='<span class="frpin-body">'+d.icon+'</span>'+
-                     '<span class="frpin-tail"></span>'+
-                     '<span class="frpin-name">You</span>';
+                     '<span class="frpin-tail"></span>';
         el.title='Your location';
         el.onclick=(ev)=>{ ev.stopPropagation(); flyToMe(); };
         return el;
@@ -3470,6 +3591,13 @@ const VAPID_PUBLIC_KEY='';
 const PUSH_HORIZON=48*3600000;   // schedule this far ahead
 const PUSH_MAX=20;               // and no more than this many alerts
 
+// Treat cellular and any explicit save-data signal as metered.
+function onMeteredConnection(){
+  const c=navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if(!c) return false;
+  if(c.saveData) return true;
+  return c.type==='cellular' || /^(slow-)?2g$|^3g$/.test(c.effectiveType||'');
+}
 function pushSupported(){
   return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 }
@@ -3548,6 +3676,7 @@ function buildAlertSchedule(cb){
       let n=0;
       for(const p of satVisiblePasses(s.satrec, now, end, 60000)){
         if(!p.visible || p.start<=now+ALERT_LEAD_MS) continue;
+        if(!alertWorthy(p) || inQuietHours(p.start-ALERT_LEAD_MS)) continue;
         const mins=Math.max(1,Math.round((p.end-p.start)/60000));
         out.push({
           t: p.start-ALERT_LEAD_MS,                       // fire ~6 min before it rises
@@ -3584,6 +3713,16 @@ function syncAlertSchedule(force){
     }, force?0:1500);
   });
 }
+/* Quiet hours wrap midnight, so 23:00–06:00 is "hour >= 23 OR hour < 6". */
+function inQuietHours(t){
+  if(!prefs.quiet) return false;
+  const h=new Date(t==null?Date.now():t).getHours();
+  const a=prefs.quietFrom, b=prefs.quietTo;
+  if(a===b) return false;
+  return a<b ? (h>=a && h<b) : (h>=a || h<b);
+}
+// A pass has to clear your quality floor to be worth an alert.
+function alertWorthy(p){ return (p.peakEl||0) >= (prefs.alertMinEl||0); }
 function alertObjects(){
   const g=prefs.notifyGroups||{};
   return SATS.filter(s=>g[s.group]).slice(0,60);   // cap for performance
@@ -3603,6 +3742,8 @@ function scanAlerts(){
         if(!p.visible || p.start<=now) continue;
         const key=s.id+'@'+Math.round(p.start/60000);
         if(notifiedKeys.has(key)) continue;
+        if(!alertWorthy(p)) break;
+        if(inQuietHours(p.start)) break;
         if(p.start-now<=ALERT_LEAD_MS){ firePassNotification(s,p); notifiedKeys.add(key); saveNotified(); }
         break;   // only the next pass per object matters
       }
@@ -4313,6 +4454,7 @@ function showNotif(title, opts){
 }
 function scanLaunchAlerts(){
   if(!prefs.notify || !(prefs.notifyGroups && prefs.notifyGroups.rocket)) return;
+  if(inQuietHours()) return;
   if(!appIsVisible() && (!('Notification' in window) || Notification.permission!=='granted')) return;
   const now=Date.now();
   const msg={ day:'launches within 24 hours', '1h':'launches within the hour', liftoff:'is lifting off now' };
@@ -4757,7 +4899,8 @@ async function boot(){
   setInterval(tickClock, 1000); tickClock();
   setInterval(updateIssOrbit, 30000);  // refresh ISS track periodically
   setInterval(()=>{ scanAlerts(); scanLaunchAlerts(); syncAlertSchedule(); }, 120000); scanAlerts();  // visible passes + launch alerts
-  if(flagOn('starlink')) setTimeout(loadMoreStarlink, 4000);  // then pull the rest of Starlink in the background
+  // Data saver: the Starlink bulk download is by far the largest transfer here.
+  if(flagOn('starlink') && !(prefs.dataSaver && onMeteredConnection())) setTimeout(loadMoreStarlink, 4000);  // then pull the rest of Starlink in the background
   if(enabled['rocket'] && flagOn('launches')) setTimeout(loadLaunches, 2500);   // fetch upcoming launches in the background
   setInterval(()=>{ if(enabled['rocket'] && flagOn('launches')) loadLaunches(); }, 18e5);  // refresh launches every 30 min
 
@@ -4895,6 +5038,7 @@ function enableDetailGesture(el){
 
 /* ---------- Settings ---------- */
 function applyPrefs(){
+  nightMode(!!prefs.nightMode);          // persistent red mode, independent of CE5
   document.querySelectorAll('#seg-units button').forEach(b=>b.classList.toggle('sel', b.dataset.v===prefs.units));
   document.querySelectorAll('#seg-time button').forEach(b=>b.classList.toggle('sel', b.dataset.v===prefs.time));
   document.querySelectorAll('#seg-cutoff button').forEach(b=>b.classList.toggle('sel', +b.dataset.v===prefs.cutoff));
@@ -4908,6 +5052,18 @@ function applyPrefs(){
   if($('sw-borders')) $('sw-borders').classList.toggle('on', prefs.borders);
   if($('sw-sounds')) $('sw-sounds').classList.toggle('on', prefs.sounds);
   if($('sw-vibrate')) $('sw-vibrate').classList.toggle('on', prefs.vibrate && HAPTIC_OK);
+  const SW={ 'sw-sharefeed':'shareFeed', 'sw-shareloc':'shareLoc', 'sw-precise':'locPrecise',
+             'sw-listed':'listed', 'sw-ranked':'ranked', 'sw-quiet':'quiet',
+             'sw-night':'nightMode', 'sw-datasaver':'dataSaver' };
+  for(const id in SW){ const el=$(id); if(el) el.classList.toggle('on', !!prefs[SW[id]]); }
+  // Precision only means anything while you're sharing at all.
+  const pr=$('stg-precise'); if(pr) pr.classList.toggle('stg-off', !prefs.shareLoc);
+  const qr=$('stg-quiet-range'); if(qr) qr.classList.toggle('stg-off', !prefs.quiet);
+  document.querySelectorAll('#seg-alertel button').forEach(b=>b.classList.toggle('sel', +b.dataset.v===prefs.alertMinEl));
+  document.querySelectorAll('#seg-quiet button').forEach(b=>
+    b.classList.toggle('sel', b.dataset.v===(prefs.quietFrom+'-'+prefs.quietTo)));
+  const ql=$('quiet-lbl');
+  if(ql){ const f=h=>((h%12)||12)+(h<12?'am':'pm'); ql.textContent=f(prefs.quietFrom)+' – '+f(prefs.quietTo); }
   const pw=$('sw-push'), prow=$('stg-push'), psub=$('push-sub');
   if(pw){
     pw.classList.toggle('on', !!prefs.push);
@@ -4944,6 +5100,23 @@ function initSettingsUI(){
   $('sw-isspath').onclick=()=>{ prefs.issPath=!prefs.issPath; sfxToggle(prefs.issPath); applyPrefs(); saveSettings(); };
   if($('sw-borders')) $('sw-borders').onclick=()=>{ prefs.borders=!prefs.borders; sfxToggle(prefs.borders); applyPrefs(); saveSettings(); applyBorders(); };
   // Sound switch plays its own confirmation either way (bypassing the mute flag when turning off).
+  const bind=(id,key,after)=>{ const el=$(id); if(!el) return;
+    el.onclick=()=>{ prefs[key]=!prefs[key]; sfxToggle(prefs[key]); applyPrefs(); saveSettings(); if(after) after(); }; };
+  bind('sw-sharefeed','shareFeed');
+  bind('sw-shareloc','shareLoc', shareLocation);          // pushes or clears immediately
+  bind('sw-precise','locPrecise', shareLocation);
+  bind('sw-listed','listed', ()=>{ syncVisibility(); renderDirectory(); });
+  bind('sw-ranked','ranked', ()=>{ syncVisibility(); renderLeaderboard(); });
+  bind('sw-quiet','quiet');
+  bind('sw-night','nightMode');
+  bind('sw-datasaver','dataSaver');
+  document.querySelectorAll('#seg-alertel button').forEach(b=>b.onclick=()=>{
+    prefs.alertMinEl=+b.dataset.v; SFX.tap(); applyPrefs(); saveSettings(); });
+  document.querySelectorAll('#seg-quiet button').forEach(b=>b.onclick=()=>{
+    const [f,t]=b.dataset.v.split('-').map(Number);
+    prefs.quietFrom=f; prefs.quietTo=t; SFX.tap(); applyPrefs(); saveSettings(); });
+  if($('exportbtn')) $('exportbtn').onclick=exportMyData;
+  if($('clearcachebtn')) $('clearcachebtn').onclick=clearCachedData;
   if($('sw-push')) $('sw-push').onclick=async ()=>{
     if(prefs.push){ await disablePush(); sfxToggle(false); return; }
     const ok=await enablePush();
@@ -5733,6 +5906,45 @@ async function admAction(a){
     }
   }catch(e){ console.error(e); showErr('Action failed: '+(e.code||e.message||e)); }
 }
+/* ---------- 14 + 16. Your data ---------- */
+function exportMyData(){
+  const st = myProfile ? statsFromProfile(myProfile) : null;
+  const data={
+    exported: new Date().toISOString(),
+    app: 'SkyWatch '+BUILD,
+    account: currentUser ? { uid:currentUser.uid, email:currentUser.email||'',
+      username:(myProfile&&myProfile.username)||'' } : null,
+    stats: st ? { objects:st.badges, sightings:st.sightings, bestStreak:st.maxStreak,
+      awards:achEarned(st).map(a=>({id:a.id, name:a.n})), points:scoreOf(st, achEarned(st)) } : null,
+    objectsSeen: (myProfile && myProfile.seen) || [],
+    sightingLog: sightLog,
+    uapReports: sightLog.filter(x=>x.kind==='uap'),
+    ce5Sessions: ce5Log(),
+    favourites: [...favs],
+    settings: collectSettings()
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='skywatch-data-'+dayStr(Date.now())+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  showToast('📦 Export downloaded', true);
+}
+async function clearCachedData(){
+  if(!confirm('Clear cached map and satellite data?\n\nYour account, sightings and settings are untouched — this only frees space and forces a fresh download.')) return;
+  const keep=['satmap_favs','satmap_sightlog','skywatch_dev','skywatch_adm','satmap_onboarded'];
+  try{
+    for(let i=localStorage.length-1;i>=0;i--){
+      const k=localStorage.key(i);
+      if(!k) continue;
+      if(keep.includes(k)) continue;
+      if(/^(satmap|skywatch)_/.test(k) && /(cache|tle|sl_|notified|launch)/i.test(k)) localStorage.removeItem(k);
+    }
+  }catch(e){}
+  try{ const keys=await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k))); }catch(e){}
+  showToast('🧹 Cache cleared — reload for a fresh download', true);
+}
 async function devNuke(){
   if(!confirm('Clear every cache, unregister the service worker and reload?\n\nYour account data is untouched — this only clears what this device stored.')) return;
   try{ const keys=await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k))); }catch(e){}
@@ -5867,8 +6079,22 @@ function collectSettings(){
   return { groups, lat: observer?observer.lat:null, lng: observer?observer.lng:null, zoom,
     units: prefs.units, time: prefs.time, autorotate: prefs.autorotate, issPath: prefs.issPath, cutoff: prefs.cutoff, music: prefs.music,
     notify: prefs.notify, notifyGroups: prefs.notifyGroups, favs: prefs.favs, theme: prefs.theme, borders: prefs.borders, sounds: prefs.sounds, vibrate: prefs.vibrate, push: prefs.push,
+    shareFeed: prefs.shareFeed, shareLoc: prefs.shareLoc, locPrecise: prefs.locPrecise,
+    listed: prefs.listed, ranked: prefs.ranked,
+    alertMinEl: prefs.alertMinEl, quiet: prefs.quiet, quietFrom: prefs.quietFrom, quietTo: prefs.quietTo,
+    nightMode: prefs.nightMode, dataSaver: prefs.dataSaver,
     sightLog: sightLog.slice(-SLOG_MAX),   // private: users/{uid} is owner-only
     updatedAt: Date.now() };
+}
+/* Directory and leaderboard visibility live on the public username doc, so they
+   need pushing the moment they change rather than at the next sighting. */
+async function syncVisibility(){
+  if(!currentUser || !window.fb || !myProfile || !myProfile.unameLower) return;
+  try{
+    const {db, doc, setDoc}=window.fb;
+    await setDoc(doc(db,'usernames',myProfile.unameLower),
+      { listed:prefs.listed!==false, ranked:prefs.ranked!==false }, {merge:true});
+  }catch(e){ console.warn('visibility', e); }
 }
 function saveSettings(){
   if(!currentUser || applyingRemote || !window.fb) return;
@@ -5888,6 +6114,9 @@ function applySettings(s){
     if(typeof s.sounds==='boolean') prefs.sounds=s.sounds;
     if(typeof s.vibrate==='boolean') prefs.vibrate=s.vibrate;
     if(typeof s.push==='boolean') prefs.push=s.push;
+    ['shareFeed','shareLoc','locPrecise','listed','ranked','quiet','nightMode','dataSaver']
+      .forEach(k=>{ if(typeof s[k]==='boolean') prefs[k]=s[k]; });
+    ['alertMinEl','quietFrom','quietTo'].forEach(k=>{ if(typeof s[k]==='number') prefs[k]=s[k]; });
     mergeSightLog(s.sightLog);   // union device + account sighting history
     if(s.time==='12'||s.time==='24') prefs.time=s.time;
     if(typeof s.music==='boolean') prefs.music=s.music;
@@ -6200,10 +6429,20 @@ function startPresence(){
 function stopPresence(){ if(presenceTimer){ clearInterval(presenceTimer); presenceTimer=null; } }
 window.addEventListener('beforeunload', ()=>{ try{ if(currentUser&&window.fb)
   window.fb.setDoc(window.fb.doc(window.fb.db,'profiles',currentUser.uid), {online:false}, {merge:true}); }catch(e){} });
+/* Rounding to 0.1° is roughly an 11km grid — enough for "they're in Connecticut",
+   not enough for "they're on that street". */
+function fuzzCoord(v){ return Math.round(v*10)/10; }
 function shareLocation(){
-  if(!currentUser||!window.fb||!observer) return;
-  window.fb.setDoc(window.fb.doc(window.fb.db,'profiles',currentUser.uid),
-    {lat:observer.lat, lng:observer.lng, updatedAt:Date.now()}, {merge:true}).catch(()=>{});
+  if(!currentUser||!window.fb) return;
+  const {db, doc, setDoc}=window.fb;
+  if(!prefs.shareLoc || !observer){
+    // Clear anything previously shared rather than leaving a stale position behind.
+    setDoc(doc(db,'profiles',currentUser.uid), {lat:null, lng:null, updatedAt:Date.now()}, {merge:true}).catch(()=>{});
+    return;
+  }
+  const lat = prefs.locPrecise ? observer.lat : fuzzCoord(observer.lat);
+  const lng = prefs.locPrecise ? observer.lng : fuzzCoord(observer.lng);
+  setDoc(doc(db,'profiles',currentUser.uid), {lat, lng, updatedAt:Date.now()}, {merge:true}).catch(()=>{});
 }
 async function saveUsername(raw){
   raw=(raw||'').trim().replace(/^@/,'');
@@ -6424,7 +6663,8 @@ async function commitSeen(list, days){
   const st=statsFromProfile({seen:list, sightDays:days}), earned=achEarned(st), score=scoreOf(st,earned);
   await setDoc(doc(db,'profiles',currentUser.uid), {seen:list, sightDays:days, badges:st.badges}, {merge:true});
   if(myProfile.unameLower){ try{ await setDoc(doc(db,'usernames',myProfile.unameLower),
-    {badges:st.badges, sightings:st.sightings, streak:st.maxStreak, ach:earned.map(a=>a.id), score}, {merge:true}); }catch(e){} }
+    {badges:st.badges, sightings:st.sightings, streak:st.maxStreak, ach:earned.map(a=>a.id), score,
+     listed:prefs.listed!==false, ranked:prefs.ranked!==false}, {merge:true}); }catch(e){} }
 }
 async function logSighting(s, ts){
   if(!currentUser||!window.fb){ showErr('Sign in to log sightings (account icon, top-right).'); return; }
@@ -7306,7 +7546,7 @@ function endCe5(){
   ce5.run=false;
   clearInterval(ce5.timer); ce5.timer=null;
   try{ if(ce5._wl){ ce5._wl.release(); ce5._wl=null; } }catch(e){}
-  nightMode(false);
+  nightMode(!!prefs.nightMode);        // back to whatever you chose, not just off
   if(ce5.cues) SFX.gong();
   const rec={ start:ce5.start, end:Date.now(), len:ce5.len, marks:ce5.marks.map(m=>m.ts) };
   ce5SaveLog(rec);
@@ -7377,10 +7617,17 @@ function initCe5(){
   $('ce5-end').onclick=endCe5;
   $('ce5-mark').onclick=ce5Mark;
   $('ce5-log').onclick=showCe5Log;
-  const nb=$('nightbadge'); if(nb) nb.onclick=()=>nightMode(false);
+  const nb=$('nightbadge'); if(nb) nb.onclick=()=>{ prefs.nightMode=false; saveSettings(); applyPrefs(); };
   const len=$('ce5-len');
   if(len) len.querySelectorAll('button').forEach(b=>b.onclick=()=>
     len.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b)));
+  const what=$('ce5-what'), info=$('ce5-info');
+  if(what && info) what.onclick=()=>{
+    const open=info.classList.toggle('show');
+    what.setAttribute('aria-expanded', open?'true':'false');
+    what.textContent = open ? '📖 Hide the explainer' : '📖 What is CE5? & the protocols';
+    if(open) setTimeout(()=>info.scrollIntoView({behavior:'smooth', block:'nearest'}), 60);
+  };
   const inv=$('ce5-invite');
   if(inv) inv.onclick=async ()=>{
     if(!friends.length){ showErr('Add a friend first — you can ping them from the Friends tab.'); return; }
@@ -7472,6 +7719,7 @@ function initAchievements(){
 /* ---------- Sighting feed ---------- */
 let feedItems=[], feedScope='all';   // all | friends | mine (mine = your private lifetime log)
 async function postFeed(entry){
+  if(!prefs.shareFeed) return;                 // logging privately is a valid choice
   if(!currentUser||!window.fb||!myProfile||!myProfile.username) return;
   const {db, collection, addDoc}=window.fb;
   try{ await addDoc(collection(db,'feed'), Object.assign({uid:currentUser.uid, username:myProfile.username, ts:Date.now()}, entry)); }
@@ -7684,7 +7932,7 @@ function renderDirectory(){
   if(!currentUser){ el.innerHTML=''; return; }
   const friendIds=new Set(friends.map(f=>f.uid)), reqIds=new Set(incomingReqs.map(r=>r.uid));
   const f=(dirFilter||'').toLowerCase().replace(/^@/,'');
-  const list=allUsers.filter(u=> !u.blocked && (!f || (u.username||'').toLowerCase().includes(f)))
+  const list=allUsers.filter(u=> !u.blocked && u.listed!==false && (!f || (u.username||'').toLowerCase().includes(f)))
     .sort((a,b)=>(a.username||'').localeCompare(b.username||''));
   if(!list.length){ el.innerHTML='<div class="fr-note">'+(allUsers.length?'No match.':'No other users have a username yet.')+'</div>'; return; }
   el.innerHTML=list.slice(0,150).map(u=>{
@@ -7762,7 +8010,7 @@ function renderLeaderboard(){
   const el=$('fr-leader'); if(!el) return;
   if(!currentUser){ el.innerHTML='<div class="fr-note">Sign in to enter the rankings.</div>'; return; }
   const friendIds=new Set(friends.map(f=>f.uid));
-  let rows=allUsers.filter(u=>!lbFriendsOnly || friendIds.has(u.uid))
+  let rows=allUsers.filter(u=>u.ranked!==false && (!lbFriendsOnly || friendIds.has(u.uid)))
     .map(u=>({username:u.username, icon:u.icon||'', badges:u.badges||0, score:u.score||0,
       sightings:u.sightings||0, streak:u.streak||0, uid:u.uid, ach:u.ach||[]}));
   if(myProfile && myProfile.username){ const st=statsFromProfile(myProfile), e=achEarned(st);
@@ -7959,7 +8207,11 @@ function friendPinData(){
 function mePinData(){
   if(!observer) return null;
   mePin.lat=observer.lat; mePin.lng=observer.lng;
-  mePin.icon=avatarHTML(myProfile, myProfile&&myProfile.username);
+  const icon=myProfile && myProfile.icon;
+  const photo=(myProfile && myProfile.photoURL) || (currentUser && currentUser.photoURL);
+  mePin.icon = icon ? esc(icon)
+    : photo ? '<img src="'+esc(photo)+'" referrerpolicy="no-referrer" alt="">'
+    : '📍';                                   // a marker beats an initial on a map
   return mePin;
 }
 function updateFriendPins(){
