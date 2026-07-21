@@ -725,7 +725,13 @@
     box-shadow:0 0 16px rgba(90,209,255,.45)}
   @media (prefers-reduced-motion:reduce){ .feedfly{display:none} }
   .fr-lb-ctrl{display:flex;gap:8px;margin-bottom:10px}
-  .fr-lb-ctrl button{border:1px solid var(--border);background:rgba(120,160,255,.08);color:var(--text);border-radius:10px;padding:7px 11px;font-size:12px;font-weight:600;cursor:pointer}
+  .fr-lb-ctrl button{flex:1;min-height:44px;border:1px solid var(--border);background:rgba(120,160,255,.08);
+    color:rgb(var(--neon-c));border-radius:13px;padding:10px 12px;font-size:13px;font-weight:700;cursor:pointer;
+    box-shadow:var(--neon-rest);transition:box-shadow .18s,background .18s,border-color .18s}
+  .fr-lb-ctrl button:hover{box-shadow:var(--neon-hot);border-color:rgba(var(--neon-c),.55);
+    background:rgba(var(--neon-c),.14)}
+  .fr-lb-ctrl button:active{transform:scale(.985)}
+  #feed-range{margin-bottom:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
   .fr-achbtn{width:100%;margin:8px 0 4px;border:1px solid rgba(255,211,77,.4);background:rgba(255,211,77,.1);color:#ffd34d;border-radius:11px;padding:10px;font-size:12px;font-weight:700;cursor:pointer}
   .fr-achbtn:hover{background:rgba(255,211,77,.2)}
   .lb-row{cursor:pointer}
@@ -1793,7 +1799,14 @@
     <button id="fdt-friends">Friends</button>
     <button id="fdt-mine">Mine</button>
   </div>
-  <div class="fr-lb-ctrl"><button id="feed-refresh" title="Refresh">⟳ Refresh</button></div>
+  <div class="idf-chips" id="feed-range" style="display:none">
+    <button data-r="day">Today</button><button data-r="week" class="on">Week</button>
+    <button data-r="month">Month</button><button data-r="all">All time</button>
+  </div>
+  <div class="fr-lb-ctrl">
+    <button id="feed-refresh" title="Refresh">⟳ Refresh</button>
+    <button id="feed-share" title="Share your sightings" style="display:none">🔗 Share</button>
+  </div>
   <div id="fr-feed"></div>
 </div>
 
@@ -1860,7 +1873,7 @@
 </script>
 
 <script>
-const BUILD = 'v88';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v89';           // shown in Settings and on the loader so you can confirm what's deployed
 // Stamp the loader immediately — it's the first thing on screen and the fastest way
 // to tell whether a deploy actually landed.
 (function(){ const v=document.getElementById('ld-ver'); if(v) v.textContent='SkyWatch '+BUILD; })();
@@ -3942,7 +3955,7 @@ function initMobileUI(){
   $('mb-over').addEventListener('click', ()=>toggleSheet('overhead'));
   $('mb-friends').addEventListener('click', ()=>toggleSheet('friends'));
   $('mb-settings').addEventListener('click', ()=>toggleSheet('settings'));
-  const openFeed=()=>{ toggleSheet('feed'); if($('feed').classList.contains('open')){ renderFeed(); if(feedScope!=='mine') loadFeed(); } };
+  const openFeed=()=>{ toggleSheet('feed'); if($('feed').classList.contains('open')){ syncFeedControls(); renderFeed(); if(feedScope!=='mine') loadFeed(); } };
   const openBoard=()=>{ toggleSheet('board'); if($('board').classList.contains('open')){ renderHero(); renderLeaderboard(); } };
   if($('mb-feed'))  $('mb-feed').addEventListener('click', openFeed);
   if($('mb-board')) $('mb-board').addEventListener('click', openBoard);
@@ -5333,6 +5346,51 @@ async function loadFeed(){
 function timeAgo(ts){ const s=Math.max(1,Math.round((Date.now()-ts)/1000));
   if(s<60) return s+'s ago'; const m=Math.round(s/60); if(m<60) return m+'m ago';
   const h=Math.round(m/60); if(h<24) return h+'h ago'; return Math.round(h/24)+'d ago'; }
+/* ---------- "Mine" time range + sharing your log ---------- */
+const FEED_RANGES={
+  day:  {label:'Today',     ms:0},                    // 0 = since local midnight
+  week: {label:'This week',  ms:7*86400000},
+  month:{label:'This month', ms:30*86400000},
+  all:  {label:'All time',   ms:Infinity}
+};
+let feedRange='week';
+function feedRangeCut(){
+  const r=FEED_RANGES[feedRange];
+  if(!r || r.ms===Infinity) return 0;
+  if(r.ms===0){ const d=new Date(); d.setHours(0,0,0,0); return d.getTime(); }   // today = since midnight
+  return Date.now()-r.ms;
+}
+// Build a readable summary of what you've seen in the selected window.
+function shareMyFeed(){
+  const cut=feedRangeCut(), rows=sightLog.filter(x=>x.ts>=cut).sort((a,b)=>b.ts-a.ts);
+  const lbl=FEED_RANGES[feedRange].label;
+  if(!rows.length){ showErr('Nothing logged in that range yet.'); return; }
+  const uniq=new Set(rows.map(x=>x.id)).size;
+  const uaps=rows.filter(x=>x.kind==='uap').length;
+  const top=rows.slice(0,5).map(x=>'• '+(x.kind==='uap'?'👁 ':x.kind==='launch'?'🚀 ':'🛰️ ')+
+    (x.name||'—')+' — '+fmtSeen(x.ts)).join('\n');
+  const who=(myProfile&&myProfile.username)?('@'+myProfile.username):'I';
+  const text=who+' spotted '+rows.length+' object'+(rows.length===1?'':'s')+
+    ' ('+uniq+' unique'+(uaps?', '+uaps+' unidentified':'')+') — '+lbl.toLowerCase()+' on SkyWatch 🛰️\n\n'+top+
+    (rows.length>5 ? ('\n…and '+(rows.length-5)+' more') : '');
+  shareText('My SkyWatch sightings — '+lbl, text);
+}
+async function shareText(title, text){
+  const url=appShareUrl();
+  if(navigator.share){
+    try{ await navigator.share({title, text, url}); return; }
+    catch(e){ if(e && e.name==='AbortError') return; }
+  }
+  try{ await navigator.clipboard.writeText(text+'\n'+url); showToast('🔗 Copied — paste it anywhere', true); return; }catch(e){}
+  showErr('Copy this: '+text);
+}
+function syncFeedControls(){
+  const mine=feedScope==='mine';
+  const rng=$('feed-range'), sh=$('feed-share'), rf=$('feed-refresh');
+  if(rng) rng.style.display = mine ? '' : 'none';
+  if(sh)  sh.style.display  = mine ? '' : 'none';
+  if(rf)  rf.textContent    = mine ? '⟳ Rebuild' : '⟳ Refresh';
+}
 function renderFeed(){
   const el=$('fr-feed'); if(!el) return;
   if(feedScope==='mine'){          // your private lifetime log (device + your own account doc)
@@ -5340,9 +5398,17 @@ function renderFeed(){
     if(!sightLog.length){ el.innerHTML='<div class="fr-note">'+(currentUser
       ? 'No sightings logged yet — open an object and tap “Log a sighting”.'
       : 'Sign in to see your sighting history.')+'</div>'; return; }
-    const rows=sightLog.slice().sort((a,b)=>b.ts-a.ts).slice(0,200);
-    el.innerHTML='<div class="fr-total">'+sightLog.length+' lifetime sighting'+(sightLog.length===1?'':'s')+' · private to you</div>'+
-      rows.map(x=>{ const uap=x.kind==='uap';
+    const cut=feedRangeCut(), inRange=sightLog.filter(x=>x.ts>=cut);
+    const rows=inRange.slice().sort((a,b)=>b.ts-a.ts).slice(0,200);
+    const lbl=FEED_RANGES[feedRange].label.toLowerCase();
+    let head='<div class="fr-total">'+inRange.length+' sighting'+(inRange.length===1?'':'s')+
+      (feedRange==='all' ? ' · lifetime' : ' · '+lbl)+' · private to you</div>';
+    if(!rows.length){
+      el.innerHTML=head+'<div class="fr-note">Nothing logged '+lbl+
+        '. Try a wider range, or go outside — check the Sky tab for tonight’s passes.</div>';
+      return;
+    }
+    el.innerHTML=head+rows.map(x=>{ const uap=x.kind==='uap';
         return '<div class="feed-row"><span class="feed-u">You</span> '+(uap?'logged':'spotted')+' <b>'+
           (uap?'👁 ':x.kind==='launch'?'🚀 ':'🛰️ ')+esc(x.name||'—')+'</b>'+
           '<span class="feed-t">'+fmtSeen(x.ts)+(x.how?(' · '+(x.how==='person'?'in person':'overhead')):'')+'</span></div>'; }).join('');
@@ -5684,7 +5750,14 @@ function initFriendsUI(){
   // Feed tabs: everyone (default) / friends / mine
   const feedTab=(scope)=>{ feedScope=scope;
     ['all','friends','mine'].forEach(t=>{ const b=$('fdt-'+t); if(b) b.classList.toggle('on', t===scope); });
+    syncFeedControls();
     if(scope!=='mine' && !feedItems.length) loadFeed(); else renderFeed(); };
+  const rng=$('feed-range');
+  if(rng) rng.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    rng.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b));
+    feedRange=b.dataset.r; renderFeed(); });
+  if($('feed-share')) $('feed-share').onclick=shareMyFeed;
+  syncFeedControls();
   if($('fdt-all'))     $('fdt-all').onclick=()=>feedTab('all');
   if($('fdt-friends')) $('fdt-friends').onclick=()=>feedTab('friends');
   if($('fdt-mine'))    $('fdt-mine').onclick=()=>feedTab('mine');
