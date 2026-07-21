@@ -2536,7 +2536,7 @@
 </script>
 
 <script>
-const BUILD = 'v151';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v152';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -3172,14 +3172,10 @@ function loadEarthTex(spec, cb){
   L.load(spec.local, prep, undefined, ()=> L.load(spec.cdn, prep, undefined, ()=>cb(null)));
 }
 
-// Sun direction in the globe's own object space, matching three-globe's polar2Cartesian
-// (y = north pole). Because this uses the same frame as the surface normals, the terminator
-// lands exactly where the app's geographic layers do — no texture-orientation guesswork.
-function sunDirLocal(){
-  const s=subsolarPoint(simNow());
-  const phi=Math.PI/2 - s.lat, theta=Math.PI/2 - s.lng;
-  return new THREE.Vector3(Math.sin(phi)*Math.cos(theta), Math.cos(phi), Math.sin(phi)*Math.sin(theta));
-}
+// Day/night is computed from the texture's own UV coordinates vs the geographic subsolar
+// point (both in lat/lng). This is immune to however globe.gl orients or rotates the globe
+// mesh — the terminator always lands on the correct geography because the texture defines it.
+function subsolarNow(){ return subsolarPoint(simNow()); }   // { lat, lng } in radians
 
 const AUR_GLSL = `
 float h21(vec2 p){ return fract(sin(dot(p, vec2(41.3,289.1)))*43758.5453); }
@@ -3196,30 +3192,34 @@ float auroraF(vec2 uv, float t){
 // terminator, aurora near the poles. Built on MeshBasic so three handles colour management and
 // our blend is the only shading (no second terminator from scene lights).
 function buildEarthMat(dayTex, nightTex){
-  const m=new THREE.MeshBasicMaterial({ color:0x02040a, map:dayTex });
+  const s0=subsolarNow();
+  const m=new THREE.MeshBasicMaterial({ color:0xffffff, map:dayTex });
   m.onBeforeCompile = (sh)=>{
     sh.uniforms.nightTex={value:nightTex};
-    sh.uniforms.uSunDir ={value:sunDirLocal()};
+    sh.uniforms.uSunLat ={value:s0.lat};
+    sh.uniforms.uSunLng ={value:s0.lng};
     sh.uniforms.uTime   ={value:0};
-    sh.vertexShader = 'varying vec3 vObjNrm;\n' + sh.vertexShader.replace(
+    sh.vertexShader = 'varying vec2 vGeo;\n' + sh.vertexShader.replace(
       '#include <begin_vertex>',
-      '#include <begin_vertex>\n  vObjNrm = normalize(position);');
+      '#include <begin_vertex>\n  vGeo = uv;');
     sh.fragmentShader =
-      'uniform sampler2D nightTex;\nuniform vec3 uSunDir;\nuniform float uTime;\nvarying vec3 vObjNrm;\n'
+      'uniform sampler2D nightTex;\nuniform float uSunLat;\nuniform float uSunLng;\nuniform float uTime;\nvarying vec2 vGeo;\n'
       + AUR_GLSL
       + sh.fragmentShader.replace('#include <map_fragment>',
       `#include <map_fragment>
        {
-         float d = dot(normalize(vObjNrm), normalize(uSunDir));
-         float day = smoothstep(-0.13, 0.18, d);
+         float lng = (vGeo.x - 0.5) * 2.0 * PI;
+         float lat = (vGeo.y - 0.5) * PI;
+         float cosC = sin(lat)*sin(uSunLat) + cos(lat)*cos(uSunLat)*cos(lng - uSunLng);
+         float day = smoothstep(-0.10, 0.13, cosC);
          vec3 nite = texture2D(nightTex, vMapUv).rgb;
          nite = pow(nite, vec3(2.2)) * vec3(1.15,1.02,0.72) * 2.1;    // warm, linearized city glow
          vec3 col = mix(nite, diffuseColor.rgb, day);
-         float dusk = (1.0 - smoothstep(0.0, 0.32, abs(d))) * (1.0 - day);
+         float dusk = (1.0 - smoothstep(0.0, 0.28, abs(cosC))) * (1.0 - day);
          col += vec3(0.20,0.09,0.03) * dusk;                          // sunset rim on the night edge
-         float latA = abs(vObjNrm.y);
-         float band = smoothstep(0.84,0.90,latA) * (1.0 - smoothstep(0.965,0.995,latA));
-         float a = auroraF(vMapUv, uTime) * band * (1.0 - day);
+         float latA = abs(vGeo.y - 0.5) * 2.0;                        // 0 at equator, 1 at pole
+         float band = smoothstep(0.72,0.80,latA) * (1.0 - smoothstep(0.92,0.99,latA));
+         float a = auroraF(vGeo, uTime) * band * (1.0 - day);
          col += vec3(0.16,1.0,0.55) * a * 0.9;                        // polar aurora
          diffuseColor.rgb = col;
        }`);
@@ -3233,18 +3233,22 @@ function buildEarthMat(dayTex, nightTex){
 function buildCloudMesh(cloudTex){
   const r=(world.getGlobeRadius? world.getGlobeRadius():100)*1.006;
   const geo=new THREE.SphereGeometry(r, 64, 48);
+  const s0=subsolarNow();
   const m=new THREE.MeshBasicMaterial({ map:cloudTex, alphaMap:cloudTex, transparent:true, opacity:0.9, depthWrite:false });
   m.onBeforeCompile=(sh)=>{
-    sh.uniforms.uSunDir2={value:sunDirLocal()};
-    sh.vertexShader='varying vec3 vCN;\n'+sh.vertexShader.replace(
-      '#include <begin_vertex>','#include <begin_vertex>\n vCN=normalize(position);');
-    sh.fragmentShader='uniform vec3 uSunDir2;\nvarying vec3 vCN;\n'+sh.fragmentShader.replace(
+    sh.uniforms.uSunLatC={value:s0.lat};
+    sh.uniforms.uSunLngC={value:s0.lng};
+    sh.vertexShader='varying vec2 vGeoC;\n'+sh.vertexShader.replace(
+      '#include <begin_vertex>','#include <begin_vertex>\n vGeoC=uv;');
+    sh.fragmentShader='uniform float uSunLatC;\nuniform float uSunLngC;\nvarying vec2 vGeoC;\n'+sh.fragmentShader.replace(
       '#include <dithering_fragment>',
       `#include <dithering_fragment>
-       float dc = dot(normalize(vCN), normalize(uSunDir2));
-       float dyc = smoothstep(-0.2, 0.25, dc);
+       float lngc = (vGeoC.x - 0.5) * 2.0 * PI;
+       float latc = (vGeoC.y - 0.5) * PI;
+       float cosCc = sin(latc)*sin(uSunLatC) + cos(latc)*cos(uSunLatC)*cos(lngc - uSunLngC);
+       float dyc = smoothstep(-0.2, 0.22, cosCc);
        gl_FragColor.a   *= mix(0.10, 0.85, dyc);
-       gl_FragColor.rgb *= mix(0.15, 1.0,  dyc);`);
+       gl_FragColor.rgb *= mix(0.18, 1.0,  dyc);`);
     PHOTO.cloudShader=sh;
   };
   const mesh=new THREE.Mesh(geo, m); mesh.renderOrder=1;
@@ -3257,27 +3261,36 @@ function enablePhotoreal(){
   if(typeof world==='undefined' || !world) return;
   if(!window.THREE){ world.globeImageUrl(TEX.day.cdn); return; }   // no 3D engine → plain day map
   if(PHOTO.on) return;
-  PHOTO.on=true; PHOTO.t0=performance.now();
-  if(!PHOTO.origMat){ try{ PHOTO.origMat = world.globeMaterial(); }catch(e){} }
-  loadEarthTex(TEX.day, dayTex=>{
-    if(!PHOTO.on || !dayTex) return;
-    PHOTO.tex.day=dayTex;
-    loadEarthTex(TEX.night, nightTex=>{
-      if(!PHOTO.on) return;
-      PHOTO.tex.night = nightTex || dayTex;
-      PHOTO.mat = buildEarthMat(dayTex, PHOTO.tex.night);
-      try{ world.globeMaterial(PHOTO.mat); }catch(e){}
-      startPhotoTick();
+  try{
+    PHOTO.on=true; PHOTO.t0=performance.now();
+    if(!PHOTO.origMat){ try{ PHOTO.origMat = world.globeMaterial(); }catch(e){} }
+    loadEarthTex(TEX.day, dayTex=>{
+      if(!PHOTO.on || !dayTex) return;
+      PHOTO.tex.day=dayTex;
+      loadEarthTex(TEX.night, nightTex=>{
+        if(!PHOTO.on) return;
+        try{
+          PHOTO.tex.night = nightTex || dayTex;
+          PHOTO.mat = buildEarthMat(dayTex, PHOTO.tex.night);
+          world.globeMaterial(PHOTO.mat);
+          startPhotoTick();
+        }catch(err){ console.warn('photoreal material failed', err); prefs.theme='blue'; disablePhotoreal(); world.globeImageUrl(THEMES.blue.img); }
+      });
     });
-  });
-  loadEarthTex(TEX.cloud, cloudTex=>{
-    if(!PHOTO.on || !cloudTex) return;
-    try{ cloudTex.wrapS=THREE.RepeatWrapping; }catch(e){}
-    PHOTO.tex.cloud=cloudTex;
-    PHOTO.cloud=buildCloudMesh(cloudTex);
-    try{ world.scene().add(PHOTO.cloud); }catch(e){}
-  });
-  updateIssOrbit();   // drop the flat night veil the shader now replaces
+    loadEarthTex(TEX.cloud, cloudTex=>{
+      if(!PHOTO.on || !cloudTex) return;
+      try{ cloudTex.wrapS=THREE.RepeatWrapping;
+        PHOTO.tex.cloud=cloudTex;
+        PHOTO.cloud=buildCloudMesh(cloudTex);
+        world.scene().add(PHOTO.cloud);
+      }catch(e){ console.warn('cloud layer skipped', e); }
+    });
+    updateIssOrbit();   // drop the flat night veil the shader now replaces
+  }catch(err){
+    console.warn('photoreal disabled, falling back', err);
+    prefs.theme='blue'; PHOTO.on=false;
+    try{ world.globeImageUrl(THEMES.blue.img); }catch(e){}
+  }
 }
 
 function disablePhotoreal(){
@@ -3296,11 +3309,13 @@ function startPhotoTick(){
     if(!PHOTO.on){ PHOTO.raf=0; return; }
     PHOTO.raf=requestAnimationFrame(step);
     if(document.hidden) return;
-    const t=(performance.now()-PHOTO.t0)/1000;
-    const sd=sunDirLocal();
-    if(PHOTO.matShader){ PHOTO.matShader.uniforms.uSunDir.value.copy(sd); PHOTO.matShader.uniforms.uTime.value=t; }
-    if(PHOTO.cloudShader){ PHOTO.cloudShader.uniforms.uSunDir2.value.copy(sd); }
-    if(PHOTO.tex.cloud){ PHOTO.tex.cloud.offset.x = (t*0.0012)%1; }
+    try{
+      const t=(performance.now()-PHOTO.t0)/1000;
+      const s=subsolarNow();
+      if(PHOTO.matShader){ PHOTO.matShader.uniforms.uSunLat.value=s.lat; PHOTO.matShader.uniforms.uSunLng.value=s.lng; PHOTO.matShader.uniforms.uTime.value=t; }
+      if(PHOTO.cloudShader){ PHOTO.cloudShader.uniforms.uSunLatC.value=s.lat; PHOTO.cloudShader.uniforms.uSunLngC.value=s.lng; }
+      if(PHOTO.tex.cloud){ PHOTO.tex.cloud.offset.x = (t*0.0012)%1; }
+    }catch(e){}
   };
   PHOTO.raf=requestAnimationFrame(step);
 }
