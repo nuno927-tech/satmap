@@ -2119,7 +2119,7 @@
 </script>
 
 <script>
-const BUILD = 'v113';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v114';           // shown in Settings and on the loader so you can confirm what's deployed
 // Stamp the loader immediately — it's the first thing on screen and the fastest way
 // to tell whether a deploy actually landed.
 (function(){ const v=document.getElementById('ld-ver'); if(v) v.textContent='SkyWatch '+BUILD; })();
@@ -4343,14 +4343,24 @@ function enableSwipeClose(el){
   el.addEventListener('touchcancel', end, {passive:true});
 }
 
+/* Panel openers live at module scope so anything can call them — the premium cards
+   are defined out here, and a function-scoped const was a ReferenceError waiting
+   to happen (it aborted the auth handler before the social layer loaded). */
+function openFeedPanel(){
+  toggleSheet('feed');
+  if($('feed').classList.contains('open')){ syncFeedControls(); renderFeed(); if(feedScope!=='mine') loadFeed(); }
+}
+function openBoardPanel(){
+  toggleSheet('board');
+  if($('board').classList.contains('open')){ renderHero(); renderLeaderboard(); }
+}
 function initMobileUI(){
   $('backdrop').addEventListener('click', ()=>{ SFX.swipeClose(); closeSheets(); });
   $('mb-layers').addEventListener('click', ()=>toggleSheet('controls'));
   $('mb-over').addEventListener('click', ()=>toggleSheet('overhead'));
   $('mb-friends').addEventListener('click', ()=>toggleSheet('friends'));
   $('mb-settings').addEventListener('click', ()=>toggleSheet('settings'));
-  const openFeed=()=>{ toggleSheet('feed'); if($('feed').classList.contains('open')){ syncFeedControls(); renderFeed(); if(feedScope!=='mine') loadFeed(); } };
-  const openBoard=()=>{ toggleSheet('board'); if($('board').classList.contains('open')){ renderHero(); renderLeaderboard(); } };
+  const openFeed=openFeedPanel, openBoard=openBoardPanel;   // module-scope; see above
   if($('mb-feed'))  $('mb-feed').addEventListener('click', openFeed);
   if($('mb-board')) $('mb-board').addEventListener('click', openBoard);
   if($('feedbtn'))  $('feedbtn').addEventListener('click', (e)=>{ e.stopPropagation(); openFeed(); });
@@ -4822,8 +4832,8 @@ function initAuth(){
     if(unsubSettings){ unsubSettings(); unsubSettings=null; }
     if(user){
       firstSyncPending=true;
-      showSignInCard(user);
       wasSignedIn=true;
+      try{ showSignInCard(user); }catch(e){ console.warn('welcome card', e); }   // never block sign-in
       const {db, doc, onSnapshot}=window.fb;
       unsubSettings = onSnapshot(doc(db,'users',user.uid),
         snap=>{ if(snap.exists()) applySettings(snap.data()); },
@@ -5265,7 +5275,7 @@ function showPremiumCard(o){
 function celebrateUnlock(a, done){
   showPremiumCard({
     hue:'255,211,77', icon:a.ic, kicker:'Award unlocked',
-    name:a.n, desc:a.d, pts:'+'+a.p, onTap:openBoard, done
+    name:a.n, desc:a.d, pts:'+'+a.p, onTap:openBoardPanel, done
   });
   SFX.fanfare();
   Haptics.unlock();
@@ -5284,7 +5294,7 @@ function showSignInCard(user){
     hue:'90,209,255', icon, figure:!!user.photoURL,
     kicker:'Welcome back', name,
     desc:'Your sightings and settings are synced', ms:4600,
-    onTap:openBoard
+    onTap:openBoardPanel
   });
   SFX.success();
   Haptics.success();
