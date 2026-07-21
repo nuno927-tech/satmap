@@ -2100,7 +2100,7 @@
 </script>
 
 <script>
-const BUILD = 'v108';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v109';           // shown in Settings and on the loader so you can confirm what's deployed
 // Stamp the loader immediately — it's the first thing on screen and the fastest way
 // to tell whether a deploy actually landed.
 (function(){ const v=document.getElementById('ld-ver'); if(v) v.textContent='SkyWatch '+BUILD; })();
@@ -5146,8 +5146,11 @@ function initAchReplay(){
     if(!timer) return;
     if(Math.abs(e.clientX-sx)>8 || Math.abs(e.clientY-sy)>8) cancel();   // it was a scroll
   }, true);
-  ['pointerup','pointercancel','pointerleave'].forEach(ev=>
+  // NOT pointerleave: capture-phase listeners on document also see leave events fired
+  // at child nodes, so moving between the icon and the label killed the hold instantly.
+  ['pointerup','pointercancel'].forEach(ev=>
     document.addEventListener(ev, cancel, true));
+  window.addEventListener('blur', cancel);
 }
 function runUnlockQueueWith(a){
   unlockBusy=true;
@@ -5241,6 +5244,17 @@ const LOOKUP_FIGURE =
     '<path d="M20 31 L15.5 41 M20 31 L24.5 41" stroke-width="3.2" stroke-linecap="round" fill="none"/>'+
     '<path d="M20 22 L13.5 28" stroke-width="3" stroke-linecap="round" fill="none"/>'+
   '</svg>';
+// Confirmation for the sender — same card, phrased from your side.
+function showPingSentCard(name, extra){
+  showPremiumCard({
+    hue:'197,140,255', icon:LOOKUP_FIGURE, figure:true,
+    kicker:'Ping sent', name:'@'+(name||'friend'),
+    desc:(extra&&extra.trim()) ? extra.trim() : 'Told them to look up',
+    ms:5000, shake:true
+  });
+  SFX.lookup();
+  setTimeout(()=>Haptics.ping(), PING_SHAKE_DELAY);
+}
 function showPingCard(fromName, text){
   showPremiumCard({
     hue:'197,140,255', icon:LOOKUP_FIGURE, figure:true,
@@ -5906,7 +5920,7 @@ function initCe5(){
   const inv=$('ce5-invite');
   if(inv) inv.onclick=async ()=>{
     if(!friends.length){ showErr('Add a friend first — you can ping them from the Friends tab.'); return; }
-    for(const f of friends){ try{ await pingFriend(f.uid, f.username); }catch(e){} }
+    for(const f of friends){ try{ await pingFriend(f.uid, f.username, true); }catch(e){} }
     showToast('📣 Pinged '+friends.length+' friend'+(friends.length===1?'':'s')+' to look up', true);
   };
   document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.body.classList.contains('nightmode')) nightMode(false); });
@@ -6143,7 +6157,7 @@ function startFeedWatch(){
 
 /* ---------- Ping a friend to look up ---------- */
 let unsubPings=null;
-async function pingFriend(uid, name){
+async function pingFriend(uid, name, quiet){
   if(!currentUser||!window.fb||!myProfile) return;
   const {db, collection, addDoc}=window.fb;
   let extra='';
@@ -6153,8 +6167,7 @@ async function pingFriend(uid, name){
         if(la.elevation*R2D>0) extra=' The ISS is over me right now!'; } } }catch(e){}
   try{ await addDoc(collection(db,'profiles',uid,'pings'),
       {fromId:currentUser.uid, fromName:(myProfile.username||'A friend'), text:'Look up! 🛰️'+extra, ts:Date.now()});
-    SFX.lookup(); Haptics.ping();
-    showToast('👋 Pinged @'+name+' to look up', true); }
+    if(quiet){ SFX.lookup(); Haptics.ping(); } else showPingSentCard(name, extra); }
   catch(e){ console.error(e); showErr('Could not ping: '+(e.code||e.message||e)); }
 }
 function startPings(uid){
