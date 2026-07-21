@@ -953,19 +953,8 @@
     .fr-nm{font-size:15px}
   }
 
-  #err{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:70;
-    background:rgba(120,30,30,.9);border:1px solid #ff6b6b;color:#ffdede;padding:9px 16px;
-    border-radius:10px;font-size:13px;display:none;max-width:90vw}
 
   /* Success/info toast */
-  #toast{position:fixed;bottom:16px;left:50%;transform:translate(-50%,20px);z-index:75;
-    background:var(--panel);border:1px solid var(--border);color:var(--text);
-    padding:11px 18px;border-radius:12px;font-size:13px;font-weight:500;max-width:90vw;
-    box-shadow:0 10px 30px rgba(0,0,0,.5);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-    opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;white-space:nowrap;
-    overflow:hidden;text-overflow:ellipsis}
-  #toast.show{opacity:1;transform:translate(-50%,0)}
-  #toast.ok{border-color:rgba(87,224,138,.55)}
 
   /* First-run install popup (mobile) */
   #installpop{position:fixed;left:12px;right:12px;bottom:12px;z-index:90;display:flex;align-items:center;gap:12px;
@@ -1039,8 +1028,6 @@
     /* Recenter FAB sits above the toolbar */
     /* clear the floating nav bar (bar sits ~68px tall from the safe-area edge) */
     #gotome{bottom:calc(env(safe-area-inset-bottom) + 104px);right:12px;width:50px;height:50px}
-    #err{bottom:calc(env(safe-area-inset-bottom) + 96px)}
-    #toast{bottom:calc(env(safe-area-inset-bottom) + 96px)}
 
     /* Floating bottom bar */
     #mbar{display:flex;position:fixed;left:50%;transform:translateX(-50%);
@@ -1468,7 +1455,7 @@
     transition:opacity .38s cubic-bezier(.2,.9,.3,1),transform .52s cubic-bezier(.2,1.2,.3,1)}
   #unlock.show{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
   .ul-card{position:relative;display:flex;align-items:center;gap:14px;overflow:hidden;
-    padding:16px 18px;border-radius:20px;cursor:pointer;
+    min-height:104px;padding:18px;border-radius:20px;cursor:pointer;
     background:linear-gradient(135deg,rgba(22,30,54,.97),rgba(12,18,34,.97));
     border:1px solid rgba(var(--ul-c,255,211,77),.55);
     box-shadow:0 0 0 1px rgba(var(--ul-c,255,211,77),.3),0 0 34px rgba(var(--ul-c,255,211,77),.35),
@@ -1492,11 +1479,15 @@
   .ul-txt{flex:1;min-width:0}
   .ul-kicker{font-size:9.5px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;
     color:rgb(var(--ul-c,255,211,77));text-shadow:0 0 14px rgba(var(--ul-c,255,211,77),.7)}
-  .ul-name{font-size:17px;font-weight:800;color:var(--text);margin-top:3px;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  /* Wrap rather than truncate — several of these messages need the room. */
+  .ul-name{font-size:17px;font-weight:800;color:var(--text);margin-top:3px;line-height:1.25;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
     text-shadow:0 0 18px rgba(var(--ul-c,255,211,77),.35)}
-  .ul-desc{font-size:12px;color:var(--muted);margin-top:2px;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ul-desc{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.45;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .ul-sticky::after{content:'tap to dismiss';position:absolute;right:16px;bottom:7px;
+    font-size:9px;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);opacity:.55}
+  .ul-sticky{padding-bottom:22px}
   .ul-pts{flex:0 0 auto;font-size:17px;font-weight:800;color:rgb(var(--ul-c,255,211,77));font-variant-numeric:tabular-nums;
     text-shadow:0 0 16px rgba(var(--ul-c,255,211,77),.75)}
   /* Three buzzes, keyed frame-for-frame to the [16,55,16,55,130] haptic pattern.
@@ -1590,6 +1581,23 @@
   .dev-empty{font-size:12px;color:var(--muted);padding:6px 0}
   .dev-bar{height:4px;border-radius:3px;background:rgba(120,160,255,.14);overflow:hidden;margin-top:3px}
   .dev-bar i{display:block;height:100%;background:rgb(var(--neon-c))}
+  /* Your reports, listed under Settings → Feedback */
+  #fb-mine{margin-top:10px}
+  .fbm{border:1px solid var(--border);border-radius:13px;padding:11px 13px;margin-bottom:8px;
+    background:rgba(120,160,255,.04)}
+  .fbm.new{border-color:rgba(var(--neon-c),.35)}
+  .fbm.done{opacity:.7}
+  .fbm-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:5px}
+  .fbm-top b{font-size:12.5px;color:var(--text)}
+  .fbm-st{font-size:9.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);
+    padding:2px 7px;border-radius:6px;background:rgba(120,160,255,.12);flex:0 0 auto}
+  .fbm.done .fbm-st{background:rgba(87,224,138,.16);color:#57e08a}
+  .fbm-msg{font-size:12.5px;line-height:1.5;color:var(--muted);white-space:pre-wrap;word-break:break-word}
+  .fbm-reply{margin-top:8px;padding:9px 11px;border-radius:10px;background:rgba(87,224,138,.09);
+    border:1px solid rgba(87,224,138,.28);font-size:12.5px;line-height:1.5;color:#c8f5da}
+  .fbm-reply b{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;
+    color:#57e08a;margin-bottom:3px}
+  .fbm-meta{font-size:10px;color:var(--muted);margin-top:7px}
   /* Feedback modal */
   #fbmodal{position:fixed;inset:0;z-index:112;display:none;align-items:center;justify-content:center;padding:18px;
     background:rgba(3,6,15,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
@@ -1713,7 +1721,6 @@
       padding-bottom:calc(env(safe-area-inset-bottom) + var(--bar-h) + 14px)}
     /* Floating controls sit above the bar too */
     #gotome{bottom:calc(env(safe-area-inset-bottom) + var(--bar-h) + 14px)}
-    #err,#toast{bottom:calc(env(safe-area-inset-bottom) + var(--bar-h) + 18px)}
     #installpop{bottom:calc(env(safe-area-inset-bottom) + var(--bar-h) + 12px)}
   }
   @media (prefers-reduced-motion:reduce){
@@ -1999,6 +2006,7 @@
   <div class="stg-sec">Feedback</div>
   <div class="tip-note">Something broken, or an idea? This reaches the developer directly.</div>
   <button id="fbbtn" class="idf-uap">✉️ Report a bug or request a feature</button>
+  <div id="fb-mine"></div>
   <div class="stg-sec">Support SkyWatch</div>
   <div class="tip-note">SkyWatch is free, ad-free and built by one person. If it's shown you
     something good in the sky, you can buy me a coffee.</div>
@@ -2247,8 +2255,6 @@
   <div id="ld-steps"><i></i><i></i><i></i><i></i></div>
   <div id="ld-ver">SkyWatch</div>
 </div>
-<div id="err"></div>
-<div id="toast"></div>
 
 <div id="installpop">
   <img src="icon-192.png" alt="" class="ip-icon" />
@@ -2269,7 +2275,7 @@
 </script>
 
 <script>
-const BUILD = 'v125';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v129';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -2362,11 +2368,33 @@ const fmtDist = km => km==null ? '—' : (prefs.units==='imperial'
 const fmtSpeed = kms => !kms ? '—' : (prefs.units==='imperial'
   ? Math.round(kms*2236.936).toLocaleString()+' mph' : kms.toFixed(2)+' km/s');
 const $ = id => document.getElementById(id);
-const showErr = m => { Haptics.error(); const e=$('err'); e.textContent=m; e.style.display='block'; setTimeout(()=>e.style.display='none',7000); };
+const showErr = m => {
+  Haptics.error();
+  const text=String(m==null?'':m);
+  let name=text, desc='';
+  if(text.length>34){ const sp=text.lastIndexOf(' ', 34); if(sp>12){ name=text.slice(0,sp); desc=text.slice(sp+1); } }
+  showPremiumCard({ hue:'255,90,77', icon:'⚠️', kicker:'Something went wrong', name, desc, ms:6500 });
+};
+/* Every transient confirmation is a premium card now. Messages that lead with an
+   emoji donate it as the card icon, which is why most of them were written that way. */
+const TOAST_EMOJI=/^\s*([\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{2190}-\u{21FF}\u{2900}-\u{297F}\u{25A0}-\u{25FF}\u2713\u2714\u2717\u2718]+)\s*/u;
 function showToast(msg, ok){
-  const t=$('toast'); if(!t) return;
-  t.textContent=msg; t.className='show'+(ok?' ok':'');
-  clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'), 3600);
+  let text=String(msg==null?'':msg), icon=ok?'✅':'💫';
+  const m=text.match(TOAST_EMOJI);
+  if(m){ icon=m[1]; text=text.slice(m[0].length); }
+  // First clause before a separator reads as the headline; the rest is detail.
+  let name=text, desc='';
+  const cut=text.search(/\s[—–·]\s/);
+  if(cut>0){ name=text.slice(0,cut).trim(); desc=text.slice(cut+3).trim(); }
+  else if(text.length>34){
+    const sp=text.lastIndexOf(' ', 34);
+    if(sp>12){ name=text.slice(0,sp); desc=text.slice(sp+1); }
+  }
+  showPremiumCard({
+    hue: ok ? '87,224,138' : '90,209,255',
+    icon, kicker: ok ? 'Done' : 'SkyWatch',
+    name, desc, ms:4200
+  });
 }
 
 /* ---------- Interface sounds (tiny synthesized blips) ---------- */
@@ -2411,6 +2439,12 @@ const SFX = (function(){
       blip(1046, .55, 'sine', .05, 2093, .35);          // the glide up
       blip(1568, .5, 'sine', .028, null, .5);
     }); },
+    // The fanfare in reverse — a descending minor fall that sags at the end.
+    sad(){ play(()=>{
+      const n=[783.99, 659.25, 523.25];               // G5 E5 C5
+      n.forEach((f,i)=>blip(f, .3, 'triangle', .07, null, i*0.13));
+      blip(392.00, .75, 'sine', .06, 349.23, .40);    // G4 drooping to F4
+    }); },
     // Award unlocked — a major arpeggio that lands on an octave, with a shimmer on top.
     fanfare(){ play(()=>{
       const n=[523.25, 659.25, 783.99, 1046.50];        // C5 E5 G5 C6
@@ -2454,6 +2488,8 @@ const Haptics = (function(){
     ping()     { fire([16,55,16,55,130], 0); },
     // Award unlocked: a drum-roll build into one triumphant buzz.
     unlock()   { fire([12,50,12,50,12,50,18,40,26,40,140], 0); },
+    // Leaving: the same shape running down, each pulse weaker than the last.
+    bye()      { fire([90,60,40,60,20,60,10], 0); },
     force(p)   { if(HAPTIC_OK){ try{ navigator.vibrate(p); }catch(e){} } }
   };
 })();
@@ -4914,6 +4950,7 @@ async function loadAdmins(){
   }catch(e){ /* non-admins can't read it; that's fine */ }
   computeAdmin();
   syncSettingsTabs();
+  if(isAdminUser) startFeedbackWatch();
 }
 // Every privileged write goes through here, so there's always a trail.
 async function adminLog(action, target, detail){
@@ -4961,11 +4998,11 @@ function admTapBuild(){
   if(now-admTapAt>1200) admTaps=0;
   admTapAt=now; admTaps++;
   const left=25-admTaps;
-  if(admTaps>=15 && left>0 && admTaps%5===0) showToast(left+' more…');
+  if(admTaps>=15 && left>0 && admTaps%5===0) flashCount($('dev-build'), left+' more…');
   if(admTaps<25) return;
   admTaps=0;
   if(!isAdminUser){
-    showToast('Nothing to unlock on this account.');
+    flashCount($('dev-build'), 'nothing here');
     Haptics.error();
     return;
   }
@@ -4979,6 +5016,15 @@ function admTapBuild(){
     ms:7000, onTap:()=>{ openSheet('settings'); setStgTab('admin'); }
   });
   SFX.fanfare(); Haptics.unlock(); fireConfetti();
+}
+/* A countdown is feedback on a gesture in progress, not an event worth a card. */
+function flashCount(el, text){
+  if(!el) return;
+  const target = el.querySelector('.dev-v') || el;
+  if(target._orig==null) target._orig=target.textContent;
+  target.textContent=text;
+  clearTimeout(target._ft);
+  target._ft=setTimeout(()=>{ if(target._orig!=null){ target.textContent=target._orig; target._orig=null; } }, 900);
 }
 function devEnabled(){ try{ return localStorage.getItem(DEV_KEY)==='1'; }catch(e){ return false; } }
 function setDev(on){
@@ -4999,7 +5045,7 @@ function initDevMode(){
       const now=Date.now();
       if(now-devTapAt>1200) devTaps=0;      // taps have to be deliberate
       devTapAt=now; devTaps++;
-      if(devTaps>=7 && devTaps<10) showToast((10-devTaps)+' more…');
+      if(devTaps>=7 && devTaps<10) flashCount(v, (10-devTaps)+' more…');
       if(devTaps>=10){
         devTaps=0; setDev(true);
         showPremiumCard({
@@ -5014,7 +5060,16 @@ function initDevMode(){
   }
   ['main','dev','admin'].forEach(t=>{ const b=$('stt-'+t); if(b) b.onclick=()=>setStgTab(t); });
   const off=$('dev-off');
-  if(off) off.onclick=()=>{ setDev(false); setAdmUnlocked(false); setStgTab('main'); showToast('Developer mode off'); };
+  if(off) off.onclick=()=>{
+    setDev(false); setAdmUnlocked(false); setStgTab('main');
+    showPremiumCard({
+      hue:'138,160,200', icon:'🫡', kicker:'Developer mode off',
+      name:'Sorry to see you go',
+      desc:'The logs will miss you. Tap the build number ten times if you change your mind.',
+      ms:6000
+    });
+    SFX.sad(); Haptics.bye();
+  };
   const nuke=$('dev-nuke'); if(nuke) nuke.onclick=devNuke;
   syncSettingsTabs();
 }
@@ -5155,12 +5210,98 @@ function initFeedback(){
       await addDoc(collection(db,'feedback'), {
         uid:currentUser.uid, username:(myProfile&&myProfile.username)||'',
         kind:fbKind, msg:msg.slice(0,1200), diag:feedbackDiag(), status:'new', ts:Date.now() });
-      close(); SFX.success(); Haptics.success();
-      showToast('✉️ Sent — thank you, genuinely', true);
+      close();
+      showPremiumCard({
+        hue:'87,224,138', icon: fbKind==='bug' ? '🐞' : '💡',
+        kicker: fbKind==='bug' ? 'Bug reported' : 'Idea sent',
+        name:'Thank you, genuinely',
+        desc:'It landed with the developer, along with your build and any recent errors.',
+        ms:6500
+      });
+      SFX.success(); Haptics.success();
     }catch(e){ showErr('Could not send: '+(e.code||e.message||e)); }
     btn.disabled=false; btn.textContent='Send';
   };
 }
+/* ---------- Your own reports, and any replies ---------- */
+let unsubMyFeedback=null, myFeedback=[], fbReplySeen=null;
+function startMyFeedback(){
+  if(!currentUser || !window.fb || unsubMyFeedback) return;
+  const {db, collection, query, where, onSnapshot}=window.fb;
+  try{ fbReplySeen=JSON.parse(localStorage.getItem('skywatch_fbseen')||'{}'); }catch(e){ fbReplySeen={}; }
+  unsubMyFeedback=onSnapshot(query(collection(db,'feedback'), where('uid','==',currentUser.uid)), snap=>{
+    myFeedback=snap.docs.map(d=>Object.assign({_id:d.id}, d.data())).sort((a,b)=>(b.ts||0)-(a.ts||0));
+    renderMyFeedback();
+    // A reply you haven't seen deserves more than a quiet row.
+    for(const f of myFeedback){
+      if(!f.reply || !f.replyAt) continue;
+      if(fbReplySeen[f._id]===f.replyAt) continue;
+      fbReplySeen[f._id]=f.replyAt;
+      try{ localStorage.setItem('skywatch_fbseen', JSON.stringify(fbReplySeen)); }catch(e){}
+      showPremiumCard({
+        hue:'87,224,138', icon:'↩️', kicker:'Reply from the developer',
+        name:(f.kind==='bug'?'About your bug report':'About your idea'),
+        desc:f.reply, sticky:true,
+        onTap:()=>{ openSheet('settings'); setStgTab('main'); }
+      });
+      SFX.lookup(); Haptics.ping();
+      break;                                   // one at a time
+    }
+  }, err=>console.warn('my feedback', err));
+}
+function stopMyFeedback(){ if(unsubMyFeedback){ unsubMyFeedback(); unsubMyFeedback=null; } myFeedback=[]; renderMyFeedback(); }
+function renderMyFeedback(){
+  const el=$('fb-mine'); if(!el) return;
+  if(!myFeedback.length){ el.innerHTML=''; return; }
+  const open=myFeedback.filter(f=>(f.status||'new')!=='done').length;
+  el.innerHTML='<div class="fr-total">'+myFeedback.length+' report'+(myFeedback.length===1?'':'s')+
+      (open?(' · '+open+' open'):' · all answered')+'</div>'+
+    myFeedback.slice(0,20).map(f=>{
+      const st=f.status||'new';
+      const label={new:'Sent', read:'Seen', done:'Closed'}[st]||st;
+      return '<div class="fbm '+st+'">'+
+        '<div class="fbm-top"><b>'+(f.kind==='bug'?'🐞 Bug':'💡 Idea')+'</b>'+
+          '<span class="fbm-st">'+label+'</span></div>'+
+        '<div class="fbm-msg">'+esc(f.msg||'')+'</div>'+
+        (f.reply?('<div class="fbm-reply"><b>↩ Developer</b>'+esc(f.reply)+'</div>'):'')+
+        '<div class="fbm-meta">'+fmtSeen(f.ts||0)+'</div>'+
+      '</div>';
+    }).join('');
+}
+
+/* ---------- Admin: live inbox alerts ----------
+   While the console is open somewhere, new reports announce themselves. When it
+   isn't, the Cloud Function pushes instead (see PUSH-SETUP.md). */
+let unsubFeedbackWatch=null, fbWatchStart=0;
+function startFeedbackWatch(){
+  if(!isAdminUser || !window.fb || unsubFeedbackWatch) return;
+  const {db, collection, query, orderBy, limit, onSnapshot}=window.fb;
+  fbWatchStart=Date.now();
+  unsubFeedbackWatch=onSnapshot(query(collection(db,'feedback'), orderBy('ts','desc'), limit(10)), snap=>{
+    snap.docChanges().forEach(ch=>{
+      if(ch.type!=='added') return;
+      const d=ch.doc.data();
+      if(!d || !d.ts || d.ts<=fbWatchStart) return;         // skip the existing backlog
+      showPremiumCard({
+        hue:'255,107,53', icon: d.kind==='bug' ? '🐞' : '💡',
+        kicker: d.kind==='bug' ? 'New bug report' : 'New feature request',
+        name:'@'+(d.username||'someone'),
+        desc:(d.msg||'').slice(0,140),
+        sticky:true,
+        onTap:()=>{ openSheet('settings'); admView='inbox'; setStgTab('admin'); }
+      });
+      SFX.fanfare(); Haptics.ping();
+      // Also raise a system notification, so it survives you switching away.
+      try{
+        if('Notification' in window && Notification.permission==='granted')
+          showNotif((d.kind==='bug'?'🐞 Bug':'💡 Idea')+' from @'+(d.username||'user'),
+            { body:(d.msg||'').slice(0,120), tag:'fb-'+ch.doc.id, icon:'icon-192.png' });
+      }catch(e){}
+    });
+  }, err=>console.warn('feedback watch', err));
+}
+function stopFeedbackWatch(){ if(unsubFeedbackWatch){ unsubFeedbackWatch(); unsubFeedbackWatch=null; } }
+
 /* ---------- Broadcast + remote kill switches (user side) ---------- */
 let FLAGS={};
 function flagOn(k){ return FLAGS[k]!==false; }     // absent means on
@@ -5178,7 +5319,7 @@ async function loadConfig(){
     try{ localStorage.setItem('skywatch_bc', d.id); }catch(e){}
     setTimeout(()=>{
       showPremiumCard({ hue:'90,209,255', icon:'📣', kicker:'From the developer',
-        name:d.title||'SkyWatch', desc:d.msg, ms:9000 });
+        name:d.title||'SkyWatch', desc:d.msg, sticky:true });
       SFX.lookup(); Haptics.ping();
     }, 2500);
   }catch(e){}
@@ -5879,7 +6020,7 @@ function initAuth(){
       firstSyncPending=true;
       wasSignedIn=true;
       try{ showSignInCard(user); }catch(e){ console.warn('welcome card', e); }   // never block sign-in
-      loadAdmins(); loadConfig();
+      loadAdmins(); loadConfig(); startMyFeedback();
       const {db, doc, onSnapshot}=window.fb;
       unsubSettings = onSnapshot(doc(db,'users',user.uid),
         snap=>{ if(snap.exists()) applySettings(snap.data()); },
@@ -5956,6 +6097,7 @@ function stopSocial(){
   Object.values(friendProfileUnsubs).forEach(u=>{ try{u();}catch(e){} }); friendProfileUnsubs={};
   friends=[]; myProfile=null; incomingReqs=[]; allUsers=[]; sentRequests=new Set(); pinnedFriends.clear();
   unlockQueue=[]; unlockBusy=false;   // the celebrated-set is stored per account, not reset here
+  stopFeedbackWatch(); stopMyFeedback(); isAdminUser=false; adminExtra=new Set(); syncSettingsTabs();
   rebuildSeenSet();   // clears the seen set on sign-out
   if(seenOnly){ seenOnly=false; const st=$('seen-toggle'); if(st) st.classList.remove('on'); }
   if(friendsTick){ clearInterval(friendsTick); friendsTick=null; }
@@ -6409,6 +6551,7 @@ function runUnlockQueue(){
   celebrateUnlock(unlockQueue.shift(), ()=>{ unlockBusy=false; runUnlockQueue(); });
 }
 // The card lands before it buzzes — shaking mid-flight reads as a glitch, not a buzz.
+let pcHide=null;
 const PING_SHAKE_DELAY=380, PING_SHAKE_CYCLE=500;
 // One buzz per shake cycle so the phone and the card stay locked together.
 function pulsePing(times){
@@ -6431,14 +6574,21 @@ function showPremiumCard(o){
   const pts=$('ul-pts');
   if(o.right){ pts.innerHTML=o.right; pts.className='ul-pts ul-side'; pts.style.display=''; }
   else { pts.className='ul-pts'; pts.textContent=o.pts||''; pts.style.display=o.pts?'':'none'; }
+  // A new card supersedes whatever is on screen — but the old one's callback still
+  // runs, so queues (award unlocks) can't stall behind a passing toast.
+  if(pcHide){ const prev=pcHide; pcHide=null; prev(true); }
   el.classList.add('show');
   const card=el.querySelector('.ul-card');
-  let hideT=setTimeout(hide, o.ms||6200);
-  function hide(){
+  card.classList.toggle('ul-sticky', !!o.sticky);
+  // Sticky cards wait to be dismissed — a message from the developer shouldn't
+  // vanish while you're still reading it. The long timer is only a backstop.
+  let hideT=setTimeout(hide, o.sticky ? 120000 : (o.ms||6200));
+  pcHide=hide;
+  function hide(superseded){
     clearTimeout(hideT);
-    el.classList.remove('show');
-    card.onclick=null;
-    setTimeout(()=>{ o.done&&o.done(); }, 620);     // let it slide out before the next one
+    if(pcHide===hide) pcHide=null;
+    if(!superseded){ el.classList.remove('show'); card.onclick=null; }
+    setTimeout(()=>{ o.done&&o.done(); }, superseded?0:620);
   }
   card.onclick=()=>{ hide(); o.onTap&&o.onTap(); };
 }
