@@ -552,6 +552,11 @@
   .feed-body{flex:1;min-width:0}
   .feed-nm{display:block;font-size:14px;font-weight:600;color:var(--text);
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .feed-del{flex:0 0 auto;width:30px;height:30px;border-radius:9px;border:1px solid var(--border);
+    background:rgba(255,90,77,.07);color:var(--iss);font-size:13px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:background .15s,box-shadow .15s,border-color .15s}
+  .feed-del:hover{background:rgba(255,90,77,.18);border-color:rgba(255,90,77,.55);
+    box-shadow:0 0 0 1px rgba(255,90,77,.4),0 0 14px rgba(255,90,77,.3)}
   .feed-row:hover{background:rgba(90,209,255,.06);border-radius:8px}
   .feed-u{color:var(--accent);font-weight:600}
   .feed-row b{color:var(--text)}
@@ -882,7 +887,8 @@
     font-variant-numeric:tabular-nums;letter-spacing:.2px}
   .ach-nums b{display:inline;font-size:10.5px;color:rgb(var(--neon-c));font-weight:700}
   .ach-txt span{font-size:11.5px;color:var(--muted)}
-  .ach-pts{flex:0 0 auto;font-size:12px;font-weight:700;color:#57e08a}
+  .ach-pts{flex:0 0 auto;font-size:11.5px;font-weight:700;color:#57e08a;
+    padding:3px 8px;border-radius:8px;background:rgba(87,224,138,.14);white-space:nowrap}
   .ach-lock{flex:0 0 auto;opacity:.6}
   #ach-log{display:none;margin-top:18px;border-top:1px solid var(--border);padding-top:12px}
   .ach-logh{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px}
@@ -1287,6 +1293,23 @@
   .lg .dot{width:13px;height:13px;box-shadow:0 0 10px currentColor,0 0 18px currentColor}
   .lg.off{opacity:.42;box-shadow:0 2px 8px rgba(0,0,0,.3)}
   .lg.off .dot{box-shadow:none}
+  /* Expand chevron + the item list it reveals */
+  .lg-wrap{margin-bottom:7px}
+  .lg-chev{flex:0 0 auto;width:30px;height:30px;margin:-4px -6px -4px 0;border:none;background:transparent;
+    color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:8px;
+    transition:transform .22s ease,color .15s,background .15s}
+  .lg-chev:hover{color:rgb(var(--neon-c));background:rgba(var(--neon-c),.12)}
+  .lg-chev.up{transform:rotate(180deg);color:rgb(var(--neon-c))}
+  .lg-items{display:none;flex-direction:column;gap:6px;margin:7px 0 2px;padding-left:6px;
+    border-left:2px solid rgba(var(--neon-c),.22)}
+  .lg-items.open{display:flex}
+  .lg-items .lgi{min-height:46px;padding:9px 12px}
+  .lg-items .nt-nm{font-size:13px}
+  .lg-items .nt-when{font-size:11px}
+  .lgi-dot{background:transparent!important;box-shadow:none!important}
+  .lgi-dot::before{content:'';width:11px;height:11px;border-radius:50%;background:currentColor;
+    box-shadow:0 0 8px currentColor,0 0 16px currentColor}
+  .lgi-empty{font-size:11.5px;color:var(--muted);padding:4px 2px 2px}
   /* --- Detail-card actions --- */
   #d-seen,#d-fav,#d-share{min-height:46px;border-radius:13px;font-size:13.5px;box-shadow:var(--neon-rest)}
   #d-seen:hover,#d-fav:hover,#d-share:hover{box-shadow:var(--neon-hot)}
@@ -1395,6 +1418,12 @@
   .ach-item.on .ach-ic{filter:drop-shadow(0 0 8px rgba(87,224,138,.7))}
   .ach-item:hover{box-shadow:var(--neon-hot)}
   #ach-name{color:var(--accent);text-shadow:0 0 22px rgba(var(--neon-c),.5)}
+  .ach-cat{display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+    margin:16px 0 8px;padding-bottom:5px;border-bottom:1px solid rgba(var(--neon-c),.18);
+    font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgb(var(--neon-c))}
+  .ach-cat:first-child{margin-top:4px}
+  .ach-cat-n{color:var(--muted);letter-spacing:.4px;font-variant-numeric:tabular-nums}
+  .ach-pts.locked{background:rgba(120,160,255,.1);color:var(--muted);font-weight:600}
   /* --- Podium --- */
   .pod{box-shadow:var(--neon-rest);transition:box-shadow .18s,transform .12s}
   .pod:hover{box-shadow:var(--neon-hot)} .pod:active{transform:scale(.985)}
@@ -2506,7 +2535,7 @@
 </script>
 
 <script>
-const BUILD = 'v146';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v150';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -4040,11 +4069,21 @@ function renderOverhead(active, count){
 function renderLegend(){
   const el=$('legend');
   el.innerHTML = GROUPS.map(g=>`
-    <div class="lg" data-id="${g.id}" title="Tap to toggle · long-press to center on the map">
-      <div class="dot" style="color:${g.color}"></div>
-      <div class="nm">${g.label}</div>
-      <div class="ct mono" id="ct-${g.id}">0</div>
+    <div class="lg-wrap" data-id="${g.id}">
+      <div class="lg" data-id="${g.id}" title="Tap to toggle · long-press to center on the map">
+        <div class="dot" style="color:${g.color}"></div>
+        <div class="nm">${g.label}</div>
+        <div class="ct mono" id="ct-${g.id}">0</div>
+        <button class="lg-chev" data-id="${g.id}" aria-label="Show items" title="Show items">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+      </div>
+      <div class="lg-items" id="lgi-${g.id}"></div>
     </div>`).join('');
+  el.querySelectorAll('.lg-chev').forEach(btn=>{
+    btn.addEventListener('pointerdown', e=>e.stopPropagation());   // don't start the long-press
+    btn.onclick=e=>{ e.stopPropagation(); toggleLayerItems(btn.dataset.id); };
+  });
   el.querySelectorAll('.lg').forEach(n=>{
     let timer=null, sx=0, sy=0;
     const clear=()=>{ if(timer){ clearTimeout(timer); timer=null; } };
@@ -4080,6 +4119,49 @@ function renderLegend(){
       saveSettings();
     };
   });
+}
+// Expand a layer card to list its live objects as tappable cards.
+function toggleLayerItems(id){
+  const box=$('lgi-'+id), chev=document.querySelector('.lg-chev[data-id="'+id+'"]');
+  if(!box) return;
+  const open=box.classList.toggle('open');
+  if(chev) chev.classList.toggle('up', open);
+  SFX.tap(); Haptics.tap();
+  if(!open){ box.innerHTML=''; return; }
+  renderLayerItems(id, box);
+}
+function renderLayerItems(id, box){
+  const g=GROUPS.find(x=>x.id===id);
+  if(g && g.launches){                                  // rockets: list upcoming launches
+    const rows=(LAUNCHES||[]).filter(l=>l.lat!=null);
+    if(!rows.length){ box.innerHTML='<div class="lgi-empty">No upcoming launches loaded.</div>'; return; }
+    box.innerHTML=rows.slice(0,40).map(l=>
+      '<button class="nt-rank lgi" data-launch="'+esc(l.id)+'"><span class="nt-num">🚀</span>'+
+        '<span class="nt-body"><span class="nt-nm">'+esc(l.name||l.rocket||'Launch')+'</span>'+
+        '<span class="nt-when">'+esc(l.provider||'')+(l.padName?(' · '+esc(l.padName)):'')+'</span></span></button>').join('');
+    box.querySelectorAll('[data-launch]').forEach(b=>b.onclick=()=>{
+      const l=(LAUNCHES||[]).find(x=>String(x.id)===b.dataset.launch);
+      if(l){ if(isMobile()) closeSheets(); selectLaunch(l); } });
+    return;
+  }
+  let items=SATS.filter(s=>s.group===id).slice();
+  if(!items.length){ box.innerHTML='<div class="lgi-empty">Still loading…</div>'; return; }
+  // Overhead first when we have a location, else alphabetical.
+  if(observer) items.sort((a,b)=>(b.elevation??-99)-(a.elevation??-99));
+  else items.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const total=items.length;
+  box.innerHTML=items.slice(0,60).map(s=>{
+    const up = observer && s.elevation!=null && s.elevation>0;
+    const meta = up ? (Math.round(s.elevation)+'° up'+(s.azimuth!=null?(' · '+azCompass(s.azimuth)):''))
+      : (s.altKm ? fmtDist(s.altKm)+' up' : 'below horizon');
+    return '<button class="nt-rank lgi" data-id="'+esc(s.id)+'">'+
+      '<span class="nt-num lgi-dot" style="color:'+s.color+'"></span>'+
+      '<span class="nt-body"><span class="nt-nm">'+esc(s.name)+'</span>'+
+      '<span class="nt-when">'+meta+'</span></span></button>';
+  }).join('') + (total>60 ? '<div class="lgi-empty">…and '+(total-60)+' more</div>' : '');
+  box.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{
+    const s=SATS.find(x=>x.id===b.dataset.id);
+    if(s){ if(isMobile()) closeSheets(); selectSat(s); } });
 }
 function updateLegendCounts(){
   GROUPS.forEach(g=>{ const c = g.launches ? LAUNCHES.length : SATS.filter(s=>s.group===g.id).length; const el=$('ct-'+g.id); if(el) el.textContent=c; });
@@ -4713,6 +4795,7 @@ function initOnboard(){
 let arActive=false, arTarget=null, arHeading=null, arPitch=null, arOrient=null, arRAF=null;
 let arHeadS=null, arPitchS=null, arAz=null, arEl=null, arLastCalc=0, arOnTarget=false;
 function openAR(){
+  markExplored('ar');
   if(!selected){ return; }
   if(!observer){ showErr('Enable your location (⌖ button) to use the sky finder.'); return; }
   arTarget=selected; arHeading=null; arPitch=null;
@@ -5058,6 +5141,15 @@ function enableSwipeClose(el){
 function openFeedPanel(){
   toggleSheet('feed');
   if($('feed').classList.contains('open')){ syncFeedControls(); renderFeed(); if(feedScope!=='mine') loadFeed(); }
+}
+// Jump straight to your own lifetime feed — used by the Awards figures.
+function openMyFeed(){
+  feedScope='mine'; feedRange='all';
+  ['all','friends','mine'].forEach(t=>{ const b=$('fdt-'+t); if(b) b.classList.toggle('on', t==='mine'); });
+  const rng=$('feed-range');
+  if(rng) rng.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.r==='all'));
+  if(!$('feed').classList.contains('open')) openSheet('feed');
+  syncFeedControls(); renderFeed();
 }
 function openBoardPanel(){
   toggleSheet('board');
@@ -6586,55 +6678,65 @@ async function deleteUsername(){
 }
 // Mark a satellite as "seen" → earns a badge, saved to your profile + username (for the leaderboard).
 /* ---------- Sightings + named achievements ---------- */
+const ACH_CATS=[
+  ['start',   '✨ Getting started'],
+  ['sats',    '🛰 Satellites & layers'],
+  ['dedication','🔥 Dedication'],
+  ['rockets', '🚀 Rockets'],
+  ['tools',   '🔭 Explorer'],
+  ['timing',  '🌙 Timing & the sky'],
+  ['rare',    '⭐ Rare finds'],
+  ['social',  '👥 Social'],
+];
 const ACH=[
-  {id:'first', ic:'✨', n:'First Light',      d:'Log your first sighting',  p:5,  t:s=>s.sightings>=1},
-  {id:'iss',   ic:'🛰️', n:'ISS Spotter',      d:'Spot the ISS',             p:10, t:s=>s.ids.has('25544')},
-  {id:'sl10',  ic:'🔗', n:'Starlink Hunter',  d:'Spot 10 Starlinks',        p:15, t:s=>s.starlink>=10},
-  {id:'geo',   ic:'🌍', n:'High & Far',       d:'Spot a GEO satellite',     p:15, t:s=>s.geo>=1},
-  {id:'orbits',ic:'🪐', n:'Globetrotter',     d:'Spot LEO, MEO & GEO',      p:20, t:s=>s.orbits>=3},
-  {id:'rocket',ic:'🚀', n:'Rocketeer',        d:'See a rocket launch',      p:15, t:s=>s.launches>=1},
-  {id:'person',ic:'🎟️', n:'Front Row',        d:'See a launch in person',   p:25, t:s=>s.inperson>=1},
-  {id:'strk3', ic:'🔥', n:'On a Roll',        d:'3-day sighting streak',    p:15, t:s=>s.maxStreak>=3},
-  {id:'strk7', ic:'⚡', n:'Week Watcher',     d:'7-day sighting streak',    p:30, t:s=>s.maxStreak>=7},
-  {id:'b25',   ic:'🎖️', n:'Collector',        d:'25 different objects',     p:20, t:s=>s.badges>=25},
-  {id:'s100',  ic:'💯', n:'Centurion',        d:'100 total sightings',      p:30, t:s=>s.sightings>=100},
-  {id:'x5',    ic:'🌟', n:'Devoted',          d:'Spot one object 5×',       p:15, t:s=>s.maxCount>=5},
-  /* --- Timing --- */
-  {id:'night', ic:'🦉', n:'Night Owl',        d:'Log a sighting between 1–4am',  p:15, t:s=>s.night>=1},
-  {id:'dawn',  ic:'🌅', n:'Dawn Patrol',      d:'Log a sighting between 4–6am',  p:15, t:s=>s.dawn>=1},
-  {id:'dbl',   ic:'⏱️', n:'Double Header',    d:'Two sightings within 10 minutes', p:10, t:s=>s.doubles>=1},
-  {id:'anniv', ic:'🎂', n:'Anniversary',      d:'Still watching a year on',      p:40, t:s=>s.anniversary>=1},
-  /* --- Constellations & layers --- */
-  {id:'slnite',ic:'✨', n:'Constellation',    d:'5 Starlinks in one night',  p:20, t:s=>s.slNight>=5,
-    pr:s=>[s.slNight,5]},
-  {id:'nav',   ic:'🧭', n:'Navigator',        d:'Spot a GPS and a Galileo',  p:20,
-    t:s=>s.gps>=1&&s.galileo>=1, pr:s=>[(s.gps?1:0)+(s.galileo?1:0),2]},
-  {id:'wx',    ic:'🌦️', n:'Weatherman',       d:'Spot 3 weather satellites', p:15, t:s=>s.weather>=3,
-    pr:s=>[s.weather,3]},
-  {id:'ham',   ic:'📻', n:'Ham Operator',     d:'Spot an amateur-radio satellite', p:20, t:s=>s.amateur>=1},
-  {id:'bband', ic:'📡', n:'Broadband',        d:'Spot a Starlink and a OneWeb', p:20,
-    t:s=>s.starlink>=1&&s.oneweb>=1, pr:s=>[(s.starlink?1:0)+(s.oneweb?1:0),2]},
-  /* --- Volume --- */
-  {id:'strk30',ic:'🏔️', n:'Marathon',         d:'30-day sighting streak',    p:60, t:s=>s.maxStreak>=30,
-    pr:s=>[s.maxStreak,30]},
-  {id:'b50',   ic:'🏵️', n:'Half Century',     d:'50 different objects',      p:35, t:s=>s.badges>=50,
-    pr:s=>[s.badges,50]},
-  {id:'x25',   ic:'🗿', n:'Old Faithful',     d:'Spot one object 25×',       p:35, t:s=>s.maxCount>=25,
-    pr:s=>[s.maxCount,25]},
-  /* --- Using the tools --- */
-  {id:'idf10', ic:'🔎', n:'Sky Detective',    d:'Run Identify 10 times',     p:20, t:s=>s.idf>=10,
-    pr:s=>[s.idf,10]},
-  {id:'uap1',  ic:'👁️', n:'The Truth Is Out There', d:'File your first UAP report', p:15, t:s=>s.uap>=1},
-  {id:'uap10', ic:'🛸', n:'Investigator',     d:'File 10 UAP reports',       p:35, t:s=>s.uap>=10,
-    pr:s=>[s.uap,10]},
-  {id:'ce51',  ic:'🧘', n:'Contact',          d:'Complete a CE5 session',    p:20, t:s=>s.ce5>=1},
-  {id:'ce510', ic:'🌌', n:'Deep Practice',    d:'10 hours of CE5 sessions',  p:45, t:s=>s.ce5min>=600,
-    pr:s=>[Math.round(s.ce5min/60),10], unit:'h'},
-  {id:'plan',  ic:'🗓️', n:'Planner',          d:'Log a pass you found in Tonight', p:15, t:s=>s.planned>=1},
-  {id:'perf',  ic:'💎', n:'Perfect Pass',     d:'Log a sighting on a Superb pass', p:25, t:s=>s.perfect>=1},
+  /* --- Getting started --- */
+  {id:'first', cat:'start', ic:'✨', n:'First Light',    d:'Log your first sighting',  p:5,  t:s=>s.sightings>=1},
+  {id:'iss',   cat:'start', ic:'🛰️', n:'ISS Spotter',    d:'Spot the ISS',             p:10, t:s=>s.ids.has('25544')},
+  /* --- Satellites & layers --- */
+  {id:'sl10',  cat:'sats', ic:'🔗', n:'Starlink Hunter',  d:'Spot 10 Starlinks',        p:15, t:s=>s.starlink>=10, pr:s=>[s.starlink,10]},
+  {id:'geo',   cat:'sats', ic:'🌍', n:'High & Far',       d:'Spot a GEO satellite',     p:15, t:s=>s.geo>=1},
+  {id:'orbits',cat:'sats', ic:'🪐', n:'Globetrotter',     d:'Spot LEO, MEO & GEO',      p:20, t:s=>s.orbits>=3, pr:s=>[s.orbits,3]},
+  {id:'slnite',cat:'sats', ic:'🌌', n:'Constellation',    d:'5 Starlinks in one night',  p:20, t:s=>s.slNight>=5, pr:s=>[s.slNight,5]},
+  {id:'nav',   cat:'sats', ic:'🧭', n:'Navigator',        d:'Spot a GPS and a Galileo',  p:20, t:s=>s.gps>=1&&s.galileo>=1, pr:s=>[(s.gps?1:0)+(s.galileo?1:0),2]},
+  {id:'wx',    cat:'sats', ic:'🌦️', n:'Weatherman',       d:'Spot 3 weather satellites', p:15, t:s=>s.weather>=3, pr:s=>[s.weather,3]},
+  {id:'ham',   cat:'sats', ic:'📻', n:'Ham Operator',     d:'Spot an amateur-radio satellite', p:20, t:s=>s.amateur>=1},
+  {id:'bband', cat:'sats', ic:'📡', n:'Broadband',        d:'Spot a Starlink and a OneWeb', p:20, t:s=>s.starlink>=1&&s.oneweb>=1, pr:s=>[(s.starlink?1:0)+(s.oneweb?1:0),2]},
+  /* --- Dedication --- */
+  {id:'x5',    cat:'dedication', ic:'🌟', n:'Devoted',    d:'Spot one object 5×',       p:15, t:s=>s.maxCount>=5, pr:s=>[s.maxCount,5]},
+  {id:'x25',   cat:'dedication', ic:'🗿', n:'Old Faithful',d:'Spot one object 25×',      p:35, t:s=>s.maxCount>=25, pr:s=>[s.maxCount,25]},
+  {id:'b25',   cat:'dedication', ic:'🎖️', n:'Collector',  d:'25 different objects',     p:20, t:s=>s.badges>=25, pr:s=>[s.badges,25]},
+  {id:'b50',   cat:'dedication', ic:'🏵️', n:'Half Century',d:'50 different objects',     p:35, t:s=>s.badges>=50, pr:s=>[s.badges,50]},
+  {id:'s100',  cat:'dedication', ic:'💯', n:'Centurion',  d:'100 total sightings',      p:30, t:s=>s.sightings>=100, pr:s=>[s.sightings,100]},
+  {id:'strk3', cat:'dedication', ic:'🔥', n:'On a Roll',  d:'3-day sighting streak',    p:15, t:s=>s.maxStreak>=3, pr:s=>[s.maxStreak,3]},
+  {id:'strk7', cat:'dedication', ic:'⚡', n:'Week Watcher',d:'7-day sighting streak',    p:30, t:s=>s.maxStreak>=7, pr:s=>[s.maxStreak,7]},
+  {id:'strk30',cat:'dedication', ic:'🏔️', n:'Marathon',   d:'30-day sighting streak',    p:60, t:s=>s.maxStreak>=30, pr:s=>[s.maxStreak,30]},
+  {id:'dbl',   cat:'dedication', ic:'⏱️', n:'Double Header',d:'Two sightings within 10 minutes', p:10, t:s=>s.doubles>=1},
+  {id:'anniv', cat:'dedication', ic:'🎂', n:'Anniversary',d:'Still watching a year on',  p:40, t:s=>s.anniversary>=1},
+  /* --- Rockets --- */
+  {id:'rocket',cat:'rockets', ic:'🚀', n:'Rocketeer',     d:'See a rocket launch',      p:15, t:s=>s.launches>=1},
+  {id:'person',cat:'rockets', ic:'🎟️', n:'Front Row',     d:'See a launch in person',   p:25, t:s=>s.inperson>=1},
+  /* --- Explorer --- */
+  {id:'idf10', cat:'tools', ic:'🔎', n:'Sky Detective',   d:'Run Identify 10 times',     p:20, t:s=>s.idf>=10, pr:s=>[s.idf,10]},
+  {id:'uap1',  cat:'tools', ic:'👁️', n:'The Truth Is Out There', d:'File your first UAP report', p:15, t:s=>s.uap>=1},
+  {id:'uap10', cat:'tools', ic:'🛸', n:'Investigator',    d:'File 10 UAP reports',       p:35, t:s=>s.uap>=10, pr:s=>[s.uap,10]},
+  {id:'ce51',  cat:'tools', ic:'🧘', n:'Contact',         d:'Complete a CE5 session',    p:20, t:s=>s.ce5>=1},
+  {id:'ce510', cat:'tools', ic:'🌠', n:'Deep Practice',   d:'10 hours of CE5 sessions',  p:45, t:s=>s.ce5min>=600, pr:s=>[Math.round(s.ce5min/60),10], unit:'h'},
+  {id:'curious',cat:'tools',ic:'🧠', n:'Curious',         d:'Explore 3 different tools', p:15, t:s=>s.explored>=3, pr:s=>[s.explored,3]},
+  {id:'plan',  cat:'tools', ic:'🗓️', n:'Planner',         d:'Log a pass you found in Tonight', p:15, t:s=>s.planned>=1},
+  {id:'perf',  cat:'tools', ic:'💎', n:'Perfect Pass',    d:'Log a sighting on a Superb pass', p:25, t:s=>s.perfect>=1},
+  /* --- Timing & the sky --- */
+  {id:'night', cat:'timing', ic:'🦉', n:'Night Owl',      d:'Log a sighting between 1–4am',  p:15, t:s=>s.night>=1},
+  {id:'dawn',  cat:'timing', ic:'🌅', n:'Dawn Patrol',    d:'Log a sighting between 4–6am',  p:15, t:s=>s.dawn>=1},
+  {id:'witch', cat:'timing', ic:'🕛', n:'Witching Hour',  d:'Log a sighting at exactly midnight', p:30, t:s=>s.witching>=1},
+  {id:'leap',  cat:'timing', ic:'🐸', n:'Leap of Faith',  d:'Log a sighting on Feb 29',  p:40, t:s=>s.leap>=1},
+  {id:'bluem', cat:'timing', ic:'🔵', n:'Blue Moon',      d:'Log a sighting on a blue moon', p:30, t:s=>s.blueMoon>=1},
+  {id:'meteor',cat:'timing', ic:'☄️', n:'Shooting Gallery',d:'Log a sighting on a meteor-shower peak', p:20, t:s=>s.meteor>=1},
+  /* --- Rare finds --- */
+  {id:'hubble',cat:'rare', ic:'🔭', n:'Hubble Hugger',    d:'Spot the Hubble Space Telescope', p:20, t:s=>s.hubble>=1},
+  {id:'vgd',   cat:'rare', ic:'🛰️', n:'Elder Statesman',  d:'Spot Vanguard 1, orbiting since 1958', p:30, t:s=>s.vanguard>=1},
+  {id:'rose',  cat:'rare', ic:'🌹', n:'Compass Rose',     d:'Log sightings in all 8 compass directions', p:35, t:s=>s.dirs>=8, pr:s=>[s.dirs,8]},
   /* --- Social --- */
-  {id:'fr5',   ic:'👥', n:'Social Butterfly', d:'Have 5 friends',            p:20, t:s=>s.friends>=5,
-    pr:s=>[s.friends,5]},
+  {id:'fr5',   cat:'social', ic:'👥', n:'Social Butterfly',d:'Have 5 friends',           p:20, t:s=>s.friends>=5, pr:s=>[s.friends,5]},
 ];
 // Progress for the locked ones: "3 / 5 · 2 to go". Awards without an explicit `pr`
 // are single-shot, so there's nothing meaningful to count towards.
@@ -6647,8 +6749,21 @@ function achItemHTML(a, on, st, tag){
             '<span class="ach-nums">'+pr.cur+pr.unit+' / '+pr.goal+pr.unit+
             ' &middot; <b>'+pr.left+pr.unit+' to go</b></span></span>' : '')+
     '</div>'+
-    (on?'<span class="ach-pts">+'+a.p+'</span>':'<span class="ach-lock">🔒</span>')+
+    (on ? '<span class="ach-pts">+'+a.p+'</span>'
+        : '<span class="ach-pts locked">🔒 +'+a.p+'</span>')+
   '</div>';
+}
+// Group the grid by category, each with a header showing "3 / 8" progress.
+function achGridHTML(st, earnedSet, tag){
+  let html='';
+  for(const [key,label] of ACH_CATS){
+    const items=ACH.filter(a=>a.cat===key);
+    if(!items.length) continue;
+    const got=items.filter(a=>earnedSet.has(a.id)).length;
+    html+='<div class="ach-cat"><span>'+label+'</span><span class="ach-cat-n">'+got+' / '+items.length+'</span></div>'+
+      items.map(a=>achItemHTML(a, earnedSet.has(a.id), st, tag)).join('');
+  }
+  return html;
 }
 function achProgress(a, st){
   if(!a.pr) return null;
@@ -6669,28 +6784,46 @@ function streakOf(days){
   if(nowD-toN(set[set.length-1])>1) cur=0;
   return {cur,max};
 }
+// Major shower peaks [month(0-based), day]; matched within ±1 day.
+const METEOR_PEAKS=[[0,4],[3,22],[4,6],[7,12],[7,13],[9,8],[9,21],[10,17],[11,13],[11,14]];
+function isMeteorPeak(t){
+  const d=new Date(t), mo=d.getMonth(), day=d.getDate();
+  return METEOR_PEAKS.some(([m,dd])=> m===mo && Math.abs(day-dd)<=1);
+}
+// A blue moon's second full moon always lands on the 30th/31st (two full moons a month
+// needs the first near day 1). So: full tonight, late in the month.
+function isBlueMoon(t){
+  try{ return moonInfo(t).illum>0.97 && new Date(t).getDate()>=30; }catch(e){ return false; }
+}
 function statsFromProfile(p){
   const seen=Array.isArray(p&&p.seen)?p.seen:[], ids=new Set();
   let sightings=0, starlink=0, geo=0, launches=0, inperson=0, maxCount=0; const orb=new Set();
   const groups={};                                  // per-layer tallies (weather, gps-ops, …)
   let night=0, dawn=0, firstTs=Infinity, lastTs=0, anniversary=0;
-  const stamps=[], slDays={};
+  const stamps=[], slDays={}, dirSet=new Set();
+  let witching=0, leap=0, blueMoon=0, meteor=0, hubble=0, vanguard=0;
   for(const e of seen){
     ids.add(e.id); const c=e.count||1; sightings+=c; if(c>maxCount) maxCount=c;
+    if(e.dir) dirSet.add(e.dir);                     // compass letter recorded at log time
+    if(e.id==='20580' || /HUBBLE|HST/i.test(e.name||'')) hubble=1;
+    if(e.id==='5' || e.id==='00005' || /VANGUARD 1/i.test(e.name||'')) vanguard=1;
     if(e.kind==='launch'){ launches++; if(e.how==='person') inperson++; }
     else {
       if(e.group) groups[e.group]=(groups[e.group]||0)+1;
       if(e.group==='starlink'||/STARLINK/i.test(e.name||'')) starlink++;
       if(e.oc==='GEO') geo++; if(e.oc) orb.add(e.oc);
     }
-    // Timestamps: `ts` is the first sighting of that object, `last` the most recent.
     for(const t of [e.ts, e.last]){
       if(!t) continue;
       stamps.push(t);
       if(t<firstTs) firstTs=t; if(t>lastTs) lastTs=t;
-      const h=new Date(t).getHours();
+      const dt=new Date(t), h=dt.getHours(), mn=dt.getMinutes();
       if(h>=1 && h<4) night++;
       if(h>=4 && h<6) dawn++;
+      if(h===0 && mn===0) witching=1;                // exactly midnight
+      if(dt.getMonth()===1 && dt.getDate()===29) leap=1;
+      if(isMeteorPeak(t)) meteor=1;
+      if(isBlueMoon(t)) blueMoon=1;
       if(e.group==='starlink'||/STARLINK/i.test(e.name||'')){
         const d=dayStr(t); (slDays[d]=slDays[d]||new Set()).add(e.id);
       }
@@ -6712,6 +6845,8 @@ function statsFromProfile(p){
     amateur:groups['amateur']||0, oneweb:groups['oneweb']||0,
     idf:x.idf||0, uap:x.uap||0, ce5:x.ce5||0, ce5min:x.ce5min||0,
     planned:x.planned||0, perfect:x.perfect||0, friends:(p&&p.friendCount)||0,
+    witching, leap, blueMoon, meteor, hubble, vanguard, dirs:dirSet.size,
+    explored:(Array.isArray(x.explored)?x.explored.length:0),
     granted:new Set(Array.isArray(p&&p.granted)?p.granted:[]) };
 }
 // An award counts if it was earned, or granted by an admin (support fix-ups).
@@ -6728,6 +6863,22 @@ async function bumpStat(key, by){
     const {db, doc, setDoc}=window.fb;
     await setDoc(doc(db,'profiles',currentUser.uid), {stats:cur}, {merge:true});
   }catch(e){ console.warn('stat '+key, e); }
+}
+// Record a distinct tool the user has tried — powers the Curious award.
+async function markExplored(key){
+  if(!currentUser || !window.fb || !myProfile) return;
+  const cur=Object.assign({}, myProfile.stats||{});
+  const set=new Set(Array.isArray(cur.explored)?cur.explored:[]);
+  if(set.has(key)) return;                    // already counted
+  set.add(key); cur.explored=[...set];
+  myProfile.stats=cur;
+  try{ const {db, doc, setDoc}=window.fb;
+    await setDoc(doc(db,'profiles',currentUser.uid), {stats:cur}, {merge:true}); }catch(e){}
+}
+// 8-point compass for the Compass Rose award.
+function azCompass8(a){
+  if(a==null || !isFinite(a)) return '';
+  return ['N','NE','E','SE','S','SW','W','NW'][Math.round((((a%360)+360)%360)/45)%8];
 }
 function scoreOf(st, earned){ return st.sightings + st.badges*2 + earned.reduce((x,a)=>x+a.p,0); }
 
@@ -6780,8 +6931,9 @@ async function logSighting(s, ts){
   if(!myProfile||!myProfile.username){ showErr('Choose a username first (Friends tab).'); return; }
   const list=Array.isArray(myProfile.seen)?myProfile.seen.map(e=>Object.assign({},e)):[];
   const i=list.findIndex(x=>x.id===s.id); let n;
-  if(i>=0){ list[i].count=(list[i].count||1)+1; list[i].last=Math.max(list[i].last||list[i].ts||0, ts); n=list[i].count; }
-  else { list.push({id:s.id, name:s.name, kind:'sat', group:s.group, oc:orbitClass(s), ts, last:ts, count:1}); n=1; }
+  const dir=azCompass8(s.azimuth);                  // for the Compass Rose award
+  if(i>=0){ list[i].count=(list[i].count||1)+1; list[i].last=Math.max(list[i].last||list[i].ts||0, ts); if(dir) list[i].dir=dir; n=list[i].count; }
+  else { list.push({id:s.id, name:s.name, kind:'sat', group:s.group, oc:orbitClass(s), ts, last:ts, count:1, dir}); n=1; }
   try{ await commitSeen(list, addSightDay(myProfile.sightDays, ts));
     if(ntPicked && ntPicked.id===s.id && (Date.now()-ntPicked.at)<NT_PICK_WINDOW){
       bumpStat('planned');
@@ -6823,6 +6975,23 @@ async function removeSeen(id, name){
     renderFeed();
   }catch(e){ console.warn('feed cleanup', e); }
 }
+/* Delete one of your own logged sightings from the Mine list. UAP reports live only
+   in the private log; real objects also sit in your profile's seen[] and feed. */
+async function deleteMineSighting(id, name){
+  if(!id) return;
+  if(!confirm('Delete “'+(name||'this sighting')+'”?\n\nThis removes it from your history'+
+    ((/^uap-/.test(id))?'.':', your badge count and the public feed.'))) return;
+  if(/^uap-/.test(id)){
+    // Private log entry only — nothing in seen[] or the feed to touch.
+    sightLog=sightLog.filter(x=>x.id!==id);
+    saveSightLogLocal(); saveSettings();     // saveSettings mirrors the log to users/{uid}
+    renderFeed();
+    showToast('Sighting deleted');
+    return;
+  }
+  await removeSeen(id, name);              // clears seen[], the log, and matching feed posts
+  renderFeed();
+}
 /* ---------- Achievements page (viewable for any user) ---------- */
 function openMyAchievements(){
   const st=statsFromProfile(myProfile||{}), earned=achEarned(st);
@@ -6844,8 +7013,7 @@ function renderAchievements(s){
     '<div><b>'+s.streak+'</b><span>best streak</span></div>'+
     '<div><b>'+s.score+'</b><span>score</span></div>';
   $('ach-grid').classList.toggle('ach-mine', !!s.mine);
-  $('ach-grid').innerHTML=ACH.map(a=>{ const on=s.achSet.has(a.id);
-    return achItemHTML(a, on, s.st||null, true); }).join('');
+  $('ach-grid').innerHTML=achGridHTML(s.st||null, s.achSet, true);
   // Private sighting log — only rendered when viewing your own page
   const lg=$('ach-log'); if(!lg) return;
   if(s.log && s.log.length){
@@ -6875,19 +7043,18 @@ function renderHero(){
       '<div class="hero-score">'+score+' <span>points</span></div></div>'+
     '<div class="hero-stats">'+
       '<button class="hs-btn" id="hs-objects" title="Objects seen">'+
-        '<b>'+st.badges+'</b><span>🛰 view ›</span></button>'+
+        '<b>'+st.badges+'</b><span>🛰 objects ›</span></button>'+
       '<button class="hs-btn" id="hs-sightings" title="All sightings">'+
-        '<b>'+st.sightings+'</b><span>👁 view ›</span></button>'+
+        '<b>'+st.sightings+'</b><span>👁 sightings ›</span></button>'+
       '<div class="hs-stat"><b>'+st.maxStreak+'</b><span>🔥 streak</span></div>'+
       '<div class="hs-stat"><b>'+earned.length+'/'+ACH.length+'</b><span>🏆 awards</span></div>'+
     '</div>'+
     (first?'<div class="hero-note">First sighting · <b>'+esc(first.name||'—')+'</b> on '+fmtSeen(first.ts)+'</div>':'')+
     (earned.length===ACH.length?'<div class="hero-note">🎉 Every award unlocked. Legend.</div>':'')+
     '<div class="fr-sub">Your awards</div>'+
-    '<div class="ach-grid ach-mine">'+ACH.map(a=>{ const on=earnedSet.has(a.id);
-      return achItemHTML(a, on, st, true); }).join('')+'</div>';
-  const ob=$('hs-objects'); if(ob) ob.onclick=showObjectsList;
-  const sg=$('hs-sightings'); if(sg) sg.onclick=showSightingsList;
+    '<div class="ach-grid ach-mine">'+achGridHTML(st, earnedSet, true)+'</div>';
+  const ob=$('hs-objects'); if(ob) ob.onclick=openMyFeed;
+  const sg=$('hs-sightings'); if(sg) sg.onclick=openMyFeed;
 }
 /* ---------- Award unlock celebration ---------- */
 // Long-press one of your earned awards to watch it land again.
@@ -7214,6 +7381,7 @@ function runIdentify(){
   const w=$('idf-when'), ts = w && w.value ? localInputToTs(w.value) : Date.now();
   out.innerHTML='<div class="fr-note">Checking the sky…</div>';
   setTimeout(()=>{                                  // let the "checking" paint before the heavy pass
+    markExplored('identify');
     const res=identifySky(ts, idfAz, idfAlt);
     idfLast=res; renderIdentify(res);
     bumpStat('idf');
@@ -7307,6 +7475,7 @@ function planTonight(){
       const t=(l.net&&l.net.getTime)?l.net.getTime():0;
       return t>=now && t<=win.end;
     }).sort((a,b)=>a.net-b.net).slice(0,3);
+    markExplored('tonight');
     ntData={ win, mo:moonInfo(win.start), all, launches };
     renderNightList();
     markTonightProgress();
@@ -7734,6 +7903,7 @@ function initCe5(){
   const what=$('ce5-what'), info=$('ce5-info');
   if(what && info) what.onclick=()=>{
     const open=info.classList.toggle('show');
+    if(open) markExplored('ce5-info');
     what.setAttribute('aria-expanded', open?'true':'false');
     what.textContent = open ? '📖 Hide the explainer' : '📖 What is CE5? & the protocols';
     if(open) setTimeout(()=>info.scrollIntoView({behavior:'smooth', block:'nearest'}), 60);
@@ -7751,6 +7921,7 @@ function initCe5(){
 /* ---------- UAP report form ---------- */
 let uapCtx=null, uapPick={};
 function openUapForm(res){
+  markExplored('uap-form');
   uapCtx = res || {ts:Date.now(), rows:[], wantAz:null, wantAlt:null};
   uapPick={};
   const r=uapCtx, c=$('uap-ctx');
@@ -7917,7 +8088,11 @@ function renderFeed(){
         return '<div class="feed-row'+(uap?' uap':'')+'"><span class="feed-ic">'+icon+'</span>'+
           '<span class="feed-body"><span class="feed-nm">'+esc(x.name||'—')+'</span>'+
           '<span class="feed-t"><span class="feed-u">You</span> '+(uap?'logged':'spotted')+' · '+
-          fmtSeen(x.ts)+(x.how?(' · '+(x.how==='person'?'in person':'overhead')):'')+'</span></span></div>'; }).join('');
+          fmtSeen(x.ts)+(x.how?(' · '+(x.how==='person'?'in person':'overhead')):'')+'</span></span>'+
+          '<button class="feed-del" data-id="'+esc(x.id||'')+'" data-nm="'+esc(x.name||'')+'" '+
+            'title="Delete this sighting" aria-label="Delete">✕</button></div>'; }).join('');
+    el.querySelectorAll('.feed-del').forEach(b=>b.onclick=e=>{
+      e.stopPropagation(); deleteMineSighting(b.dataset.id, b.dataset.nm); });
     return;
   }
   if(!currentUser){ el.innerHTML='<div class="fr-note">Sign in to see the feed.</div>'; return; }
@@ -8275,7 +8450,7 @@ function renderFriendProfile(p, f){
       '<div class="hero-score">'+score+' <span>points</span></div></div>';
   $('ach-stats').innerHTML=
     '<button class="hs-btn" id="fp-objects" title="Objects seen">'+
-      '<b>'+st.badges+'</b><span>🛰 view ›</span></button>'+
+      '<b>'+st.badges+'</b><span>🛰 objects ›</span></button>'+
     '<div class="hs-stat"><b>'+st.sightings+'</b><span>👁 sightings</span></div>'+
     '<div class="hs-stat"><b>'+st.maxStreak+'</b><span>🔥 streak</span></div>'+
     '<div class="hs-stat"><b>'+earned.length+'/'+ACH.length+'</b><span>🏆 awards</span></div>';
@@ -8288,8 +8463,7 @@ function renderFriendProfile(p, f){
           (st.launches?(((st.starlink||st.geo)?' · ':'')+'<b>'+st.launches+'</b> launches'):'')+
         '</div>' : '')+
     '<div class="fr-sub">Their awards · '+earned.length+' of '+ACH.length+'</div>'+
-    ACH.map(a=>{ const on=earnedSet.has(a.id);
-    return achItemHTML(a, on, st, false); }).join('');
+    achGridHTML(st, earnedSet, false);
   const ob=$('fp-objects');
   if(ob) ob.onclick=()=>showFriendObjects(uname, seen);
   const lg=$('ach-log');
