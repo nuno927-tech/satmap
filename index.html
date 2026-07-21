@@ -507,6 +507,28 @@
     color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s}
   #snapbtn:hover{background:rgba(90,209,255,.14);border-color:rgba(90,209,255,.5);color:var(--accent)}
   #snapbtn svg{display:block}
+  /* Support / tip jar */
+  .tip-note{font-size:12.5px;color:var(--muted);line-height:1.55;margin:10px 0 12px}
+  .tip-amts{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px}
+  .tip-amts button{min-height:58px;border-radius:13px;border:1px solid var(--border);
+    background:rgba(120,160,255,.06);color:var(--muted);cursor:pointer;font-size:19px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    box-shadow:0 2px 8px rgba(0,0,0,.3);transition:box-shadow .16s,background .16s,color .16s,border-color .16s}
+  .tip-amts button span{font-size:12px;font-weight:700;letter-spacing:.2px}
+  .tip-amts button:hover{border-color:rgba(var(--neon-c),.5);box-shadow:var(--neon-rest)}
+  .tip-amts button.on{background:rgba(var(--neon-c),.2);color:rgb(var(--neon-c));
+    border-color:rgba(var(--neon-c),.55);box-shadow:var(--neon-hot);
+    text-shadow:0 0 12px rgba(var(--neon-c),.6)}
+  .tip-go{width:100%;min-height:52px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;
+    color:#fff;border:1px solid rgba(0,142,214,.7);
+    background:linear-gradient(180deg,rgba(0,142,214,.9),rgba(0,116,178,.85));
+    box-shadow:0 0 0 1px rgba(0,142,214,.5),0 0 24px rgba(0,142,214,.45),0 6px 20px rgba(0,0,0,.5);
+    text-shadow:0 1px 6px rgba(0,0,0,.5)}
+  .tip-go:hover{background:linear-gradient(180deg,rgba(0,160,238,1),rgba(0,130,200,.9));
+    box-shadow:0 0 0 1px rgba(0,160,238,.8),0 0 34px rgba(0,142,214,.6),0 6px 22px rgba(0,0,0,.55)}
+  .tip-go:active{transform:scale(.985)}
+  .tip-thanks{font-size:11.5px;color:#57e08a;text-align:center;margin-top:9px;min-height:16px;
+    text-shadow:0 0 12px rgba(87,224,138,.5)}
   .stg-ver{margin-top:12px;text-align:center;font-size:10.5px;color:var(--muted);letter-spacing:.5px}
   .stg-sec{margin:18px 0 4px;padding-bottom:5px;border-bottom:1px solid var(--border);
     font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:var(--accent)}
@@ -1284,6 +1306,37 @@
   .hero-score{text-shadow:0 0 24px rgba(var(--neon-c),.55)}
   .fr-prof-name,.usr-nm{text-shadow:0 0 16px rgba(var(--neon-c),.4)}
   .fr-avatar,.usr-av{box-shadow:0 0 0 1px rgba(var(--neon-c),.4),0 0 20px rgba(var(--neon-c),.28)}
+  /* --- Friends list: avatar, tappable row, glowing actions --- */
+  .fr-item{gap:11px;min-height:64px;padding:11px 12px;margin-bottom:8px;border-radius:14px;
+    border:1px solid var(--border);background:rgba(120,160,255,.05);cursor:pointer;
+    box-shadow:var(--neon-rest);transition:box-shadow .18s,background .18s,border-color .18s}
+  .fr-item:last-child{border-bottom:1px solid var(--border)}
+  .fr-item:hover{background:rgba(var(--neon-c),.1);border-color:rgba(var(--neon-c),.5);box-shadow:var(--neon-hot)}
+  .fr-item:active{transform:scale(.99)}
+  .fr-av{position:relative;width:42px;height:42px;border-radius:50%;flex:0 0 auto;overflow:visible;
+    display:flex;align-items:center;justify-content:center;font-size:20px;
+    background:rgba(var(--neon-c),.16);color:rgb(var(--neon-c));
+    box-shadow:0 0 0 1px rgba(var(--neon-c),.35),0 0 16px rgba(var(--neon-c),.22)}
+  .fr-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+  .fr-av.on{box-shadow:0 0 0 1px rgba(87,224,138,.6),0 0 20px rgba(87,224,138,.35)}
+  .fr-av .fr-status{position:absolute;right:-1px;bottom:-1px;width:12px;height:12px;
+    border:2px solid var(--panel-solid);box-shadow:0 0 8px currentColor}
+  .fr-nm{display:flex;flex-direction:column;gap:2px;font-weight:600}
+  .fr-sub-ln{font-size:11px;color:var(--muted);font-weight:500}
+  .fr-ping,.fr-locate,.fr-del{width:40px;height:40px;flex:0 0 auto;border-radius:12px;
+    border:1px solid var(--border);background:rgba(120,160,255,.07);font-size:16px;
+    display:flex;align-items:center;justify-content:center;padding:0;
+    box-shadow:0 2px 8px rgba(0,0,0,.3);transition:box-shadow .16s,background .16s,color .16s,border-color .16s}
+  .fr-ping:hover,.fr-locate:hover{color:rgb(var(--neon-c));border-color:rgba(var(--neon-c),.55);
+    background:rgba(var(--neon-c),.14);box-shadow:var(--neon-hot)}
+  .fr-del:hover{color:var(--iss);border-color:rgba(255,90,77,.55);background:rgba(255,90,77,.12);
+    box-shadow:0 0 0 1px rgba(255,90,77,.5),0 0 18px rgba(255,90,77,.35)}
+  /* Friend profile hero inside the awards modal */
+  .fp-hero{text-align:center;padding:2px 0 14px}
+  .fp-hero .hero-av{width:66px;height:66px;margin:0 auto 10px;font-size:30px;overflow:hidden}
+  .fp-hero .hero-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+  .fp-live{color:#57e08a;font-weight:700;text-shadow:0 0 10px rgba(87,224,138,.7)}
+  #achieve .hero-stats{grid-template-columns:repeat(4,1fr);margin-bottom:12px}
   /* --- Small round utility buttons: feed refresh, icon picker --- */
   #fr-refresh{width:38px;height:38px;border:1px solid var(--border);border-radius:50%;
     background:rgba(120,160,255,.06);box-shadow:var(--neon-rest);
@@ -1624,6 +1677,21 @@
   <button id="sharebtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.7 15.7 6.3M8.3 13.3l7.4 4.4"/></svg> Share this app</button>
   <button id="tourbtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.7-.9 1.4v.3"/><path d="M12 16.5h.01"/></svg> Take the tour</button>
   <button id="snapbtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg> Share a snapshot</button>
+  <div class="stg-sec">Support SkyWatch</div>
+  <div class="tip-note">SkyWatch is free, ad-free and built by one person. If it's shown you
+    something good in the sky, you can buy me a coffee.</div>
+  <div class="tip-amts" id="tip-amts">
+    <button data-amt="3">☕<span>$3</span></button>
+    <button data-amt="5">🍕<span>$5</span></button>
+    <button data-amt="10">🚀<span>$10</span></button>
+    <button data-amt="">✨<span>Other</span></button>
+  </div>
+  <button id="tipbtn" class="tip-go">Send with Venmo · @Nuno-Bernardino</button>
+  <div class="stg" id="tip-monthly-row">
+    <div class="lbl">Remind me monthly<small>Venmo has no recurring payments — this just nudges you once a month</small></div>
+    <div class="switch" id="sw-tipmonthly" role="switch"></div>
+  </div>
+  <div class="tip-thanks" id="tip-thanks"></div>
   <div class="stg-ver" id="stg-ver">—</div>
 </div>
 
@@ -1799,7 +1867,7 @@
     <button id="fdt-friends">Friends</button>
     <button id="fdt-mine">Mine</button>
   </div>
-  <div class="idf-chips" id="feed-range" style="display:none">
+  <div class="idf-chips" id="feed-range">
     <button data-r="day">Today</button><button data-r="week" class="on">Week</button>
     <button data-r="month">Month</button><button data-r="all">All time</button>
   </div>
@@ -1873,7 +1941,7 @@
 </script>
 
 <script>
-const BUILD = 'v89';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v93';           // shown in Settings and on the loader so you can confirm what's deployed
 // Stamp the loader immediately — it's the first thing on screen and the fastest way
 // to tell whether a deploy actually landed.
 (function(){ const v=document.getElementById('ld-ver'); if(v) v.textContent='SkyWatch '+BUILD; })();
@@ -3882,6 +3950,7 @@ async function boot(){
   ['pointerup','pointerleave','pointercancel'].forEach(ev=>
     gm.addEventListener(ev, ()=>{ if(lpT){ clearTimeout(lpT); lpT=null; } }));
   const lh=$('loc-hint'); if(lh) lh.onclick=()=>{ requestLocation(); lh.classList.remove('show'); };
+  checkTipReminder();
   updateLocHint();
   $('search').addEventListener('keydown',e=>{ if(e.key==='Enter') doSearch(e.target.value); });
 
@@ -3913,7 +3982,11 @@ function closeSheets(){
 function openSheet(id){
   if(id!=='detail' && $('detail').classList.contains('open')) deselectSat();   // navigating away drops the highlight
   SHEETS.forEach(s=>{ if(s!==id) $(s).classList.remove('open'); });
-  $(id).classList.add('open'); $('backdrop').classList.add('show'); syncBar();
+  $(id).classList.add('open');
+  // The detail card is meant to be read *against* the map — a full-screen backdrop
+  // would swallow every touch and leave the globe unpannable. Menus still get one.
+  $('backdrop').classList.toggle('show', id!=='detail');
+  syncBar();
 }
 function toggleSheet(id){ $(id).classList.contains('open') ? closeSheets() : openSheet(id); }
 // Explicit close for pop-over windows (desktop has no swipe/backdrop to dismiss them).
@@ -4058,6 +4131,64 @@ async function shareApp(){
   }
   try{ await navigator.clipboard.writeText(url); showToast('🔗 Link copied — share it with friends!'); return; }catch(e){}
   showErr('Share this link: '+url);
+}
+
+/* ---------- Tip jar ----------
+   Venmo has no recurring-payment API, so "monthly" is an honest local reminder
+   rather than a subscription — nothing is ever charged automatically. */
+const VENMO_USER='Nuno-Bernardino';
+const TIP_KEY='skywatch_tip';
+let tipAmt=5;
+function tipState(){ try{ return JSON.parse(localStorage.getItem(TIP_KEY)||'{}'); }catch(e){ return {}; } }
+function tipSave(s){ try{ localStorage.setItem(TIP_KEY, JSON.stringify(s)); }catch(e){} }
+function venmoUrl(amt){
+  const note=encodeURIComponent('SkyWatch ☕ thanks for building this');
+  const base='https://venmo.com/'+VENMO_USER+'?txn=pay&note='+note;
+  return amt ? (base+'&amount='+encodeURIComponent(amt)) : base;
+}
+function openTip(){
+  const s=tipState();
+  s.last=Date.now(); s.count=(s.count||0)+1; tipSave(s);
+  window.open(venmoUrl(tipAmt), '_blank', 'noopener');
+  const t=$('tip-thanks');
+  if(t){ t.textContent='☕ Thank you — that genuinely helps.'; setTimeout(()=>{ if(t) t.textContent=''; }, 8000); }
+}
+function initTip(){
+  const wrap=$('tip-amts'); if(!wrap) return;
+  const s=tipState();
+  wrap.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    const v=b.dataset.amt;
+    if(v===''){                                   // "Other" — let Venmo ask for the amount
+      wrap.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b));
+      tipAmt=null; return;
+    }
+    wrap.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b));
+    tipAmt=+v;
+  });
+  const def=wrap.querySelector('[data-amt="5"]'); if(def) def.classList.add('on');
+  const go=$('tipbtn'); if(go) go.onclick=openTip;
+  const sw=$('sw-tipmonthly');
+  if(sw){
+    sw.classList.toggle('on', !!s.monthly);
+    sw.onclick=()=>{
+      const cur=tipState(); cur.monthly=!cur.monthly;
+      if(cur.monthly && !cur.last) cur.last=Date.now();   // start the clock from opt-in
+      tipSave(cur);
+      sw.classList.toggle('on', !!cur.monthly);
+      sfxToggle(!!cur.monthly);
+      showToast(cur.monthly ? '☕ I’ll nudge you once a month — never a charge' : 'Monthly reminder off', true);
+    };
+  }
+}
+// Checked once per launch, long after boot so it never competes with the app loading.
+function checkTipReminder(){
+  const s=tipState();
+  if(!s.monthly || !s.last) return;
+  if(Date.now()-s.last < 30*86400000) return;
+  setTimeout(()=>{
+    showToast('☕ Monthly coffee reminder — Settings › Support', true);
+    const cur=tipState(); cur.last=Date.now(); tipSave(cur);   // don't nag again until next month
+  }, 45000);
 }
 
 /* ---------- PWA: install prompt + first-run popup ---------- */
@@ -4845,7 +4976,12 @@ function planTonight(){
     // they'll actually happen — this is a schedule, not a leaderboard.
     const ranked=[...best.values()].sort((a,b)=>b.p.peakEl-a.p.peakEl).slice(0,10)
       .sort((a,b)=>a.p.start-b.p.start);
-    const launches=(LAUNCHES||[]).filter(l=>{ const t=(l.net&&l.net.getTime)?l.net.getTime():0; return t>=now && t<=win.end+6*3600000; }).slice(0,3);
+    // Strictly inside tonight's dark window — a 6-hour grace used to drag in
+    // launches happening the next morning, which aren't "tonight" by any reading.
+    const launches=(LAUNCHES||[]).filter(l=>{
+      const t=(l.net&&l.net.getTime)?l.net.getTime():0;
+      return t>=now && t<=win.end;
+    }).sort((a,b)=>a.net-b.net).slice(0,3);
     const mo=moonInfo(win.start);
     const dur=Math.round((win.end-win.start)/3600000);
     let h='<div class="nt-hero"><div class="nt-win">🌙 '+fmtPassTime(win.start)+' → '+
@@ -4870,7 +5006,7 @@ function planTonight(){
       });
     }
     if(launches.length){
-      h+='<div class="idf-lbl">Launches tonight</div>';
+      h+='<div class="idf-lbl">Launches during tonight’s window</div>';
       for(const l of launches){
         h+='<button class="nt-rank" data-launch="'+esc(l.id)+'"><span class="nt-num">🚀</span>'+
           '<span class="nt-body"><span class="nt-nm">'+esc(l.name||'Launch')+'</span>'+
@@ -5387,8 +5523,8 @@ async function shareText(title, text){
 function syncFeedControls(){
   const mine=feedScope==='mine';
   const rng=$('feed-range'), sh=$('feed-share'), rf=$('feed-refresh');
-  if(rng) rng.style.display = mine ? '' : 'none';
-  if(sh)  sh.style.display  = mine ? '' : 'none';
+  if(rng) rng.style.display = '';                 // the range applies to every scope
+  if(sh)  sh.style.display  = mine ? '' : 'none'; // sharing is your own log only
   if(rf)  rf.textContent    = mine ? '⟳ Rebuild' : '⟳ Refresh';
 }
 function renderFeed(){
@@ -5416,12 +5552,19 @@ function renderFeed(){
   }
   if(!currentUser){ el.innerHTML='<div class="fr-note">Sign in to see the feed.</div>'; return; }
   const fset=new Set(friends.map(f=>f.uid)); fset.add(currentUser.uid);
-  let items=(feedScope==='friends') ? feedItems.filter(x=>fset.has(x.uid)) : feedItems;
-  items=items.slice(0,40);
-  if(!items.length){ el.innerHTML='<div class="fr-note">'+(feedScope==='friends'?'No sightings from you or your friends yet.':'No sightings posted yet.')+'</div>'; return; }
+  const scoped=(feedScope==='friends') ? feedItems.filter(x=>fset.has(x.uid)) : feedItems;
+  const cut=feedRangeCut(), lbl=FEED_RANGES[feedRange].label.toLowerCase();
+  let items=scoped.filter(x=>(x.ts||0)>=cut).slice(0,40);
+  if(!items.length){
+    const base = feedScope==='friends' ? 'No sightings from you or your friends' : 'No sightings posted';
+    el.innerHTML='<div class="fr-note">'+base+(feedRange==='all'?' yet.':' '+lbl+'. Try a wider range.')+'</div>';
+    return;
+  }
   const verb=x=> x.kind==='uap' ? 'reported something unidentified:'
     : x.kind==='launch' ? (x.how==='person'?'saw a launch:':'watched a launch:') : 'spotted';
-  el.innerHTML=items.map((x,i)=>'<div class="feed-row" data-i="'+i+'"><span class="feed-u">@'+esc(x.username||'user')+'</span> '+
+  el.innerHTML='<div class="fr-total">'+items.length+' sighting'+(items.length===1?'':'s')+
+      (feedRange==='all'?'':' · '+lbl)+(feedScope==='friends'?' · you and your friends':' · everyone')+'</div>'+
+    items.map((x,i)=>'<div class="feed-row" data-i="'+i+'"><span class="feed-u">@'+esc(x.username||'user')+'</span> '+
     esc(verb(x))+' <b>'+(x.kind==='uap'?'👁 ':'')+esc(x.name||'an object')+'</b><span class="feed-t">'+timeAgo(x.ts)+'</span></div>').join('');
   el.querySelectorAll('.feed-row').forEach(r=>r.onclick=()=>{ const x=items[+r.dataset.i];
     if(x && x.id && x.kind!=='uap') openTarget({type:x.kind==='launch'?'launch':'sat', id:x.id}); });
@@ -5684,16 +5827,95 @@ function renderFriends(){
   el.innerHTML=friends.slice().sort((a,b)=>(b.lastSeen||0)-(a.lastSeen||0)).map(f=>{
     const on=(now-(f.lastSeen||0)<150000);
     const has=(typeof f.lat==='number'&&typeof f.lng==='number');
-    return '<div class="fr-item"><span class="fr-status '+(on?'on':'off')+'"></span>'+
-      '<div class="fr-nm">'+(f.icon?(f.icon+' '):'')+'@'+f.username+(has?'':' <small>· no location</small>')+'</div>'+
-      '<span class="fr-badge" title="Badges collected">🏅 '+(f.badges||0)+'</span>'+
-      '<button class="fr-ping" data-uid="'+f.uid+'" data-un="'+f.username+'" title="Ping to look up">👋</button>'+
+    const av = f.photoURL
+      ? '<img src="'+esc(f.photoURL)+'" referrerpolicy="no-referrer" alt="">'
+      : esc(avatarGlyph(f, f.username));
+    return '<div class="fr-item" data-open="'+f.uid+'">'+
+      '<span class="fr-av'+(on?' on':'')+'">'+av+'<span class="fr-status '+(on?'on':'off')+'"></span></span>'+
+      '<div class="fr-nm">@'+esc(f.username)+(has?'':' <small>· no location</small>')+
+        '<small class="fr-sub-ln">🏅 '+(f.badges||0)+' badges · view profile ›</small></div>'+
+      '<button class="fr-ping" data-uid="'+f.uid+'" data-un="'+esc(f.username)+'" title="Ping to look up">👋</button>'+
       (has?'<button class="fr-locate" data-uid="'+f.uid+'" title="Show on map">📍</button>':'')+
-      '<button class="fr-del" data-uid="'+f.uid+'" data-un="'+f.username+'" title="Remove">✕</button></div>';
+      '<button class="fr-del" data-uid="'+f.uid+'" data-un="'+esc(f.username)+'" title="Remove">✕</button></div>';
   }).join('');
-  el.querySelectorAll('.fr-locate').forEach(b=>b.onclick=()=>locateFriend(b.dataset.uid));
-  el.querySelectorAll('.fr-del').forEach(b=>b.onclick=()=>removeFriend(b.dataset.uid,b.dataset.un));
-  el.querySelectorAll('.fr-ping').forEach(b=>b.onclick=()=>pingFriend(b.dataset.uid,b.dataset.un));
+  el.querySelectorAll('.fr-locate').forEach(b=>b.onclick=e=>{ e.stopPropagation(); locateFriend(b.dataset.uid); });
+  el.querySelectorAll('.fr-del').forEach(b=>b.onclick=e=>{ e.stopPropagation(); removeFriend(b.dataset.uid,b.dataset.un); });
+  el.querySelectorAll('.fr-ping').forEach(b=>b.onclick=e=>{ e.stopPropagation(); pingFriend(b.dataset.uid,b.dataset.un); });
+  el.querySelectorAll('.fr-item[data-open]').forEach(row=>row.onclick=()=>{
+    const f=friends.find(x=>x.uid===row.dataset.open); if(f) openFriendProfile(f);
+  });
+}
+/* ---------- A friend's full profile: stats, awards, everything they've seen ---------- */
+async function openFriendProfile(f){
+  const modal=$('achieve'); if(!modal) return;
+  $('ach-name').textContent='@'+f.username;
+  $('ach-stats').innerHTML='<div class="fr-note">Loading their journey…</div>';
+  $('ach-grid').innerHTML='';
+  const lg=$('ach-log'); if(lg){ lg.innerHTML=''; lg.style.display='none'; }
+  modal.classList.add('show');
+  let p=null;
+  try{ const {db, doc, getDoc}=window.fb;
+    const snap=await getDoc(doc(db,'profiles',f.uid));
+    if(snap.exists()) p=snap.data();
+  }catch(e){ console.warn('friend profile', e); }
+  renderFriendProfile(p, f);
+}
+function renderFriendProfile(p, f){
+  const prof=p||{};
+  const uname=prof.username||f.username;
+  // Their profile doc carries the same shape as ours, so the identical maths applies.
+  const st=statsFromProfile(prof), earned=achEarned(st), score=scoreOf(st, earned);
+  const earnedSet=new Set(earned.map(a=>a.id));
+  const seen=Array.isArray(prof.seen)?prof.seen:[];
+  const av = f.photoURL ? '<img src="'+esc(f.photoURL)+'" referrerpolicy="no-referrer" alt="">'
+                        : esc(avatarGlyph(prof, uname));
+  const online=(Date.now()-(f.lastSeen||prof.lastSeen||0))<150000;
+  let since='';
+  if(seen.length){
+    const first=seen.reduce((a,b)=>((a.ts||a.last||Infinity)<(b.ts||b.last||Infinity)?a:b));
+    const t=first.ts||first.last;
+    if(t) since=new Date(t).toLocaleDateString([], {month:'long', year:'numeric'});
+  }
+  $('ach-name').innerHTML='';
+  $('ach-stats').innerHTML=
+    '<div class="fp-hero"><div class="hero-av">'+av+'</div>'+
+      '<div class="hero-name">@'+esc(uname)+'</div>'+
+      '<div class="hero-since">'+(online?'<span class="fp-live">● online now</span>':'offline')+
+        (since?(' · watching since '+since):'')+'</div>'+
+      '<div class="hero-score">'+score+' <span>points</span></div></div>'+
+    '<div class="hero-stats">'+
+      '<div class="hs-click" id="fp-objects"><b>'+st.badges+'</b><span>objects ›</span></div>'+
+      '<div><b>'+st.sightings+'</b><span>sightings</span></div>'+
+      '<div><b>'+st.maxStreak+'</b><span>best streak</span></div>'+
+      '<div><b>'+earned.length+'/'+ACH.length+'</b><span>awards</span></div>'+
+    '</div>'+
+    (st.starlink||st.geo||st.launches
+      ? '<div class="hero-note">'+
+          (st.starlink?('<b>'+st.starlink+'</b> Starlink'):'')+
+          (st.geo?((st.starlink?' · ':'')+'<b>'+st.geo+'</b> geostationary'):'')+
+          (st.launches?(((st.starlink||st.geo)?' · ':'')+'<b>'+st.launches+'</b> launches'):'')+
+        '</div>' : '')+
+    '<div class="fr-sub">Their awards · '+earned.length+' of '+ACH.length+'</div>';
+  $('ach-grid').innerHTML=ACH.map(a=>{ const on=earnedSet.has(a.id);
+    return '<div class="ach-item'+(on?' on':'')+'"><div class="ach-ic">'+a.ic+'</div>'+
+      '<div class="ach-txt"><b>'+a.n+'</b><span>'+a.d+'</span></div>'+
+      (on?'<span class="ach-pts">+'+a.p+'</span>':'<span class="ach-lock">🔒</span>')+'</div>'; }).join('');
+  const ob=$('fp-objects');
+  if(ob) ob.onclick=()=>showFriendObjects(uname, seen);
+  const lg=$('ach-log');
+  if(lg){
+    if(!p){ lg.innerHTML='<div class="fr-note">Couldn’t load their full profile — showing what’s cached.</div>';
+      lg.style.display='block'; }
+    else { lg.innerHTML=''; lg.style.display='none'; }
+  }
+}
+function showFriendObjects(uname, seen){
+  if(!seen.length) return openList('@'+uname+' · objects', '<div class="fr-note">Nothing logged yet.</div>');
+  const rows=seen.slice().sort((a,b)=>(b.count||1)-(a.count||1) || ((b.last||b.ts||0)-(a.last||a.ts||0)));
+  openList('@'+uname+' · '+rows.length+' object'+(rows.length===1?'':'s'), rows.map(e=>
+    '<div class="lm-row"><div class="lm-n">'+esc(e.name||e.id||'—')+
+      ((e.count||1)>1?(' <span class="lm-x">×'+e.count+'</span>'):'')+'</div>'+
+    '<div class="lm-m">'+fmtSeen(e.last||e.ts||0)+'</div></div>').join(''));
 }
 const PIN_SHOW_MS = 9000;   // how long a friend's pin flashes on the map after a status change
 function updateFriendPins(){
@@ -5793,7 +6015,7 @@ function startCommunityStats(){
   statsTick=setInterval(fetchCommunityStats, 60000);
 }
 
-initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); initFriendsUI(); initAR(); initOnboard(); initLightbox(); initAchievements(); initListModal(); initClickSounds(); initSky(); initUapForm(); initCe5(); initUserPanel(); initLocPicker(); initVisibilityPause();
+initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); initFriendsUI(); initAR(); initOnboard(); initLightbox(); initAchievements(); initListModal(); initClickSounds(); initSky(); initUapForm(); initCe5(); initUserPanel(); initLocPicker(); initVisibilityPause(); initTip();
 </script>
 
 <!-- Module loader: import the 3D libs, expose them as globals, then boot -->
