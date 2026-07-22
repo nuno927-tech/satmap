@@ -587,6 +587,30 @@
   .fr-ping{flex:0 0 auto;width:30px;height:30px;border-radius:8px;border:1px solid var(--border);
     background:rgba(90,209,255,.1);color:var(--text);cursor:pointer;font-size:14px;line-height:1}
   .fr-ping:hover{background:rgba(90,209,255,.22);border-color:rgba(90,209,255,.5)}
+  .fr-msg{flex:0 0 auto;width:30px;height:30px;border-radius:8px;border:1px solid var(--border);
+    background:rgba(87,224,138,.12);color:var(--text);cursor:pointer;font-size:14px;line-height:1}
+  .fr-msg:hover{background:rgba(87,224,138,.24);border-color:rgba(87,224,138,.55)}
+  /* Compose-a-message overlay — only reachable for online friends */
+  #fmsg{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+    background:rgba(4,7,14,.6);backdrop-filter:blur(3px);padding:18px}
+  #fmsg.show{display:flex}
+  .fmsg-card{width:min(420px,100%);background:var(--panel,#0d1420);border:1px solid rgba(87,224,138,.4);
+    border-radius:16px;padding:16px;box-shadow:0 18px 50px rgba(0,0,0,.6),0 0 22px rgba(87,224,138,.18)}
+  .fmsg-hd{font-size:15px;font-weight:600;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .fmsg-hd #fmsg-to{color:rgb(87,224,138)}
+  .fmsg-live{margin-left:auto;font-size:11px;color:rgb(87,224,138);opacity:.9}
+  #fmsg-txt{width:100%;box-sizing:border-box;resize:none;border-radius:10px;padding:10px 12px;
+    background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);font:inherit;font-size:14px;line-height:1.4}
+  #fmsg-txt:focus{outline:none;border-color:rgba(87,224,138,.6);box-shadow:0 0 0 2px rgba(87,224,138,.18)}
+  .fmsg-foot{display:flex;align-items:center;margin-top:10px}
+  .fmsg-count{font-size:11px;color:var(--muted)}
+  .fmsg-btns{margin-left:auto;display:flex;gap:8px}
+  .fmsg-btn{border-radius:10px;padding:8px 16px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border)}
+  .fmsg-btn.ghost{background:transparent;color:var(--muted)}
+  .fmsg-btn.ghost:hover{color:var(--text);border-color:var(--muted)}
+  .fmsg-btn.go{background:rgba(87,224,138,.16);border-color:rgba(87,224,138,.5);color:rgb(150,240,185)}
+  .fmsg-btn.go:hover{background:rgba(87,224,138,.28)}
+  .fmsg-btn.go:disabled{opacity:.4;cursor:default}
   #snapbtn{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:9px;width:100%;
     padding:11px;border-radius:11px;border:1px solid var(--border);background:rgba(120,160,255,.08);
     color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s}
@@ -1483,12 +1507,14 @@
     border:2px solid var(--panel-solid);box-shadow:0 0 8px currentColor}
   .fr-nm{display:flex;flex-direction:column;gap:2px;font-weight:600}
   .fr-sub-ln{font-size:11px;color:var(--muted);font-weight:500}
-  .fr-ping,.fr-locate,.fr-del{width:40px;height:40px;flex:0 0 auto;border-radius:12px;
+  .fr-ping,.fr-msg,.fr-locate,.fr-del{width:40px;height:40px;flex:0 0 auto;border-radius:12px;
     border:1px solid var(--border);background:rgba(120,160,255,.07);font-size:16px;
     display:flex;align-items:center;justify-content:center;padding:0;
     box-shadow:0 2px 8px rgba(0,0,0,.3);transition:box-shadow .16s,background .16s,color .16s,border-color .16s}
   .fr-ping:hover,.fr-locate:hover{color:rgb(var(--neon-c));border-color:rgba(var(--neon-c),.55);
     background:rgba(var(--neon-c),.14);box-shadow:var(--neon-hot)}
+  .fr-msg:hover{color:rgb(87,224,138);border-color:rgba(87,224,138,.55);
+    background:rgba(87,224,138,.14);box-shadow:0 0 0 1px rgba(87,224,138,.4),0 0 18px rgba(87,224,138,.3)}
   .fr-del:hover{color:var(--iss);border-color:rgba(255,90,77,.55);background:rgba(255,90,77,.12);
     box-shadow:0 0 0 1px rgba(255,90,77,.5),0 0 18px rgba(255,90,77,.35)}
   /* Friend pin: a teardrop with their icon, no radiating rings */
@@ -2054,6 +2080,21 @@
       <div class="ul-desc" id="ul-desc">—</div>
     </div>
     <div class="ul-pts" id="ul-pts">+0</div>
+  </div>
+</div>
+
+<!-- Compose a quick message to an online friend (in-app only, never pushed) -->
+<div id="fmsg" role="dialog" aria-modal="true" aria-label="Message a friend">
+  <div class="fmsg-card">
+    <div class="fmsg-hd">Message <span id="fmsg-to">@friend</span><span class="fmsg-live">● online</span></div>
+    <textarea id="fmsg-txt" maxlength="200" rows="3" placeholder="Say something… (they'll see it now — not pushed)"></textarea>
+    <div class="fmsg-foot">
+      <span class="fmsg-count" id="fmsg-count">200</span>
+      <div class="fmsg-btns">
+        <button class="fmsg-btn ghost" id="fmsg-cancel">Cancel</button>
+        <button class="fmsg-btn go" id="fmsg-send">Send</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2642,7 +2683,7 @@
 </script>
 
 <script>
-const BUILD = 'v172';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v174';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -4072,7 +4113,7 @@ async function disablePush(){
     if(sub) await sub.unsubscribe();
     if(currentUser && window.fb){
       const {db, doc, setDoc}=window.fb;
-      await setDoc(doc(db,'users',currentUser.uid), {push:null, alertSchedule:[]}, {merge:true});
+      await setDoc(doc(db,'users',currentUser.uid), {push:null, alertSchedule:[], nextAlert:null}, {merge:true});
     }
   }catch(e){ console.warn('push disable', e); }
   showToast('Background alerts off');
@@ -4131,7 +4172,10 @@ function syncAlertSchedule(force){
         try{
           const {db, doc, setDoc}=window.fb;
           await setDoc(doc(db,'users',currentUser.uid),
-            { alertSchedule:list, alertSchedUpdated:Date.now() }, {merge:true});
+            { alertSchedule:list, alertSchedUpdated:Date.now(),
+              // Soonest fire-time drives the server query: the cron reads only users
+              // whose nextAlert is due, instead of every push user every minute.
+              nextAlert: list.length ? list[0].t : null }, {merge:true});
           resolve(true);
         }catch(e){ console.warn('schedule sync', e); resolve(false); }
       });
@@ -8687,13 +8731,72 @@ function startPings(uid){
   unsubPings=onSnapshot(collection(db,'profiles',uid,'pings'), snap=>{
     snap.docChanges().forEach(ch=>{ if(ch.type!=='added') return; const p=ch.doc.data();
       if(Date.now()-(p.ts||0) > 3600000){ try{ deleteDoc(doc(db,'profiles',uid,'pings',ch.doc.id)); }catch(e){} return; }  // stale
-      if(appIsVisible()) showPingCard(p.fromName, p.text);
+      if(p.kind==='msg') showMsgCard(p.fromName, p.text);          // custom friend message: in-app only, never a system push
+      else if(appIsVisible()) showPingCard(p.fromName, p.text);
       else { try{ if('Notification' in window && Notification.permission==='granted')
         showNotif('👋 @'+(p.fromName||'friend'), {body:p.text||'Look up! 🛰️', tag:'ping-'+ch.doc.id, icon:'icon-192.png'}); }catch(e){} }
       try{ deleteDoc(doc(db,'profiles',uid,'pings',ch.doc.id)); }catch(e){}
     });
   }, err=>console.warn('pings', err));
 }
+
+/* ---------- Custom friend message (in-app only, online friends) ----------
+   Rides the same profiles/{uid}/pings channel as a nudge, tagged kind:'msg' so the
+   recipient shows it in-app and never as a system push. The compose button only appears
+   for friends who are online, and only in the friends list — so it's friends-only by
+   construction. We re-verify liveness at send time in case they just dropped off. */
+let msgTargetUid=null, msgTargetName='';
+function openMsgCompose(uid, name){
+  const f=friends.find(x=>x.uid===uid);
+  if(!f){ return; }
+  if(Date.now()-(f.lastSeen||0) >= 150000){ showToast('@'+name+' just went offline'); renderFriends(); return; }
+  msgTargetUid=uid; msgTargetName=name;
+  $('fmsg-to').textContent='@'+name;
+  const ta=$('fmsg-txt'); ta.value=''; fmsgCount();
+  $('fmsg').classList.add('show');
+  setTimeout(()=>ta.focus(), 30);
+}
+function closeMsgCompose(){ $('fmsg').classList.remove('show'); msgTargetUid=null; }
+function fmsgCount(){
+  const ta=$('fmsg-txt'); const left=200-(ta.value.length);
+  $('fmsg-count').textContent=left;
+  $('fmsg-send').disabled = ta.value.trim().length===0;
+}
+async function sendFriendMessage(){
+  if(!msgTargetUid || !currentUser || !window.fb || !myProfile) return;
+  const text=$('fmsg-txt').value.trim();
+  if(!text) return;
+  const uid=msgTargetUid, name=msgTargetName;
+  const f=friends.find(x=>x.uid===uid);
+  if(!f || Date.now()-(f.lastSeen||0) >= 150000){ closeMsgCompose(); showToast('@'+name+' went offline — message not sent'); renderFriends(); return; }
+  const {db, collection, addDoc}=window.fb;
+  try{
+    await addDoc(collection(db,'profiles',uid,'pings'),
+      {fromId:currentUser.uid, fromName:(myProfile.username||'A friend'), text:text.slice(0,200), kind:'msg', ts:Date.now()});
+    closeMsgCompose();
+    SFX.lookup(); Haptics.ping();
+    showPremiumCard({ hue:'87,224,138', icon:'💬', kicker:'Message sent', name:'@'+(name||'friend'),
+      desc:text.slice(0,120), ms:3600 });
+  }catch(e){ console.error(e); showErr('Could not send: '+(e.code||e.message||e)); }
+}
+// Incoming custom message — always in-app, no system notification.
+function showMsgCard(fromName, text){
+  showPremiumCard({ hue:'87,224,138', icon:'💬', kicker:'Message', name:'@'+(fromName||'friend'),
+    desc:(text&&text.trim())?text.trim():'(no text)', ms:9000, shake:2,
+    onTap:()=>{ if(isMobile()) openSheet('friends'); else $('friends').classList.add('open'); } });
+  SFX.lookup(); Haptics.ping();
+}
+function initMsgCompose(){
+  const send=$('fmsg-send'), cancel=$('fmsg-cancel'), ta=$('fmsg-txt'), wrap=$('fmsg');
+  if(!send||!ta||!wrap) return;
+  send.onclick=sendFriendMessage;
+  cancel.onclick=closeMsgCompose;
+  ta.oninput=fmsgCount;
+  ta.onkeydown=e=>{ if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); sendFriendMessage(); }
+    else if(e.key==='Escape'){ closeMsgCompose(); } };
+  wrap.onclick=e=>{ if(e.target===wrap) closeMsgCompose(); };   // backdrop closes
+}
+initMsgCompose();
 
 /* ---------- Share a globe snapshot ---------- */
 async function shareSnapshot(){
@@ -8898,12 +9001,14 @@ function renderFriends(){
       '<div class="fr-nm">@'+esc(f.username)+
         '<small class="fr-sub-ln">'+frStatLine(f)+'</small></div>'+
       '<button class="fr-ping" data-uid="'+f.uid+'" data-un="'+esc(f.username)+'" title="Ping to look up">👋</button>'+
+      (on?'<button class="fr-msg" data-uid="'+f.uid+'" data-un="'+esc(f.username)+'" title="Message (they\'re online)">💬</button>':'')+
       (has?'<button class="fr-locate" data-uid="'+f.uid+'" title="Show on map">📍</button>':'')+
       '<button class="fr-del" data-uid="'+f.uid+'" data-un="'+esc(f.username)+'" title="Remove">✕</button></div>';
   }).join('');
   el.querySelectorAll('.fr-locate').forEach(b=>b.onclick=e=>{ e.stopPropagation(); locateFriend(b.dataset.uid); });
   el.querySelectorAll('.fr-del').forEach(b=>b.onclick=e=>{ e.stopPropagation(); removeFriend(b.dataset.uid,b.dataset.un); });
   el.querySelectorAll('.fr-ping').forEach(b=>b.onclick=e=>{ e.stopPropagation(); pingFriend(b.dataset.uid,b.dataset.un); });
+  el.querySelectorAll('.fr-msg').forEach(b=>b.onclick=e=>{ e.stopPropagation(); openMsgCompose(b.dataset.uid,b.dataset.un); });
   el.querySelectorAll('.fr-item[data-open]').forEach(row=>row.onclick=()=>{
     const f=friends.find(x=>x.uid===row.dataset.open); if(f) openFriendProfile(f);
   });
