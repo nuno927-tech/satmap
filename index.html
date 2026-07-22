@@ -2334,8 +2334,8 @@
         <div class="ce5-h">What CE5 means</div>
         <p><b>CE5</b> stands for <b>Close Encounter of the Fifth Kind</b> — a category proposed in the
           1990s for encounters initiated by humans rather than simply witnessed. It extends Hynek's
-          original scale, where CE1 is a sighting at close range, CE2 leaves physical traces and CE3
-          involves visible occupants.</p>
+          original scale, where CE1 is a sighting at close range, CE2 leaves physical traces, CE3
+          involves visible occupants and CE4 is an abduction.</p>
         <p>The practice was popularised by Dr Steven Greer's CE5 Initiative. Its premise is that
           consciousness can be used to signal intent, and that groups meditating together with a shared
           focus may invite contact. Practitioners gather at dark sites, follow a sequence of
@@ -2577,7 +2577,7 @@
 </script>
 
 <script>
-const BUILD = 'v160';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v163';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -3201,22 +3201,20 @@ function initGlobe(){
    the poles on the night side, and a separate cloud shell drifts overhead. All of it is a
    theme ("Photoreal"); the flat maps still work when selected. Falls back gracefully to a plain
    day image if three.js never loaded. */
-let PHOTO = { on:false, gm:null, matShader:null, origOBC:undefined, origColor:null, raf:0, t0:0 };
+let PHOTO = { on:false, gm:null, matShader:null, origOBC:undefined, origColor:null, raf:0, t0:0, aurora:null, auroraShader:null };
 
 // Day/night is computed from the texture's own UV coordinates vs the geographic subsolar
 // point (both in lat/lng). This is immune to however globe.gl orients the globe mesh — the
 // terminator always lands on the correct geography because the texture defines it.
 function subsolarNow(){ return subsolarPoint(simNow()); }   // { lat, lng } in radians
 
-const AUR_GLSL = `
-float h21(vec2 p){ return fract(sin(dot(p, vec2(41.3,289.1)))*43758.5453); }
-float vnoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
-  float a=h21(i), b=h21(i+vec2(1.,0.)), c=h21(i+vec2(0.,1.)), d=h21(i+vec2(1.,1.));
+// Smooth multi-octave noise for the aurora curtains (used by the floating aurora shell).
+const AURORA_GLSL = `
+float ah(vec2 p){ return fract(sin(dot(p, vec2(41.3,289.1)))*43758.5453); }
+float an(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+  float a=ah(i), b=ah(i+vec2(1.,0.)), c=ah(i+vec2(0.,1.)), d=ah(i+vec2(1.,1.));
   return mix(mix(a,b,f.x), mix(c,d,f.x), f.y); }
-float auroraF(vec2 uv, float t){
-  float n=vnoise(vec2(uv.x*26.0, uv.y*70.0 + t*0.15));
-  float n2=vnoise(vec2(uv.x*60.0 - t*0.10, uv.y*30.0));
-  return clamp(pow(n,1.6)*(0.35+0.65*n2), 0.0, 1.0); }
+float afbm(vec2 p){ float v=0.0, amp=0.55; for(int i=0;i<4;i++){ v += amp*an(p); p = p*2.03 + 7.1; amp *= 0.5; } return v; }
 `;
 
 /* CRITICAL: globe.gl bundles its OWN three.js (currently r185), separate from the app's
@@ -3260,7 +3258,6 @@ function applyEarthShader(gm, nightTex, cloudTex){
       '#include <begin_vertex>', '#include <begin_vertex>\n  vGeo = uv;');
     sh.fragmentShader =
       'uniform sampler2D nightTex;\nuniform sampler2D cloudTex;\nuniform float uHasCloud;\nuniform float uCloudOff;\nuniform float uSunLat;\nuniform float uSunLng;\nuniform float uTime;\nvarying vec2 vGeo;\nvec3 gEarthCol;\n'
-      + AUR_GLSL + '\n'                          // trailing newline: keeps the next line's #define at column 0
       + sh.fragmentShader
         .replace('#include <map_fragment>',
         `#include <map_fragment>
@@ -3270,10 +3267,7 @@ function applyEarthShader(gm, nightTex, cloudTex){
            float cosC = sin(lat)*sin(uSunLat) + cos(lat)*cos(uSunLat)*cos(lng - uSunLng);
            float day = smoothstep(-0.22, 0.22, cosC);                  // wide, symmetric twilight → gentle black-to-light fade
            vec3 nite = pow(texture2D(nightTex, vGeo).rgb, vec3(2.2)) * vec3(1.15,1.02,0.72) * 2.1;
-           vec3 col = mix(nite, diffuseColor.rgb, day);
-           float latA = abs(vGeo.y - 0.5) * 2.0;                        // 0 at equator, 1 at pole
-           float band = smoothstep(0.72,0.80,latA) * (1.0 - smoothstep(0.92,0.99,latA));
-           col += vec3(0.16,1.0,0.55) * auroraF(vGeo, uTime) * band * (1.0 - day) * 0.9;
+           vec3 col = mix(nite, diffuseColor.rgb, day);                 // aurora now lives on a separate floating shell
            float cl = texture2D(cloudTex, vec2(vGeo.x + uCloudOff, vGeo.y)).r * uHasCloud;
            col = mix(col, vec3(1.0) * mix(0.12, 1.0, day), cl * 0.55); // drifting clouds, dim at night
            gEarthCol = col;
@@ -3282,6 +3276,57 @@ function applyEarthShader(gm, nightTex, cloudTex){
     PHOTO.matShader = sh;
   };
   gm.needsUpdate = true;
+}
+
+// A translucent shell just above the globe carrying the aurora — additive-blended glowing
+// curtains near both magnetic poles, on the night side only. Built from globe.gl's OWN mesh /
+// geometry / material classes (a window.THREE mesh would trip determinantAffine and die), and
+// parented to the globe so it inherits its exact orientation (so the night gate lines up).
+function buildAuroraShell(){
+  try{
+    if(PHOTO.aurora || typeof world==='undefined' || !world) return;
+    let gMesh=null; world.scene().traverse(o=>{ if(!gMesh && o.isMesh && o.geometry && /Sphere/i.test(o.geometry.type||'')) gMesh=o; });
+    if(!gMesh) return;
+    const GLMesh=gMesh.constructor, GLGeom=gMesh.geometry.constructor, GLMat=gMesh.material.constructor;
+    const r=(world.getGlobeRadius?world.getGlobeRadius():100);
+    const geo=new GLGeom(r, 96, 64);                        // a fresh sphere — a clone has inverted winding and won't draw
+    const s0=subsolarNow();
+    // depthTest off + default front-face culling → only the near hemisphere draws, floating over
+    // the surface, with no far-side bleed-through. Additive blend so it glows.
+    const mat=new GLMat({ color:0x000000, transparent:true, depthWrite:false, depthTest:false, blending:2 });  // 2 = AdditiveBlending
+    mat.onBeforeCompile=(sh)=>{
+      sh.uniforms.uSunLat={value:s0.lat}; sh.uniforms.uSunLng={value:s0.lng}; sh.uniforms.uTime={value:0};
+      sh.vertexShader='varying vec2 vAur;\n'+sh.vertexShader.replace(
+        '#include <begin_vertex>', '#include <begin_vertex>\n  vAur = uv;');
+      sh.fragmentShader='uniform float uSunLat;\nuniform float uSunLng;\nuniform float uTime;\nvarying vec2 vAur;\n'
+        + AURORA_GLSL + '\n'
+        + sh.fragmentShader.replace('#include <colorspace_fragment>',
+        `{
+           float lng = (vAur.x - 0.5) * 2.0 * PI;
+           float lat = (vAur.y - 0.5) * PI;
+           float aLat = abs(lat);
+           float oval = smoothstep(0.98,1.13,aLat) * (1.0 - smoothstep(1.30,1.47,aLat));   // auroral oval, both poles
+           float cosC = sin(lat)*sin(uSunLat) + cos(lat)*cos(uSunLat)*cos(lng - uSunLng);
+           float night = 1.0 - smoothstep(-0.10, 0.16, cosC);                              // dark side only
+           float t = uTime;
+           float curtain = afbm(vec2(lng*2.4 + t*0.09, aLat*7.5 - t*0.04));
+           curtain = pow(clamp(curtain,0.0,1.0), 1.5);
+           float rays = 0.70 + 0.30*sin(lng*30.0 + afbm(vec2(lng*5.0, t*0.22))*6.0);        // soft radial curtains
+           float glow = clamp(oval * night * (0.30 + 0.85*curtain) * (0.65 + 0.35*rays), 0.0, 1.0);
+           float edge = smoothstep(1.0,1.28,aLat);
+           vec3 col = mix(vec3(0.15,1.0,0.45), vec3(0.55,0.25,0.95), edge*0.6);             // green core → violet upper edge
+           gl_FragColor = vec4(col*1.25, glow);
+         }
+         #include <colorspace_fragment>`);
+      PHOTO.auroraShader=sh;
+    };
+    mat.needsUpdate=true;
+    const mesh=new GLMesh(geo, mat); mesh.renderOrder=2; mesh.name='__aurora';
+    mesh.scale.setScalar(1.02);                             // float ~2% above the surface
+    mesh.quaternion.copy(gMesh.quaternion); mesh.position.copy(gMesh.position);   // align to the globe's orientation
+    (gMesh.parent||world.scene()).add(mesh);
+    PHOTO.aurora=mesh;
+  }catch(e){ console.warn('aurora shell skipped', e); }
 }
 
 function isPhotoreal(){ return prefs.theme==='real'; }
@@ -3313,6 +3358,7 @@ function enablePhotoreal(){
           if(!PHOTO.on) return;
           const cloudTex = cimg ? mkGLTex(GLTex,cimg,cs,true) : null;
           applyEarthShader(gm, nightTex, cloudTex);
+          buildAuroraShell();
           startPhotoTick();
         }, false);
       }, false);
@@ -3336,7 +3382,8 @@ function disablePhotoreal(){
     try{ if(PHOTO.origColor!=null && gm.color && gm.color.setHex) gm.color.setHex(PHOTO.origColor); }catch(e){}
     try{ gm.needsUpdate=true; }catch(e){}   // recompile back to a plain map; applyTheme sets the flat image
   }
-  PHOTO.matShader=null;
+  if(PHOTO.aurora){ try{ (PHOTO.aurora.parent||world.scene()).remove(PHOTO.aurora); PHOTO.aurora.geometry.dispose(); PHOTO.aurora.material.dispose(); }catch(e){} PHOTO.aurora=null; }
+  PHOTO.matShader=null; PHOTO.auroraShader=null;
 }
 
 // One light rAF while photoreal is on: track the sun, advance the aurora, drift the clouds.
@@ -3354,6 +3401,11 @@ function startPhotoTick(){
         PHOTO.matShader.uniforms.uSunLng.value=s.lng;
         PHOTO.matShader.uniforms.uTime.value=t;
         PHOTO.matShader.uniforms.uCloudOff.value=(t*0.0012)%1.0;   // slow cloud drift
+      }
+      if(PHOTO.auroraShader){
+        PHOTO.auroraShader.uniforms.uSunLat.value=s.lat;
+        PHOTO.auroraShader.uniforms.uSunLng.value=s.lng;
+        PHOTO.auroraShader.uniforms.uTime.value=t;
       }
     }catch(e){}
   };
@@ -6797,8 +6849,9 @@ function initAccountUI(){
   document.addEventListener('click', e=>{
     const m=$('accountmenu');
     if(m.classList.contains('open') && !m.contains(e.target) && !$('account').contains(e.target)) m.classList.remove('open');
-    const st=$('settings');   // desktop settings dropdown closes on outside click (mobile uses the backdrop)
-    if(!isMobile() && st.classList.contains('open') && !st.contains(e.target) && !$('settingsbtn').contains(e.target))
+    const st=$('settings');   // desktop settings panel closes on outside click (mobile uses the backdrop)
+    if(!isMobile() && st.classList.contains('open') && !st.contains(e.target)
+       && !$('settingsbtn').contains(e.target) && !$('mbar').contains(e.target))   // not when opening it from the nav bar
       st.classList.remove('open');
   });
 }
@@ -8829,11 +8882,15 @@ function friendPinData(){
 function mePinData(){
   if(!observer) return null;
   mePin.lat=observer.lat; mePin.lng=observer.lng;
-  const icon=myProfile && myProfile.icon;
+  const icon=myProfile && myProfile.icon;      // the avatar they picked wins
   const photo=(myProfile && myProfile.photoURL) || (currentUser && currentUser.photoURL);
-  mePin.icon = icon ? esc(icon)
+  const html = icon ? esc(icon)
     : photo ? '<img src="'+esc(photo)+'" referrerpolicy="no-referrer" alt="">'
-    : '📍';                                   // a marker beats an initial on a map
+    : '📍';                                     // a marker beats an initial on a map
+  if(mePin.icon !== html){                      // globe.gl caches the pin element by object identity,
+    mePin.icon = html;                          // so when the icon changes we must refresh it in place
+    if(mePin._el){ const b=mePin._el.querySelector('.frpin-body'); if(b) b.innerHTML=html; }
+  }
   return mePin;
 }
 function updateFriendPins(){
