@@ -2621,7 +2621,7 @@
 </script>
 
 <script>
-const BUILD = 'v168';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v169';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -4282,8 +4282,10 @@ function idfVerdict(r, wantAz){
 }
 
 /* ---------- Location ---------- */
-const ME_ZOOM = 1.15;   // how tightly the camera centres on your location
-const EARTH_ZOOM = 2.5; // pulled back far enough to frame the whole planet
+const ME_ZOOM = 1.15;   // default centre-on-location zoom (used when your location is first set)
+// The location button cycles these three levels on repeated taps.
+const ME_ZOOMS = [0.5, 3.8, 1.8];   // tap 1: tight on your avatar · tap 2: way out · tap 3: whole Earth fills the frame
+let meStage = -1;
 
 // globe.gl's built-in animated pointOfView transition does not progress in this
 // build, so we animate the camera ourselves frame-by-frame (instant moves work).
@@ -4337,18 +4339,12 @@ function setObserver(lat,lng,recenter,source,accM){
   scanAlerts();
   shareLocation();
 }
-// Bottom-right location button: get your location if needed, then toggle between focusing on
-// it and pulling back to view the whole Earth.
+// Bottom-right location button: get your location if needed, then cycle through the three zoom
+// levels on each tap — tight on your avatar → way out → whole Earth → back to tight.
 function flyToMe(){
-  if(!observer){ requestLocation(); return; }   // fetches an exact fix, then centres via setObserver
-  let focused=false;
-  try{
-    const p=world.pointOfView();
-    const dLng=Math.abs(((p.lng-observer.lng+540)%360)-180);   // shortest angular distance
-    focused = p.altitude < (ME_ZOOM+EARTH_ZOOM)/2 && Math.abs(p.lat-observer.lat)<6 && dLng<6;
-  }catch(e){}
-  // Already zoomed in on you → pull back to the whole planet; otherwise → focus on you.
-  flyTo(observer.lat, observer.lng, focused ? EARTH_ZOOM : ME_ZOOM, 900);
+  if(!observer){ meStage=-1; requestLocation(); return; }   // fetches an exact fix, then centres via setObserver
+  meStage = (meStage + 1) % ME_ZOOMS.length;
+  flyTo(observer.lat, observer.lng, ME_ZOOMS[meStage], 900);
 }
 function requestLocation(){
   if(!navigator.geolocation){ showErr('Geolocation is not available in this browser.'); return; }
