@@ -2642,7 +2642,7 @@
 </script>
 
 <script>
-const BUILD = 'v171';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v172';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -2761,7 +2761,7 @@ const showErr = m => {
 /* Every transient confirmation is a premium card now. Messages that lead with an
    emoji donate it as the card icon, which is why most of them were written that way. */
 const TOAST_EMOJI=/^\s*([\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{2190}-\u{21FF}\u{2900}-\u{297F}\u{25A0}-\u{25FF}\u2713\u2714\u2717\u2718]+)\s*/u;
-function showToast(msg, ok){
+function showToast(msg, ok, top){
   let text=String(msg==null?'':msg), icon=ok?'✅':'💫';
   const m=text.match(TOAST_EMOJI);
   if(m){ icon=m[1]; text=text.slice(m[0].length); }
@@ -2776,7 +2776,7 @@ function showToast(msg, ok){
   showPremiumCard({
     hue: ok ? '87,224,138' : '90,209,255',
     icon, kicker: ok ? 'Done' : 'SkyWatch',
-    name, desc, ms:4200
+    name, desc, ms:4200, top:!!top
   });
 }
 
@@ -9074,7 +9074,7 @@ function evalFriendStatus(){
         f._showUntil = now + PIN_SHOW_MS; f._event = on ? 'active' : 'offline';
         setTimeout(updateFriendPins, PIN_SHOW_MS+100);       // auto-hide when the window ends
       }
-      showToast((on?'🟢 @':'🔴 @')+f.username+(on?' came online':' went offline'));
+      showToast((on?'🟢 @':'🔴 @')+f.username+(on?' came online':' went offline'), false, true);   // dock at the top, like the sign-in card
     }
   }
   if(changed) renderFriends();
