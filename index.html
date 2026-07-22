@@ -2311,18 +2311,6 @@
       <div class="switch" id="nt-rocket" role="switch"></div>
     </div>
   </div>
-  <div class="stg-sec">App</div>
-  <div class="note" id="stg-note"></div>
-  <button id="sharebtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.7 15.7 6.3M8.3 13.3l7.4 4.4"/></svg> Share this app</button>
-  <button id="tourbtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.7-.9 1.4v.3"/><path d="M12 16.5h.01"/></svg> Take the tour</button>
-  <button id="snapbtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg> Share a snapshot</button>
-  <div class="stg-sec">Your data</div>
-  <div class="stg">
-    <div class="lbl">Data saver<small>Skip the Starlink download on cellular</small></div>
-    <div class="switch" id="sw-datasaver" role="switch"></div>
-  </div>
-  <button id="exportbtn" class="idf-uap">📦 Export my data</button>
-  <button id="clearcachebtn" class="idf-uap">🧹 Clear cached data</button>
   <div class="stg-sec">Feedback</div>
   <div class="tip-note">Something broken, or an idea? This reaches the developer directly.</div>
   <button id="fbbtn" class="idf-uap">✉️ Report a bug or request a feature</button>
@@ -2342,6 +2330,18 @@
     <div class="switch" id="sw-tipmonthly" role="switch"></div>
   </div>
   <div class="tip-thanks" id="tip-thanks"></div>
+  <div class="stg-sec">Your data</div>
+  <div class="stg">
+    <div class="lbl">Data saver<small>Skip the Starlink download on cellular</small></div>
+    <div class="switch" id="sw-datasaver" role="switch"></div>
+  </div>
+  <button id="exportbtn" class="idf-uap">📦 Export my data</button>
+  <button id="clearcachebtn" class="idf-uap">🧹 Clear cached data</button>
+  <div class="stg-sec">App</div>
+  <div class="note" id="stg-note"></div>
+  <button id="sharebtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.7 15.7 6.3M8.3 13.3l7.4 4.4"/></svg> Share this app</button>
+  <button id="tourbtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.7-.9 1.4v.3"/><path d="M12 16.5h.01"/></svg> Take the tour</button>
+  <button id="snapbtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg> Share a snapshot</button>
   <div class="stg-ver" id="stg-ver">—</div>
   </div><!-- /stg-pane-main -->
   <div id="stg-pane-dev"><div id="dev-body"></div>
@@ -2683,7 +2683,7 @@
 </script>
 
 <script>
-const BUILD = 'v175';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v178';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -6670,7 +6670,21 @@ window.addEventListener('beforeinstallprompt',(e)=>{ e.preventDefault(); deferre
   maybeShowInstallPop();                        // Android: now installable, offer the popup
 });
 window.addEventListener('appinstalled',()=>{ const b=$('installbtn'); if(b) b.style.display='none';
-  deferredPrompt=null; dismissInstallPop(true); });
+  deferredPrompt=null; dismissInstallPop(true);
+  try{ updateAccountUI(currentUser); }catch(e){} });   // drop the account-menu install link too
+
+/* Account-menu "Install this app" — native prompt where available, guidance otherwise. */
+async function promptAppInstall(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    try{ await deferredPrompt.userChoice; }catch(e){}
+    deferredPrompt=null;
+    try{ updateAccountUI(currentUser); }catch(e){}
+    return;
+  }
+  if(isIOS()){ showToast('On iPhone/iPad: tap the Share button, then “Add to Home Screen”.', true); return; }
+  showToast('Open your browser menu and choose “Install app” / “Add to Home screen”.', true);
+}
 
 function dismissInstallPop(remember){
   const p=$('installpop'); if(p) p.classList.remove('show');
@@ -6924,8 +6938,10 @@ function updateAccountUI(user){
       <div class="acct-uname">${(myProfile&&myProfile.username)?('@'+myProfile.username+' · 🏅 '+(myProfile.badges||0)+' badges'):'<span class="lnk" id="acct-setuname">+ choose a username</span>'}</div>
       <button class="act" id="acct-user">👤 User</button>
       <button class="act" id="signout">Sign out</button>
+      ${isStandalone()?'':'<button class="act" id="acct-install">⬇ Install this app</button>'}
       <div class="note bot">✓ Your location & settings sync to your account across devices.</div>`;
     const so=$('signout'); if(so) so.onclick=()=>{ signOutUser(); menu.classList.remove('open'); };
+    const ai=$('acct-install'); if(ai) ai.onclick=()=>{ menu.classList.remove('open'); promptAppInstall(); };
     const au=$('acct-user'); if(au) au.onclick=()=>{ menu.classList.remove('open'); openUserPanel(); };
     const su=$('acct-setuname'); if(su) su.onclick=()=>{ menu.classList.remove('open'); openUserPanel(); };
   } else {
@@ -6941,12 +6957,14 @@ function updateAccountUI(user){
         <button class="act" id="acct-emsignup">Create account</button>
       </div>
       <div class="acct-forgot"><span class="lnk" id="acct-forgot">Forgot password?</span></div>
-      <div class="acct-emmsg" id="acct-emmsg"></div>`;
+      <div class="acct-emmsg" id="acct-emmsg"></div>
+      ${isStandalone()?'':'<button class="act" id="acct-install">⬇ Install this app</button>'}`;
     const si=$('signin'); if(si) si.onclick=()=>{ menu.classList.remove('open'); signInGoogle(); };
     const ei=$('acct-emsignin'); if(ei) ei.onclick=()=>emailAuth('in');
     const eu=$('acct-emsignup'); if(eu) eu.onclick=()=>emailAuth('up');
     const fp=$('acct-forgot');   if(fp) fp.onclick=resetPassword;
     const pw=$('acct-pw'); if(pw) pw.addEventListener('keydown', e=>{ if(e.key==='Enter') emailAuth('in'); });
+    const ai=$('acct-install'); if(ai) ai.onclick=()=>{ menu.classList.remove('open'); promptAppInstall(); };
   }
 }
 // Shared email sign-in / create-account. mode = 'in' | 'up'.
