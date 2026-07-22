@@ -381,6 +381,7 @@
   .d-badge.b-LEO{background:rgba(90,209,255,.16);color:#5ad1ff;border-color:rgba(90,209,255,.4)}
   .d-badge.b-MEO{background:rgba(255,211,77,.16);color:#ffd34d;border-color:rgba(255,211,77,.4)}
   .d-badge.b-GEO{background:rgba(197,140,255,.16);color:#c58cff;border-color:rgba(197,140,255,.4)}
+  .d-badge.b-decay{background:rgba(255,77,77,.18);color:#ff6b6b;border-color:rgba(255,77,77,.5)}
   /* enrichment block */
   #d-meta{margin-top:12px}
   #d-meta .row{font-size:12px}
@@ -2536,7 +2537,7 @@
 </script>
 
 <script>
-const BUILD = 'v156';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v158';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -2601,6 +2602,7 @@ const GROUPS = [
   { id:'amateur',  label:'Ham radio', color:'#ffb35a', cap:80 },          // amateur-radio satellites you can actually work
   { id:'geo',      label:'GEO belt',  color:'#e8e0a8', cap:200 },         // the geostationary ring
   { id:'weather',  label:'Weather',   color:'#57e08a', cap:60 },
+  { id:'decaying', label:'Decaying',  color:'#ff4d4d', virtual:true },    // cross-listed: low, reentering orbits (not counted toward the orbit total)
   { id:'rocket',   label:'Launches',  color:'#ff6b35', launches:true },   // upcoming rocket launches (Launch Library 2)
 ];
 // GPU point rendering handles large counts, so mobile only trims caps slightly now.
@@ -2967,7 +2969,7 @@ function readTleCache(id){
 }
 async function loadData(){
   const now=Date.now();
-  const results = await Promise.all(GROUPS.filter(g=>!g.launches).map(async g=>{
+  const results = await Promise.all(GROUPS.filter(g=>!g.launches && !g.virtual).map(async g=>{
     const c=readTleCache(g.id);
     if(c && c.rows.length && now-c.ts < TLE_TTL) return {rows:c.rows, live:false};        // fresh cache → skip network
     try{ const rows=await fetchGroupRetry(g,2); if(rows && rows.length){ saveTleCache(g.id, rows); return {rows, live:true}; } throw new Error('empty'); }
@@ -3329,6 +3331,7 @@ function startPhotoTick(){
 let usePoints=false, useWorker=false, satPoints=null, satGeo=null, propWorker=null,
     workerBusy=false, tickTimer=null, workerWatch=null, workerGen=0;
 const POINT_CAP=12000, pointSatIndex=[], WHITE=[1,1,1];
+let DECAY_RGB=null;   // lazily-computed highlight colour for the Decaying layer
 function hexRgb(hex){
   const h=(hex||'#b9c7e6').replace('#',''); const n=parseInt(h.length===3
     ? h.split('').map(c=>c+c).join('') : h, 16);
@@ -3422,7 +3425,9 @@ function renderPoints(){
     const c=world.getCoords(s.lat, s.lng, s.alt);
     pos[k*3]=c.x; pos[k*3+1]=c.y; pos[k*3+2]=c.z;
     const isSel = s===selected;
-    const rgb = (isSel || up) ? WHITE : (s._rgb || (s._rgb=hexRgb(s.color)));
+    const rgb = (isSel || up) ? WHITE
+      : (enabled['decaying'] && isDecaying(s)) ? (DECAY_RGB || (DECAY_RGB=hexRgb('#ff4d4d')))
+      : (s._rgb || (s._rgb=hexRgb(s.color)));
     col[k*3]=rgb[0]; col[k*3+1]=rgb[1]; col[k*3+2]=rgb[2];
     sz[k] = isSel ? 11 : (s.id==='25544') ? 9 : up ? 6 : (favs.size && favs.has(s.id) ? 5.5 : 3.2);
     pointSatIndex[k]=i; k++;
@@ -4273,7 +4278,9 @@ function renderLegend(){
         if(id==='rocket'){ const p=launchPins[0];
           if(p){ if(isMobile()) closeSheets(); flyTo(p.lat,p.lng,1.6,900); if(navigator.vibrate){try{navigator.vibrate(15);}catch(e){}} showToast('🎯 '+p.launch.name); }
           else showErr('No launch pads to center on yet.'); return; }
-        const sat=SATS.find(s=> s.group===id && typeof s.lat==='number' && typeof s.lng==='number');
+        const sat = id==='decaying'
+          ? SATS.find(s=> isDecaying(s) && typeof s.lat==='number' && typeof s.lng==='number')
+          : SATS.find(s=> s.group===id && typeof s.lat==='number' && typeof s.lng==='number');
         if(sat){
           if(isMobile()) closeSheets();
           flyTo(sat.lat, sat.lng, 1.6, 900);
@@ -4292,6 +4299,7 @@ function renderLegend(){
       const id=n.dataset.id; enabled[id]=!enabled[id];
       n.classList.toggle('off',!enabled[id]);
       if(id==='iss') updateIssOrbit();
+      if(id==='decaying') renderFrame();              // re-colour the decaying highlight on/off
       if(id==='starlink' && enabled['starlink']) loadMoreStarlink();
       if(id==='rocket'){ renderLaunchList(); if(enabled['rocket'] && !LAUNCHES.length) loadLaunches(); renderFrame(); }
       saveSettings();
@@ -4322,18 +4330,21 @@ function renderLayerItems(id, box){
       if(l){ if(isMobile()) closeSheets(); selectLaunch(l); } });
     return;
   }
-  let items=SATS.filter(s=>s.group===id).slice();
-  if(!items.length){ box.innerHTML='<div class="lgi-empty">Still loading…</div>'; return; }
-  // Overhead first when we have a location, else alphabetical.
-  if(observer) items.sort((a,b)=>(b.elevation??-99)-(a.elevation??-99));
-  else items.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const decaying = id==='decaying';
+  let items = decaying ? SATS.filter(isDecaying) : SATS.filter(s=>s.group===id).slice();
+  if(!items.length){ box.innerHTML='<div class="lgi-empty">'+(decaying?'No decaying objects tracked right now.':'Still loading…')+'</div>'; return; }
+  if(decaying) items.sort((a,b)=>{ const A=orbitDetails(a), B=orbitDetails(b); return (A?A.per:9e9)-(B?B.per:9e9); });  // most urgent (lowest) first
+  else if(observer) items.sort((a,b)=>(b.elevation??-99)-(a.elevation??-99));   // overhead first
+  else items.sort((a,b)=>(a.name||'').localeCompare(b.name||''));               // else alphabetical
   const total=items.length;
   box.innerHTML=items.slice(0,60).map(s=>{
-    const up = observer && s.elevation!=null && s.elevation>0;
-    const meta = up ? (Math.round(s.elevation)+'° up'+(s.azimuth!=null?(' · '+azCompass(s.azimuth)):''))
-      : (s.altKm ? fmtDist(s.altKm)+' up' : 'below horizon');
+    let meta;
+    if(decaying){ const e=decayEstimate(s); meta = e ? ('perigee '+e.per+' km · '+e.text) : (s.altKm?fmtDist(s.altKm)+' up':''); }
+    else { const up = observer && s.elevation!=null && s.elevation>0;
+      meta = up ? (Math.round(s.elevation)+'° up'+(s.azimuth!=null?(' · '+azCompass(s.azimuth)):''))
+        : (s.altKm ? fmtDist(s.altKm)+' up' : 'below horizon'); }
     return '<button class="nt-rank lgi" data-id="'+esc(s.id)+'">'+
-      '<span class="nt-num lgi-dot" style="color:'+s.color+'"></span>'+
+      '<span class="nt-num lgi-dot" style="color:'+(decaying?'#ff4d4d':s.color)+'"></span>'+
       '<span class="nt-body"><span class="nt-nm">'+esc(s.name)+'</span>'+
       '<span class="nt-when">'+meta+'</span></span></button>';
   }).join('') + (total>60 ? '<div class="lgi-empty">…and '+(total-60)+' more</div>' : '');
@@ -4342,7 +4353,12 @@ function renderLayerItems(id, box){
     if(s){ if(isMobile()) closeSheets(); selectSat(s); } });
 }
 function updateLegendCounts(){
-  GROUPS.forEach(g=>{ const c = g.launches ? LAUNCHES.length : SATS.filter(s=>s.group===g.id).length; const el=$('ct-'+g.id); if(el) el.textContent=c; });
+  GROUPS.forEach(g=>{
+    const c = g.id==='decaying' ? SATS.filter(isDecaying).length
+      : g.launches ? LAUNCHES.length
+      : SATS.filter(s=>s.group===g.id).length;
+    const el=$('ct-'+g.id); if(el) el.textContent=c;
+  });
 }
 
 // Camera altitude that frames a satellite: must sit farther out than the sat (which is at s.alt
@@ -4391,6 +4407,26 @@ function orbitDetails(s){
     return { apo:a*(1+e)-6378.137, per:a*(1-e)-6378.137,
       inc:s.satrec.inclo*180/Math.PI, period:(2*Math.PI)/s.satrec.no };  // minutes
   }catch(e){ return null; }
+}
+// "Decaying": a low, roughly-circular orbit that atmospheric drag is actively pulling down —
+// perigee under ~320 km with a still-low apogee (so elliptical transfer orbits don't qualify).
+// These objects are reentering, not merely low. Cached per object (satrec is fixed until refresh).
+function isDecaying(s){
+  if(s._decay!=null) return s._decay;
+  let dec=false;
+  try{ const d=orbitDetails(s); if(d && d.per<320 && d.apo<600) dec=true; }catch(e){}
+  return s._decay=dec;
+}
+// Rough reentry timeframe from perigee altitude, for the decommission note. Estimate only.
+function decayEstimate(s){
+  const d=orbitDetails(s); if(!d) return null;
+  const per=Math.round(d.per);
+  const text = per<180 ? 'reentry imminent — days'
+    : per<220 ? 'weeks'
+    : per<260 ? '1–3 months'
+    : per<300 ? 'months to ~1 year'
+    : '~1–2 years';
+  return { per, text };
 }
 // International designator (TLE line 1, cols 10-17) → launch year, instantly.
 function launchYearOf(s){
@@ -4474,6 +4510,13 @@ async function enrichDetail(s){
   if(cat && cat.OBJECT_TYPE) rows.push(['Type', OBJTYPE_MAP[cat.OBJECT_TYPE]||cat.OBJECT_TYPE]);
   if(cat && cat.OPS_STATUS_CODE && OPS_MAP[cat.OPS_STATUS_CODE]) rows.push(['Status', OPS_MAP[cat.OPS_STATUS_CODE]]);
   rows.push(['In orbit', (cat && cat.DECAY_DATE) ? ('Decayed '+cat.DECAY_DATE) : 'Yes']);
+  // Decommission / reentry outlook for objects on a decaying orbit (unless already decayed).
+  if(isDecaying(s) && !(cat && cat.DECAY_DATE)){
+    const de=decayEstimate(s), od=orbitDetails(s);
+    if(de) rows.push(['Decommission', 'Passive reentry — est. '+de.text]);
+    if(od) rows.push(['Orbit now', Math.round(od.per)+'–'+Math.round(od.apo)+' km (perigee–apogee)']);
+    rows.push(['Note', 'Low perigee; decaying from atmospheric drag. Reentry timing is an estimate.']);
+  }
   if(cat && cat.LAUNCH_SITE) rows.push(['Launch site', cat.LAUNCH_SITE]);
   let html='';
   const gal=(wiki && wiki.gallery && wiki.gallery.length) ? wiki.gallery : [];
@@ -4537,6 +4580,7 @@ function renderDetail(s){
   const badges=$('d-badges');
   if(badges){
     const b=['<span class="d-badge b-'+oc+'">'+oc+'</span>'];
+    if(isDecaying(s)) b.push('<span class="d-badge b-decay">⚠ Decaying</span>');
     if(ob){ b.push('<span class="d-badge">'+Math.round(ob.period)+' min</span>');
             b.push('<span class="d-badge">incl '+ob.inc.toFixed(1)+'°</span>'); }
     if(ly) b.push('<span class="d-badge">'+ly+'</span>');
@@ -7071,8 +7115,16 @@ let sightLog=[];
 const SLOG_KEY='satmap_sightlog', SLOG_MAX=300;
 function loadSightLog(){ try{ const a=JSON.parse(localStorage.getItem(SLOG_KEY)||'[]'); if(Array.isArray(a)) sightLog=a; }catch(e){} }
 function saveSightLogLocal(){ try{ localStorage.setItem(SLOG_KEY, JSON.stringify(sightLog.slice(-SLOG_MAX))); }catch(e){} }
+// Unique id for one sighting instance, so repeats and their feed posts can be told apart.
+function newSightId(){ return 's'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 function pushSightLog(entry){
-  sightLog.push(entry);
+  // Merge into an existing entry for the same object + instant instead of blindly appending.
+  // The profile onSnapshot can fire between commitSeen() and this call and run backfillSightLog(),
+  // which adds this same {id,ts} first — appending here would then create a phantom duplicate
+  // (that's the July-20 double-entry bug). Merging keeps exactly one row and fills in its sid.
+  const i=sightLog.findIndex(x=>x.id===entry.id && x.ts===entry.ts);
+  if(i>=0) sightLog[i]=Object.assign({}, sightLog[i], entry);
+  else sightLog.push(entry);
   if(sightLog.length>SLOG_MAX) sightLog=sightLog.slice(-SLOG_MAX);
   saveSightLogLocal(); saveSettings();       // saveSettings syncs it to users/{uid}
 }
@@ -7124,8 +7176,9 @@ async function logSighting(s, ts){
     }
     SFX.success(); Haptics.sighting();
     showToast(n===1?('🏅 New badge: '+s.name):('👁 Sighting #'+n+' logged: '+s.name), true);
-    pushSightLog({id:s.id, name:s.name, kind:'sat', ts});
-    postFeed({name:s.name, id:s.id, kind:'sat', n});     // every sighting posts
+    const sid=newSightId();                              // unique per this sighting instance
+    pushSightLog({id:s.id, name:s.name, kind:'sat', ts, sid});
+    postFeed({name:s.name, id:s.id, kind:'sat', n, sid});     // every sighting posts
   }catch(e){ console.error(e); showErr('Could not save: '+(e.code||e.message||e)); }
 }
 async function logLaunchSighting(l, how){
@@ -7138,8 +7191,9 @@ async function logLaunchSighting(l, how){
   try{ await commitSeen(list, addSightDay(myProfile.sightDays, ts));
     SFX.success(); Haptics.sighting();
     showToast((n===1?'🏅 New badge: ':'👁 Sighting #'+n+': ')+l.rocket+' ('+(how==='person'?'in person':'overhead')+')', true);
-    pushSightLog({id:l.id, name:l.provider+' · '+l.rocket, kind:'launch', how, ts});
-    postFeed({name:l.provider+' · '+l.rocket, id:l.id, kind:'launch', how, n});
+    const sid=newSightId();
+    pushSightLog({id:l.id, name:l.provider+' · '+l.rocket, kind:'launch', how, ts, sid});
+    postFeed({name:l.provider+' · '+l.rocket, id:l.id, kind:'launch', how, n, sid});
   }catch(e){ console.error(e); showErr('Could not save: '+(e.code||e.message||e)); }
 }
 async function removeSeen(id, name){
@@ -7159,20 +7213,48 @@ async function removeSeen(id, name){
 }
 /* Delete one of your own logged sightings from the Mine list. UAP reports live only
    in the private log; real objects also sit in your profile's seen[] and feed. */
-async function deleteMineSighting(id, name){
+async function deleteMineSighting(o){
+  // o = { sid, id, ts, name }. Removes ONE instance — not every sighting of that satellite.
+  const sid=o&&o.sid, id=o&&o.id, ts=o&&(+o.ts||0), name=o&&o.name;
   if(!id) return;
-  if(!confirm('Delete “'+(name||'this sighting')+'”?\n\nThis removes it from your history'+
-    ((/^uap-/.test(id))?'.':', your badge count and the public feed.'))) return;
+  if(!confirm('Delete “'+(name||'this sighting')+'”?\n\nThis removes just this one entry'+
+    ((/^uap-/.test(id))?'.':' and its public feed post.'))) return;
+  const matchOne = x => sid ? x.sid===sid : (x.id===id && (!ts || x.ts===ts));
   if(/^uap-/.test(id)){
-    // Private log entry only — nothing in seen[] or the feed to touch.
-    sightLog=sightLog.filter(x=>x.id!==id);
+    // Private log entry only — drop the single matching row.
+    let done=false;
+    sightLog=sightLog.filter(x=>{ if(!done && matchOne(x)){ done=true; return false; } return true; });
     saveSightLogLocal(); saveSettings();     // saveSettings mirrors the log to users/{uid}
-    renderFeed();
-    showToast('Sighting deleted');
+    renderFeed(); showToast('Sighting deleted');
     return;
   }
-  await removeSeen(id, name);              // clears seen[], the log, and matching feed posts
+  await removeOneSighting({sid, id, ts, name});
   renderFeed();
+}
+// Remove a single sighting instance: one log row, one badge tally, one feed post.
+async function removeOneSighting({sid, id, ts, name}){
+  if(!currentUser||!window.fb||!myProfile) return;
+  const matchOne = x => sid ? x.sid===sid : (x.id===id && (!ts || x.ts===ts));
+  // 1) drop exactly one local log row
+  let dropped=false;
+  sightLog=sightLog.filter(x=>{ if(!dropped && matchOne(x)){ dropped=true; return false; } return true; });
+  saveSightLogLocal();
+  // 2) decrement the seen[] count; remove the badge only when the last instance is gone
+  let list=(Array.isArray(myProfile.seen)?myProfile.seen:[]).map(e=>Object.assign({},e));
+  const si=list.findIndex(e=>e.id===id);
+  if(si>=0){ const c=(list[si].count||1)-1; if(c<=0) list.splice(si,1); else list[si].count=c; }
+  try{ await commitSeen(list, myProfile.sightDays||[]); }
+  catch(e){ showErr('Could not remove: '+(e.code||e.message||e)); return; }
+  showToast('Removed a sighting of “'+(name||'item')+'”');
+  // 3) delete the matching public feed post — by instance id, or one by satellite id for old posts
+  try{
+    const {db, collection, query, where, getDocs, deleteDoc}=window.fb;
+    const snap=await getDocs(query(collection(db,'feed'), where('uid','==',currentUser.uid)));
+    let docs = sid ? snap.docs.filter(d=>d.data().sid===sid)
+                   : snap.docs.filter(d=>d.data().id===id).slice(0,1);   // legacy: remove one
+    await Promise.all(docs.map(d=>deleteDoc(d.ref).catch(()=>{})));
+    feedItems=feedItems.filter(x=> sid ? x.sid!==sid : true);   // drop it from the in-memory feed too
+  }catch(e){ console.warn('feed cleanup', e); }
 }
 /* ---------- Achievements page (viewable for any user) ---------- */
 function openMyAchievements(){
@@ -8272,9 +8354,11 @@ function renderFeed(){
           '<span class="feed-t"><span class="feed-u">You</span> '+(uap?'logged':'spotted')+' · '+
           fmtSeen(x.ts)+(x.how?(' · '+(x.how==='person'?'in person':'overhead')):'')+'</span></span>'+
           '<button class="feed-del" data-id="'+esc(x.id||'')+'" data-nm="'+esc(x.name||'')+'" '+
+            'data-sid="'+esc(x.sid||'')+'" data-ts="'+(x.ts||0)+'" '+
             'title="Delete this sighting" aria-label="Delete">✕</button></div>'; }).join('');
     el.querySelectorAll('.feed-del').forEach(b=>b.onclick=e=>{
-      e.stopPropagation(); deleteMineSighting(b.dataset.id, b.dataset.nm); });
+      e.stopPropagation();
+      deleteMineSighting({sid:b.dataset.sid, id:b.dataset.id, ts:b.dataset.ts, name:b.dataset.nm}); });
     return;
   }
   if(!currentUser){ el.innerHTML='<div class="fr-note">Sign in to see the feed.</div>'; return; }
