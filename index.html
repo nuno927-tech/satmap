@@ -2724,7 +2724,7 @@
 </script>
 
 <script>
-const BUILD = 'v184';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v185';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -3154,23 +3154,69 @@ function readTleCache(id){
     return { ts:e.ts||0, rows:e.r.map(a=>({name:a[0],l1:a[1],l2:a[2],id:(a[1]||'').slice(2,7).trim(),group:id})) };
   }catch(e){ return null; }
 }
+// Stale-while-revalidate: boot renders instantly from ANY cached elements (even past the
+// 3-hour TTL) and only blocks the loader on groups that have no cache at all. Groups served
+// stale are queued in `staleGroups` and refreshed in the background after the app is up, so
+// the loader never waits on a slow or throttled Celestrak once a device has cached once.
+let staleGroups=[];
 async function loadData(){
   const now=Date.now();
-  const results = await Promise.all(GROUPS.filter(g=>!g.launches && !g.virtual).map(async g=>{
+  staleGroups=[];
+  const groups=GROUPS.filter(g=>!g.launches && !g.virtual);
+  const cached=[], cold=[];
+  for(const g of groups){
     const c=readTleCache(g.id);
-    if(c && c.rows.length && now-c.ts < TLE_TTL) return {rows:c.rows, live:false};        // fresh cache → skip network
-    try{ const rows=await fetchGroupRetry(g,2); if(rows && rows.length){ saveTleCache(g.id, rows); return {rows, live:true}; } throw new Error('empty'); }
-    catch(e){ console.warn('group failed', g.id, e); return (c && c.rows.length) ? {rows:c.rows, live:false} : {rows:[], failed:true}; }
-  }));
-  let raw=[], anyLive=false, anyFail=false;
-  results.forEach(r=>{ if(r.rows && r.rows.length){ raw=raw.concat(r.rows); if(r.live) anyLive=true; } if(r.failed) anyFail=true; });
+    if(c && c.rows.length){ cached.push(c); if(now-c.ts >= TLE_TTL) staleGroups.push(g); }   // use it now, maybe refresh later
+    else cold.push(g);                                                                        // nothing to show → must fetch
+  }
+  let raw=[], anyFail=false;
+  for(const c of cached) raw=raw.concat(c.rows);
+  if(cold.length){
+    const res=await Promise.all(cold.map(async g=>{
+      try{ const rows=await fetchGroupRetry(g,2); if(rows && rows.length){ saveTleCache(g.id, rows); return {rows}; } throw new Error('empty'); }
+      catch(e){ console.warn('group failed', g.id, e); return {rows:[], failed:true}; }
+    }));
+    res.forEach(r=>{ if(r.rows && r.rows.length) raw=raw.concat(r.rows); if(r.failed) anyFail=true; });
+  }
   if(!raw.length){
     showErr('Could not reach the live satellite feed — showing the ISS from cached elements.');
     raw = FALLBACK.map(f=>({name:f.name,l1:f.l1,l2:f.l2,id:f.id,group:f.group}));
-  } else if(anyFail && !anyLive){
+  } else if(anyFail && !cached.length){
     showErr('Live feed busy — showing recently saved satellite data.');
   }
   SATS = buildSatrecs(raw);
+}
+// Background refresh of groups that booted from stale cache. Updates each satrec in place
+// (index-stable), appends any newly-seen objects, freshens the on-device cache, then re-syncs
+// the worker to the current SATS order and redraws. Failures leave the cached data untouched.
+async function refreshStaleData(){
+  if(!staleGroups.length || !SATS.length) return;
+  const groups=staleGroups.slice(); staleGroups=[];
+  const byId=new Map(SATS.map(s=>[s.id,s]));
+  let changed=false; const added=[];
+  for(const g of groups){
+    let rows; try{ rows=await fetchGroupRetry(g,2); }catch(e){ continue; }
+    if(!rows || !rows.length) continue;
+    saveTleCache(g.id, rows);
+    for(const r of rows){
+      const ex=byId.get(r.id);
+      if(ex){
+        if(ex.l1!==r.l1 || ex.l2!==r.l2){
+          try{ const rec=satellite.twoline2satrec(r.l1,r.l2);
+            if(rec && !rec.error){ ex.l1=r.l1; ex.l2=r.l2; ex.satrec=rec; ex.name=r.name; changed=true; } }catch(e){}
+        }
+      } else { added.push({id:r.id, name:r.name, l1:r.l1, l2:r.l2, group:g.id}); }
+    }
+  }
+  if(added.length){
+    const cur=new Set(SATS.map(s=>s.id));                 // re-check now — Starlink bulk-load may have raced in
+    const fresh=added.filter(a=>!cur.has(a.id));
+    if(fresh.length){ buildSatrecs(fresh).forEach(s=>SATS.push(s)); changed=true; }
+  }
+  if(changed){
+    if(useWorker && propWorker){ try{ propWorker.postMessage({type:'init', tle:SATS.map(s=>[s.l1,s.l2])}); }catch(e){} }
+    updateLegendCounts(); renderFrame();
+  }
 }
 
 /* ---------- Background: load the rest of Starlink (cache-first, then network) ---------- */
@@ -5517,6 +5563,7 @@ async function boot(){
   // Data saver: the Starlink bulk download is by far the largest transfer here.
   if(flagOn('starlink') && !(prefs.dataSaver && onMeteredConnection())) setTimeout(loadMoreStarlink, 4000);  // then pull the rest of Starlink in the background
   if(enabled['rocket'] && flagOn('launches')) setTimeout(loadLaunches, 2500);   // fetch upcoming launches in the background
+  if(staleGroups.length) setTimeout(refreshStaleData, 3500);   // silently freshen any elements we booted from stale cache
   setInterval(()=>{ if(enabled['rocket'] && flagOn('launches')) loadLaunches(); }, 18e5);  // refresh launches every 30 min
 
   // Tap = use my location. Long-press = set it by postal code (network fixes are often far off).
