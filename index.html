@@ -2710,7 +2710,7 @@
 </script>
 
 <script>
-const BUILD = 'v180';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v183';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -9423,9 +9423,11 @@ function initFriendsUI(){
 }
 
 /* ---------- Global community counter (total users + online now) ---------- */
-let statsTick=null;
+let statsTick=null, lastStatsFetch=0;
 async function fetchCommunityStats(){
   if(!window.fb || !window.fb.getCountFromServer) return;
+  if(document.hidden) return;                       // don't poll a backgrounded tab
+  lastStatsFetch=Date.now();
   const {db, collection, getCountFromServer, query, where}=window.fb;
   try{
     const total  = (await getCountFromServer(collection(db,'presence'))).data().count;
@@ -9437,7 +9439,14 @@ async function fetchCommunityStats(){
 function startCommunityStats(){
   fetchCommunityStats();
   if(statsTick) clearInterval(statsTick);
-  statsTick=setInterval(fetchCommunityStats, 60000);
+  statsTick=setInterval(fetchCommunityStats, 30000);    // was 60s — refresh twice as often
+  // Also refresh the moment the app regains focus, so the count isn't stale on return.
+  if(!startCommunityStats._vis){
+    startCommunityStats._vis=true;
+    document.addEventListener('visibilitychange', ()=>{
+      if(!document.hidden && Date.now()-lastStatsFetch>8000) fetchCommunityStats();
+    });
+  }
 }
 
 initMobileUI(); initInstall(); registerSW(); initAccountUI(); initSettingsUI(); initFriendsUI(); initAR(); initOnboard(); initLightbox(); initAchievements(); initListModal(); initClickSounds(); initSky(); initUapForm(); initCe5(); initUserPanel(); initLocPicker(); initVisibilityPause(); initTip(); initAchReplay(); initCompass(); initDevMode(); initFeedback();
