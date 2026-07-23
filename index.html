@@ -731,6 +731,20 @@
     padding:4px 9px;border-radius:8px;background:rgba(120,160,255,.14);color:var(--muted)}
   .nt-grade.best{background:rgba(87,224,138,.18);color:#57e08a}
   .nt-grade.good{background:rgba(90,209,255,.18);color:var(--accent)}
+  /* Unlockable-award trophy — wiggles once every 3s to draw the eye */
+  .nt-trophy{flex:0 0 auto;cursor:pointer;font-size:16px;line-height:1;margin:0 1px;padding:2px;
+    filter:drop-shadow(0 0 4px rgba(255,205,70,.55));transform-origin:50% 65%;
+    animation:nt-trophy-shake 3s ease-in-out infinite}
+  .nt-trophy:hover{filter:drop-shadow(0 0 8px rgba(255,205,70,.9))}
+  @keyframes nt-trophy-shake{
+    0%,86%,100%{transform:rotate(0)}
+    88%{transform:rotate(-17deg)} 90%{transform:rotate(15deg)} 92%{transform:rotate(-11deg)}
+    94%{transform:rotate(8deg)} 96%{transform:rotate(-5deg)} 98%{transform:rotate(2deg)} }
+  .ach-flash{animation:ach-flash 2.2s ease-out}
+  @keyframes ach-flash{
+    0%{box-shadow:0 0 0 2px rgba(255,205,70,.95),0 0 24px rgba(255,205,70,.6)}
+    100%{box-shadow:0 0 0 0 rgba(255,205,70,0)} }
+  @media (prefers-reduced-motion: reduce){ .nt-trophy{animation:none} }
   .nt-filter{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:14px 0 4px}
   .nt-filter button{font-size:12.5px}
   /* Where you are in tonight's schedule */
@@ -2710,7 +2724,7 @@
 </script>
 
 <script>
-const BUILD = 'v183';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v184';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -8219,9 +8233,47 @@ let ntPicked=null;
 const NT_PICK_WINDOW=6*3600000;
 const NT_CAP=25;
 function ntGrade(el){ return el>=70 ? ['best','Superb'] : el>=45 ? ['good','Good'] : ['','Fair']; }
+/* Tonight → Achievements bridge. A small shaking trophy sits next to any object that could
+   move you toward an award you HAVEN'T earned yet; tapping it jumps to that award's detail
+   so you can see what's needed. Objects whose awards are all done get no trophy. */
+function achForSat(s, earnedSet){
+  if(!s) return null;
+  const id=s.id, g=s.group, nm=(s.name||'').toUpperCase();
+  let oc=''; try{ oc=orbitClass(s); }catch(e){}
+  const cands=[];
+  if(id==='25544') cands.push('iss');
+  if(id==='20580' || /HUBBLE|HST/.test(nm)) cands.push('hubble');
+  if(id==='5' || id==='00005' || /VANGUARD 1/.test(nm)) cands.push('vgd');
+  if(g==='starlink' || /STARLINK/.test(nm)) cands.push('sl10','slnite','bband');
+  if(g==='oneweb') cands.push('bband');
+  if(g==='gps-ops' || g==='galileo') cands.push('nav');
+  if(g==='weather') cands.push('wx');
+  if(g==='amateur') cands.push('ham');
+  if(oc==='GEO') cands.push('geo');
+  for(const a of cands){ if(!earnedSet.has(a)) return a; }   // first UNEARNED wins; none → no trophy
+  return null;
+}
+function trophyTag(achId){
+  return achId ? '<span class="nt-trophy" role="button" tabindex="0" data-ach="'+achId+
+    '" title="Unlockable award — tap to see what’s needed">🏆</span>' : '';
+}
+function jumpToAchievement(achId){
+  const b=$('board');
+  if(b && !b.classList.contains('open')){ if(isMobile()) openSheet('board'); else b.classList.add('open'); }
+  if(b) b.classList.remove('tab-rank');                       // force the "Your journey" tab
+  const you=$('bdt-you'), rk=$('bdt-rank'); if(you) you.classList.add('on'); if(rk) rk.classList.remove('on');
+  renderHero();
+  setTimeout(()=>{
+    const el=document.querySelector('.ach-mine .ach-item[data-ach="'+achId+'"]');
+    if(el){ el.scrollIntoView({behavior:'smooth', block:'center'});
+      el.classList.add('ach-flash'); setTimeout(()=>el.classList.remove('ach-flash'), 2400); }
+  }, 140);
+}
 function renderNightList(){
   const out=$('night-out'); if(!out || !ntData) return;
   const {win, mo, launches}=ntData;
+  // Awards you haven't earned yet drive the little trophies (signed-in only).
+  const earnedSet = currentUser ? new Set(achEarned(statsFromProfile(myProfile||{})).map(a=>a.id)) : null;
   const superbOnly = ntQuality==='best';
   const list=(superbOnly ? ntData.all.filter(r=>r.p.peakEl>=70) : ntData.all).slice(0, NT_CAP);
   const dur=Math.round((win.end-win.start)/3600000);
@@ -8246,11 +8298,13 @@ function renderNightList(){
     list.forEach(r=>{
       const mins=Math.max(1,Math.round((r.p.end-r.p.start)/60000));
       const grade=ntGrade(r.p.peakEl);
+      const trophy = earnedSet ? trophyTag(achForSat(r.sat, earnedSet)) : '';
       h+='<button class="nt-rank" data-id="'+esc(r.sat.id)+'" data-start="'+r.p.start+'" data-end="'+r.p.end+'">'+
         '<span class="nt-num"></span><span class="nt-body">'+
         '<span class="nt-nm">'+esc(r.sat.name)+'</span>'+
         '<span class="nt-when">'+fmtPassTime(r.p.start)+' · max '+Math.round(r.p.peakEl)+'° · '+
         azCompass(r.p.startAz)+'→'+azCompass(r.p.endAz)+' · '+mins+' min</span></span>'+
+        trophy+
         '<span class="nt-grade '+grade[0]+'">'+grade[1]+'</span></button>';
     });
     if(!superbOnly && ntData.all.length>NT_CAP)
@@ -8259,10 +8313,11 @@ function renderNightList(){
   if(launches.length){
     h+='<div class="idf-lbl">Launches during tonight’s window</div>';
     for(const l of launches){
+      const ltr = (earnedSet && !earnedSet.has('rocket')) ? trophyTag('rocket') : '';
       h+='<button class="nt-rank" data-launch="'+esc(l.id)+'"><span class="nt-num">🚀</span>'+
         '<span class="nt-body"><span class="nt-nm">'+esc(l.name||'Launch')+'</span>'+
         '<span class="nt-when">'+(l.net?fmtPassTime(l.net.getTime()):'time TBD')+
-        (l.padName?(' · '+esc(l.padName)):'')+'</span></span></button>';
+        (l.padName?(' · '+esc(l.padName)):'')+'</span></span>'+ltr+'</button>';
     }
   }
   out.innerHTML=h;
@@ -8276,6 +8331,12 @@ function renderNightList(){
     selectSat(s); });
   out.querySelectorAll('[data-launch]').forEach(b=>b.onclick=()=>{
     const l=(LAUNCHES||[]).find(x=>String(x.id)===b.dataset.launch); if(l) selectLaunch(l); });
+  // Trophies live inside the row buttons — stop the click so it opens the award, not the object.
+  out.querySelectorAll('.nt-trophy').forEach(t=>{
+    const go=e=>{ e.stopPropagation(); e.preventDefault(); jumpToAchievement(t.dataset.ach); };
+    t.onclick=go;
+    t.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' ') go(e); });
+  });
 }
 /* Walk the schedule as the night goes: what's overhead now, what's up next,
    what's already gone. Cheap enough to re-run on a timer — it only touches classes. */
