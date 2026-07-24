@@ -1,5 +1,5 @@
 /* SkyWatch service worker — app-shell caching + offline fallback */
-const VERSION = 'skywatch-v190';
+const VERSION = 'skywatch-v191';
 const SHELL = [
   './',
   './index.html',

@@ -1235,8 +1235,11 @@
   #arview{position:fixed;inset:0;z-index:95;display:none;
     background:radial-gradient(120% 90% at 50% 12%,#0b1730,#05070f 72%)}
   #arview.show{display:block}
+  #ar-cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;
+    transition:opacity .45s ease;filter:brightness(.72) saturate(.92)}
+  #ar-canvas{position:absolute;inset:0;width:100%;height:100%}
   /* Only the close button is interactive — everything else must not eat taps. */
-  #ar-title,#ar-reticle,#ar-target,#ar-guide,#ar-sub{pointer-events:none}
+  #ar-cam,#ar-canvas,#ar-title,#ar-reticle,#ar-target,#ar-guide,#ar-sub{pointer-events:none}
   #ar-close{position:absolute;z-index:10;top:calc(env(safe-area-inset-top) + 12px);right:16px;width:44px;height:44px;
     display:flex;align-items:center;justify-content:center;border-radius:50%;border:1px solid var(--border);
     background:rgba(0,0,0,.4);color:#fff;font-size:16px;cursor:pointer}
@@ -2066,6 +2069,8 @@
 <div id="accountmenu" class="panel"></div>
 
 <div id="arview">
+  <video id="ar-cam" autoplay playsinline muted></video>
+  <canvas id="ar-canvas"></canvas>
   <div id="ar-close" aria-label="Close">✕</div>
   <div id="ar-title">—</div>
   <div id="ar-reticle"></div>
@@ -2428,7 +2433,10 @@
     <button id="skt-id">🔎 Identify</button>
     <button id="skt-ce5">🧘 CE5</button>
   </div>
-  <div id="sky-pane-now"><div id="ohlist"></div></div>
+  <div id="sky-pane-now">
+    <button id="ar-sky-btn" class="idf-uap">🔭 Point &amp; identify &mdash; live AR sky view</button>
+    <div id="ohlist"></div>
+  </div>
   <div id="sky-pane-night">
     <div class="idf-note">Everything worth stepping outside for tonight, in the order it happens.</div>
     <div id="night-out"></div>
@@ -2747,7 +2755,7 @@
 </script>
 
 <script>
-const BUILD = 'v190';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v191';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -5381,19 +5389,91 @@ function initOnboard(){
 /* ---------- AR sky finder ---------- */
 let arActive=false, arTarget=null, arHeading=null, arPitch=null, arOrient=null, arRAF=null;
 let arHeadS=null, arPitchS=null, arAz=null, arEl=null, arLastCalc=0, arOnTarget=false;
-function openAR(){
+let arSky=[], arSkyCalc=0, arStream=null, arDpr=1;
+function openAR(){ if(!selected){ return; } startAR(selected); }   // from a satellite's detail card
+function openArSky(){ startAR(null); }                            // "point & identify" — whole sky
+function startAR(target){
   markExplored('ar');
-  if(!selected){ return; }
-  if(!observer){ showErr('Enable your location (⌖ button) to use the sky finder.'); return; }
-  arTarget=selected; arHeading=null; arPitch=null;
+  if(!observer){ showErr('Enable your location (⌖ button) to use the sky view.'); return; }
+  arTarget=target||null; arHeading=null; arPitch=null;
   arHeadS=null; arPitchS=null; arAz=null; arEl=null; arLastCalc=0; arOnTarget=false;
-  $('ar-title').textContent=selected.name;
+  arSky=[]; arSkyCalc=0;
+  $('ar-title').textContent = arTarget ? arTarget.name : '🔭 Sky view';
   $('ar-sub').textContent='Point your phone at the sky.';
   $('arview').classList.add('show'); arActive=true;
+  arSetupCanvas(); arStartCamera();
   startOrient(); if(!arRAF) arRAF=requestAnimationFrame(arTick);
 }
-function closeAR(){ arActive=false; $('arview').classList.remove('show'); stopOrient();
+function closeAR(){ arActive=false; $('arview').classList.remove('show'); stopOrient(); arStopCamera();
   if(arRAF){ cancelAnimationFrame(arRAF); arRAF=null; } }
+// Rear-camera background so satellites overlay the real sky. Graceful: denied → dark sky.
+async function arStartCamera(){
+  const v=$('ar-cam'); if(!v || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:'environment'} }, audio:false });
+    if(!arActive){ stream.getTracks().forEach(t=>t.stop()); return; }    // closed while awaiting permission
+    arStream=stream; v.srcObject=stream; v.style.opacity=1;
+  }catch(e){ /* no camera / denied — the dark sky gradient stays */ }
+}
+function arStopCamera(){
+  const v=$('ar-cam'); if(v){ try{ v.srcObject=null; }catch(e){} v.style.opacity=0; }
+  if(arStream){ arStream.getTracks().forEach(t=>{ try{ t.stop(); }catch(e){} }); arStream=null; }
+}
+function arSetupCanvas(){
+  const cv=$('ar-canvas'); if(!cv) return;
+  arDpr=Math.min(window.devicePixelRatio||1, 2);
+  const W=innerWidth, H=innerHeight;
+  cv.width=Math.round(W*arDpr); cv.height=Math.round(H*arDpr);
+  cv.style.width=W+'px'; cv.style.height=H+'px';
+  const ctx=cv.getContext('2d'); ctx.setTransform(arDpr,0,0,arDpr,0,0);
+  cv._ctx=ctx; cv._W=W; cv._H=H;
+}
+// Naked-eye-relevant candidates: ISS, stations, the bright catalogue, favorites, + any target.
+function arCandidates(){
+  const set=[], seen=new Set();
+  const add=s=>{ if(s && s.satrec && !seen.has(s.id)){ seen.add(s.id); set.push(s); } };
+  for(const s of SATS){ if(s.group==='iss'||s.group==='stations'||s.group==='visual') add(s); }
+  if(favs && favs.forEach) favs.forEach(id=>add(SATS.find(x=>x.id===id)));
+  if(arTarget) add(arTarget);
+  return set;
+}
+// Recompute each candidate's azimuth/elevation (throttled ~4×/s — they drift slowly on screen).
+function arComputeSky(){
+  if(!observer){ arSky=[]; return; }
+  const d=new Date(simNow()), g=satellite.gstime(d), out=[];
+  for(const s of arCandidates()){
+    let pv; try{ pv=satellite.propagate(s.satrec, d); }catch(e){ continue; }
+    if(!pv || !pv.position) continue;
+    let la; try{ la=satellite.ecfToLookAngles(observer.gd, satellite.eciToEcf(pv.position, g)); }catch(e){ continue; }
+    const el=la.elevation*R2D; if(el < -2) continue;                 // keep just-below-horizon for smooth entry
+    out.push({ name:shortName(s.name), az:la.azimuth*R2D, el, group:s.group, target:!!(arTarget && s.id===arTarget.id) });
+  }
+  arSky=out;
+}
+// Paint every above-horizon candidate as a labelled dot, positioned by where the phone points.
+function arDrawSky(){
+  const cv=$('ar-canvas'); if(!cv || !cv._ctx) return;
+  const ctx=cv._ctx, W=cv._W, H=cv._H;
+  ctx.clearRect(0,0,W,H);
+  if(arHeadS==null || arPitchS==null) return;
+  const hw=W/2, hh=H/2, FOV=42;                                     // ~84° across ≈ a phone camera
+  for(const o of arSky){
+    if(o.el < 0) continue;
+    const dAz=((o.az-arHeadS+540)%360)-180;
+    const dEl=o.el-arPitchS;
+    if(Math.abs(dAz)>FOV+12 || Math.abs(dEl)>FOV+12) continue;       // outside the view
+    const x=hw + dAz/FOV*hw, y=hh - dEl/FOV*hh;
+    const iss=o.group==='iss', t=o.target;
+    const col = t?'#57e08a' : iss?'#ff6a5d' : 'rgba(130,205,255,.95)';
+    ctx.beginPath(); ctx.arc(x, y, t?7:(iss?5.5:4), 0, 6.2832);
+    ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=t?16:9; ctx.fill(); ctx.shadowBlur=0;
+    ctx.font=(t||iss?'700 ':'600 ')+'13px system-ui,-apple-system,sans-serif';
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillText(o.name, x+(t?12:9)+0.7, y+0.7);   // drop shadow for legibility
+    ctx.fillStyle = t?'#9cffc0' : iss?'#ffb3ab' : 'rgba(232,242,255,.96)';
+    ctx.fillText(o.name, x+(t?12:9), y);
+  }
+}
 function onOrient(e){
   if(typeof e.webkitCompassHeading==='number') arHeading=e.webkitCompassHeading;
   else if(typeof e.alpha==='number') arHeading=(360-e.alpha+360)%360;
@@ -5466,48 +5546,61 @@ function smoothAngle(prev, next, k){
 }
 function arTick(){
   if(!arActive){ arRAF=null; return; }
-  const s=arTarget, guide=$('ar-guide'), sub=$('ar-sub'), tgt=$('ar-target');
+  const guide=$('ar-guide'), sub=$('ar-sub'), tgt=$('ar-target');
   const now=Date.now();
-  // Look angles change slowly — recompute ~5×/s instead of every frame.
-  if(s && observer && now-arLastCalc>200){
-    arLastCalc=now;
-    const d=new Date(simNow());
-    let pv; try{ pv=satellite.propagate(s.satrec, d); }catch(e){ pv=null; }
-    if(pv&&pv.position){ const la=satellite.ecfToLookAngles(observer.gd, satellite.eciToEcf(pv.position, satellite.gstime(d)));
-      arAz=la.azimuth*R2D; arEl=la.elevation*R2D; } else { arAz=null; arEl=null; }
-  }
-  // Low-pass the noisy sensor stream so the marker glides instead of twitching.
+  // Whole-sky look angles (throttled ~4×/s), then the per-frame overlay paint.
+  if(now-arSkyCalc>250){ arSkyCalc=now; arComputeSky(); }
+  // Low-pass the noisy sensor stream so markers glide instead of twitching.
   if(arHeading!=null) arHeadS = smoothAngle(arHeadS, arHeading, 0.16);
   if(arPitch!=null)   arPitchS = (arPitchS==null) ? arPitch : arPitchS + (arPitch-arPitchS)*0.16;
-  const az=arAz, el=arEl;
-  if(az==null){ guide.textContent='Locating…'; }
-  else if(el < -1){ guide.textContent='Below the horizon'; sub.textContent='Not visible from your location right now.'; tgt.style.opacity=0; arOnTarget=false; }
-  else if(arHeadS==null){ guide.textContent='Move your phone'; sub.textContent='Waiting for the compass…'; }
-  else {
-    const dAz=((az-arHeadS+540)%360)-180;                  // + → target is to your right
-    const dEl=el-(arPitchS==null?0:arPitchS);              // + → target is above where you point
-    const hw=innerWidth/2, hh=innerHeight/2;
-    const x=Math.max(-hw+34,Math.min(hw-34, dAz/45*hw)), y=Math.max(-hh+34,Math.min(hh-34, -dEl/45*hh));
-    tgt.style.opacity=1; tgt.style.transform='translate(-50%,-50%) translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px)';
-    // Hysteresis: lock on inside 7°, only release past 11°, so the label can't flicker.
-    const dist=Math.hypot(dAz,dEl);
-    if(dist<7) arOnTarget=true; else if(dist>11) arOnTarget=false;
-    tgt.classList.toggle('near', arOnTarget);
-    const hor=Math.abs(dAz)<8?'':(dAz>0?'right':'left'), ver=Math.abs(dEl)<8?'':(dEl>0?'up':'down');
-    const dirs=[ver,hor].filter(Boolean).join('-');
-    guide.textContent = arOnTarget ? '🎯 On target!' : (dirs ? 'Look '+dirs : 'Almost — hold steady');
-    sub.textContent='Az '+Math.round((az+360)%360)+'° '+azCompass(az)+' · Alt '+Math.round(el)+'° · '+Math.round(dist)+'° away';
+  arDrawSky();
+  if(arTarget){
+    // Single-target guidance: recompute this one's angles ~5×/s and steer the reticle to it.
+    const s=arTarget;
+    if(observer && now-arLastCalc>200){
+      arLastCalc=now;
+      const d=new Date(simNow());
+      let pv; try{ pv=satellite.propagate(s.satrec, d); }catch(e){ pv=null; }
+      if(pv&&pv.position){ const la=satellite.ecfToLookAngles(observer.gd, satellite.eciToEcf(pv.position, satellite.gstime(d)));
+        arAz=la.azimuth*R2D; arEl=la.elevation*R2D; } else { arAz=null; arEl=null; }
+    }
+    const az=arAz, el=arEl;
+    if(az==null){ guide.textContent='Locating…'; tgt.style.opacity=0; }
+    else if(el < -1){ guide.textContent='Below the horizon'; sub.textContent='Not visible from your location right now.'; tgt.style.opacity=0; arOnTarget=false; }
+    else if(arHeadS==null){ guide.textContent='Move your phone'; sub.textContent='Waiting for the compass…'; }
+    else {
+      const dAz=((az-arHeadS+540)%360)-180;                  // + → target is to your right
+      const dEl=el-(arPitchS==null?0:arPitchS);              // + → target is above where you point
+      const hw=innerWidth/2, hh=innerHeight/2;
+      const x=Math.max(-hw+34,Math.min(hw-34, dAz/45*hw)), y=Math.max(-hh+34,Math.min(hh-34, -dEl/45*hh));
+      tgt.style.opacity=1; tgt.style.transform='translate(-50%,-50%) translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px)';
+      const dist=Math.hypot(dAz,dEl);                        // hysteresis: lock <7°, release >11°
+      if(dist<7) arOnTarget=true; else if(dist>11) arOnTarget=false;
+      tgt.classList.toggle('near', arOnTarget);
+      const hor=Math.abs(dAz)<8?'':(dAz>0?'right':'left'), ver=Math.abs(dEl)<8?'':(dEl>0?'up':'down');
+      const dirs=[ver,hor].filter(Boolean).join('-');
+      guide.textContent = arOnTarget ? '🎯 On target!' : (dirs ? 'Look '+dirs : 'Almost — hold steady');
+      sub.textContent='Az '+Math.round((az+360)%360)+'° '+azCompass(az)+' · Alt '+Math.round(el)+'° · '+Math.round(dist)+'° away';
+    }
+  } else {
+    // Overlay mode: no single target — just show what's up and where you're facing.
+    tgt.style.opacity=0;
+    const up=arSky.reduce((n,o)=>n+(o.el>=0?1:0),0);
+    if(arHeadS==null){ guide.textContent='Move your phone'; sub.textContent='Waiting for the compass…'; }
+    else { guide.textContent=up+' overhead'; sub.textContent='Facing '+azCompass(arHeadS)+' '+Math.round(arHeadS)+'° · dots are satellites above you'; }
   }
   arRAF=requestAnimationFrame(arTick);
 }
 function initAR(){
   const b=$('d-ar'); if(b) b.onclick=openAR;
+  const sb=$('ar-sky-btn'); if(sb) sb.onclick=openArSky;
   const c=$('ar-close');
   if(c){                                   // pointerup as well as click, so a tap always registers
     const bye=e=>{ e.preventDefault(); e.stopPropagation(); closeAR(); };
     c.addEventListener('click', bye);
     c.addEventListener('pointerup', bye);
   }
+  window.addEventListener('resize', ()=>{ if(arActive) arSetupCanvas(); });   // orientation change too
   document.addEventListener('keydown', e=>{ if(arActive && e.key==='Escape') closeAR(); });
 }
 
