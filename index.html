@@ -2724,7 +2724,7 @@
 </script>
 
 <script>
-const BUILD = 'v185';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v186';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -4204,6 +4204,25 @@ async function disablePush(){
     }
   }catch(e){ console.warn('push disable', e); }
   showToast('Background alerts off');
+}
+/* Self-heal: the "push on" preference syncs across devices, but a real push subscription is
+   per-device — and Chrome/Android can silently drop one. So whenever the app thinks push is
+   on but this device has no live subscription, quietly re-create it. Never prompts: it only
+   runs when permission is already granted, so a fresh device still opts in via the toggle. */
+let pushReconciled=false;
+async function reconcilePush(){
+  if(pushReconciled || !prefs.push) return;
+  if(!currentUser || !window.fb) return;
+  if(!pushSupported() || iosNeedsInstall()) return;
+  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  pushReconciled=true;
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({
+      userVisibleOnly:true, applicationServerKey:urlB64ToUint8Array(VAPID_PUBLIC_KEY) });
+    if(sub){ await savePushSubscription(sub); await syncAlertSchedule(true); }
+  }catch(e){ console.warn('push reconcile failed', e); pushReconciled=false; }   // let a later sync retry
 }
 async function savePushSubscription(sub){
   if(!currentUser || !window.fb || !sub) return;
@@ -7020,6 +7039,7 @@ function applySettings(s){
     if(Array.isArray(s.favs)){ const merged=new Set([...favs, ...s.favs]); favs=merged; prefs.favs=[...merged];
       try{ localStorage.setItem('satmap_favs', JSON.stringify(prefs.favs)); }catch(e){} }
     applyPrefs();
+    reconcilePush();                    // re-subscribe this device if push is on but its subscription is missing
     if(prefs.borders) applyBorders();   // load + draw country borders if synced on
     if(prefs.notify) scanAlerts();
     if(s.groups){
