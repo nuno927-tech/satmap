@@ -751,6 +751,19 @@
   .nt-cl.part{color:#ffd34d}
   .nt-cl.cloudy{color:#ff7a6b}
   .nt-cloudnote{font-size:12.5px;font-weight:600;color:var(--text);margin:2px 2px 8px}
+  /* Starlink-train banner + "invite" button */
+  .nt-train{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin:2px 0 10px;
+    padding:12px 14px;border-radius:13px;border:1px solid rgba(90,209,255,.5);cursor:pointer;
+    background:linear-gradient(180deg,rgba(90,209,255,.18),rgba(90,209,255,.07));
+    box-shadow:0 0 0 1px rgba(90,209,255,.35),0 0 22px rgba(90,209,255,.28)}
+  .nt-train:hover{border-color:rgba(90,209,255,.8);box-shadow:0 0 0 1px rgba(90,209,255,.7),0 0 30px rgba(90,209,255,.4)}
+  .nt-train-ic{font-size:26px;line-height:1;flex:0 0 auto}
+  .nt-train-tx{min-width:0;display:flex;flex-direction:column;gap:2px}
+  .nt-train-tx b{color:var(--accent);font-size:14px}
+  .nt-train-tx small{color:var(--muted);font-size:11.5px}
+  .nt-invite{width:100%;margin:10px 0 2px;padding:11px;border-radius:12px;cursor:pointer;font:inherit;font-size:13px;font-weight:600;
+    color:rgb(197,140,255);border:1px solid rgba(197,140,255,.45);background:rgba(197,140,255,.1)}
+  .nt-invite:hover{background:rgba(197,140,255,.2);border-color:rgba(197,140,255,.75)}
   .nt-filter{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:14px 0 4px}
   .nt-filter button{font-size:12.5px}
   /* Where you are in tonight's schedule */
@@ -2734,7 +2747,7 @@
 </script>
 
 <script>
-const BUILD = 'v189';           // shown in Settings and on the loader so you can confirm what's deployed
+const BUILD = 'v190';           // shown in Settings and on the loader so you can confirm what's deployed
 
 /* ---------- Crash log ----------
    Installed before anything else so it catches boot failures too. A silent
@@ -4935,13 +4948,20 @@ function renderDetail(s){
   if(fav){ const on=isFav(s); fav.textContent=on?'★ Favorited':'☆ Favorite'; fav.classList.toggle('on',on); fav.onclick=()=>toggleFav(s); }
   const sh=$('d-share'); if(sh) sh.onclick=()=>shareSat(s);
 }
-// Share a deep link that opens straight to this satellite.
+// Share a deep link that opens straight to this satellite. If we know the viewer's location,
+// make it a "watch with me" invite with the next visible pass baked into the text.
 async function shareSat(s){
   const url=appShareUrl()+'#sel=sat:'+encodeURIComponent(s.id);
-  const data={ title:'SkyWatch — '+s.name, text:'Track '+s.name+' live on SkyWatch 🛰️', url };
+  let text='Track '+shortName(s.name)+' live on SkyWatch 🛰️';
+  if(observer){ try{
+    const p=satVisiblePasses(s.satrec, Date.now(), Date.now()+48*3600000, 60000).find(x=>x.visible);
+    if(p) text='Watch '+shortName(s.name)+' with me 🛰️ — visible '+fmtPassTime(p.start)+
+      ', look '+azCompass(p.startAz)+' (up to '+Math.round(p.peakEl)+'°)';
+  }catch(e){} }
+  const data={ title:'SkyWatch — '+s.name, text, url };
   if(navigator.share){ try{ await navigator.share(data); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
-  try{ await navigator.clipboard.writeText(url); showToast('🔗 Link copied — opens straight to '+s.name); return; }catch(e){}
-  showErr('Share this link: '+url);
+  try{ await navigator.clipboard.writeText(text+' '+url); showToast('🔗 Link copied — invite sent'); return; }catch(e){}
+  showErr(text+' '+url);
 }
 
 function doSearch(q){
@@ -5619,6 +5639,7 @@ async function boot(){
   if(flagOn('starlink') && !(prefs.dataSaver && onMeteredConnection())) setTimeout(loadMoreStarlink, 4000);  // then pull the rest of Starlink in the background
   if(enabled['rocket'] && flagOn('launches')) setTimeout(loadLaunches, 2500);   // fetch upcoming launches in the background
   if(staleGroups.length) setTimeout(refreshStaleData, 3500);   // silently freshen any elements we booted from stale cache
+  setTimeout(maybeShowWeeklyRecap, 5000);                      // once-a-week "your sky week" card
   setInterval(()=>{ if(enabled['rocket'] && flagOn('launches')) loadLaunches(); }, 18e5);  // refresh launches every 30 min
 
   // Tap = use my location. Long-press = set it by postal code (network fixes are often far off).
@@ -8333,6 +8354,9 @@ function planTonight(){
     if(observer) getCloudCover(observer.lat, observer.lng).then(cl=>{
       if(cl && ntData){ ntData.cloud=cl; renderNightList(); markTonightProgress(); }
     });
+    // Starlink-train scan is heavier — defer it a beat, then fold it in if one's up tonight.
+    setTimeout(()=>{ if(!ntData) return; const tr=findStarlinkTrain(ntData.win);
+      if(tr && ntData){ ntData.train=tr; renderNightList(); markTonightProgress(); } }, 90);
   }, 40);
 }
 /* Cloud cover per pass — free, key-less hourly forecast from Open-Meteo (same service the
@@ -8365,6 +8389,72 @@ function cloudTag(pct){
   const cls = pct<30?'clear' : pct<70?'part' : 'cloudy';
   const ic  = pct<30?'☀️'   : pct<70?'⛅'   : '☁️';
   return '<span class="nt-cl '+cls+'" title="'+Math.round(pct)+'% cloud at pass time">'+ic+' '+Math.round(pct)+'%</span>';
+}
+// Strip the catalogue designator: "ISS (ZARYA)" → "ISS".
+function shortName(nm){ return String(nm||'').replace(/\s*\(.*/,'').trim(); }
+// A satellite's mean orbital altitude straight from its TLE mean motion — no propagation needed.
+function meanAltKm(s){
+  try{ const n=(s.satrec&&s.satrec.no)/60; if(!n) return null;      // rad/min → rad/s
+    return Math.cbrt(398600.4418/(n*n)) - 6371; }catch(e){ return null; }
+}
+/* Starlink "train": a freshly-launched batch still low (<~430 km) and bunched together makes
+   a string-of-pearls pass — a naked-eye crowd-pleaser. Detect a cluster of low Starlinks whose
+   visible passes land in the same few-minute window tonight. Bounded scan (cap on candidates). */
+const TRAIN_MAX_ALT=430, TRAIN_MIN=6, TRAIN_BUCKET=6*60000, TRAIN_SCAN_CAP=140;
+function findStarlinkTrain(win){
+  if(!observer || !win) return null;
+  const fresh=[];
+  for(const s of SATS){ if(s.group!=='starlink') continue; const a=meanAltKm(s);
+    if(a!=null && a<TRAIN_MAX_ALT){ fresh.push(s); if(fresh.length>=TRAIN_SCAN_CAP) break; } }
+  if(fresh.length<TRAIN_MIN) return null;
+  const buckets=new Map();
+  for(const s of fresh){
+    let ps=[]; try{ ps=satVisiblePasses(s.satrec, win.start, win.end, 60000); }catch(e){ continue; }
+    for(const p of ps){ if(!p.visible || p.peakEl<20) continue;
+      const key=Math.round(p.start/TRAIN_BUCKET);
+      const b=buckets.get(key)||{count:0, az:0, peakEl:0, start:Infinity};
+      b.count++; b.az+=p.startAz; b.peakEl=Math.max(b.peakEl,p.peakEl); b.start=Math.min(b.start,p.start);
+      buckets.set(key,b); break;                                   // one pass per sat is enough
+    }
+  }
+  let best=null;
+  for(const b of buckets.values()){ if(b.count>=TRAIN_MIN && (!best||b.count>best.count)) best=b; }
+  if(!best) return null;
+  return { start:best.start, count:best.count, az:azCompass(best.az/best.count), peakEl:Math.round(best.peakEl) };
+}
+async function shareTrain(tr){
+  if(!tr) return;
+  const url=appShareUrl();
+  const text='🚂 A Starlink train (~'+tr.count+' satellites in a line) is visible tonight at '+
+    fmtPassTime(tr.start)+' — look '+tr.az+', up to '+tr.peakEl+'°. Watch it with me on SkyWatch!';
+  if(navigator.share){ try{ await navigator.share({title:'SkyWatch — Starlink train tonight', text, url}); return; }
+    catch(e){ if(e&&e.name==='AbortError') return; } }
+  try{ await navigator.clipboard.writeText(text+' '+url); showToast('🔗 Copied — invite someone to watch'); return; }catch(e){}
+  showErr(text+' '+url);
+}
+// Weekly recap — a once-a-week "your sky week" nudge on the first open of a new ISO week.
+function isoWeekKey(d){
+  d=new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-day);
+  const ys=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return d.getUTCFullYear()+'-W'+String(Math.ceil((((d-ys)/86400000)+1)/7)).padStart(2,'0');
+}
+const RECAP_KEY='skywatch_recap_week';
+function maybeShowWeeklyRecap(){
+  if(!Array.isArray(sightLog) || !sightLog.length) return;
+  const wk=isoWeekKey(new Date());
+  let last=''; try{ last=localStorage.getItem(RECAP_KEY)||''; }catch(e){}
+  if(last===wk) return;
+  const seen=sightLog.filter(x=>(x.last||x.ts||0) >= Date.now()-7*86400000);
+  try{ localStorage.setItem(RECAP_KEY, wk); }catch(e){}          // mark shown either way — don't recheck this week
+  if(!seen.length) return;
+  const n=seen.length;
+  const names=seen.slice().sort((a,b)=>((b.last||b.ts)-(a.last||a.ts))).slice(0,3).map(x=>shortName(x.name));
+  const streak=(currentUser && myProfile) ? (statsFromProfile(myProfile).streak||0) : null;
+  showPremiumCard({ hue:'197,140,255', icon:'📅', kicker:'Your week in the sky',
+    name:n+' object'+(n>1?'s':'')+' spotted',
+    desc:(names.length?('Including '+names.join(', ')+'. '):'')+(streak!=null?('🔥 '+streak+'-day streak.'):'Keep looking up. 🔭'),
+    ms:8000, onTap:openBoardPanel });
 }
 /* Render the schedule from the last sweep. Switching quality just re-renders —
    the expensive propagation already happened. */
@@ -8438,6 +8528,14 @@ function renderNightList(){
       '<button data-q="all"'+(superbOnly?'':' class="on"')+'>All passes · '+ntData.all.length+'</button>'+
       '<button data-q="best"'+(superbOnly?' class="on"':'')+'>⭐ Superb only · '+superbCount+'</button>'+
     '</div>';
+  if(ntData.train){
+    const tr=ntData.train;
+    h+='<button class="nt-train" data-train="1" title="Tap to invite someone">'+
+       '<span class="nt-train-ic">🚂</span><span class="nt-train-tx">'+
+       '<b>Starlink train tonight</b>'+
+       '<small>~'+tr.count+' satellites in a line · '+fmtPassTime(tr.start)+' · look '+tr.az+', up to '+tr.peakEl+'° · tap to share</small>'+
+       '</span></button>';
+  }
   if(!list.length){
     h+='<div class="fr-note">'+(superbOnly
       ? 'Nothing above 70° tonight. Switch to “All passes” — a 45° pass is still an easy naked-eye sighting.'
@@ -8460,6 +8558,7 @@ function renderNightList(){
         trophy+
         '<span class="nt-grade '+grade[0]+'">'+grade[1]+'</span></button>';
     });
+    h+='<button class="nt-invite" data-invite="1">🔗 Invite someone to tonight&rsquo;s best pass</button>';
     if(!superbOnly && ntData.all.length>NT_CAP)
       h+='<div class="fr-note">Showing the first '+NT_CAP+' of '+ntData.all.length+' — try “Superb only” to cut to the best.</div>';
   }
@@ -8484,6 +8583,10 @@ function renderNightList(){
     selectSat(s); });
   out.querySelectorAll('[data-launch]').forEach(b=>b.onclick=()=>{
     const l=(LAUNCHES||[]).find(x=>String(x.id)===b.dataset.launch); if(l) selectLaunch(l); });
+  out.querySelectorAll('[data-train]').forEach(b=>b.onclick=()=>shareTrain(ntData&&ntData.train));
+  out.querySelectorAll('[data-invite]').forEach(b=>b.onclick=()=>{
+    const best=((ntData&&ntData.all)||[]).slice().sort((a,b)=>b.p.peakEl-a.p.peakEl)[0];
+    if(best) shareSat(best.sat); });
   // Trophies live inside the row buttons — stop the click so it opens the award, not the object.
   out.querySelectorAll('.nt-trophy').forEach(t=>{
     const go=e=>{ e.stopPropagation(); e.preventDefault(); jumpToAchievement(t.dataset.ach); };
